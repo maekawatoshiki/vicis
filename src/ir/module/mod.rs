@@ -11,6 +11,7 @@ pub struct Module {
     name: String,
     source_filename: String,
     target: Target,
+    // TODO: Metadata
 }
 
 impl Module {

@@ -1,18 +1,22 @@
+use super::super::attributes::{parser::parse_attributes, Attribute};
 use super::Module;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
-    character::complete::{char, multispace0, space0},
+    character::complete::{char, digit1, multispace0},
     combinator::{cut, map},
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
     Err, IResult,
 };
+use rustc_hash::FxHashMap;
 
 enum ModuleElement<'a> {
     SourceFilename(&'a str),
     TargetDatalayout(&'a str),
     TargetTriple(&'a str),
+    AttributeGroup(u32, Vec<Attribute>),
+    Metadata,
     Comment,
 }
 
@@ -25,8 +29,8 @@ fn parse_source_filename<'a>(
 ) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("source_filename"),
-        preceded(space0, char('=')),
-        preceded(space0, parse_string_literal),
+        preceded(multispace0, char('=')),
+        preceded(multispace0, parse_string_literal),
     ))(source)
     .map(|(i, (_, _, name))| (i, ModuleElement::SourceFilename(name)))
 }
@@ -36,9 +40,9 @@ fn parse_target_datalayout<'a>(
 ) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("target"),
-        preceded(space0, tag("datalayout")),
-        preceded(space0, char('=')),
-        preceded(space0, parse_string_literal),
+        preceded(multispace0, tag("datalayout")),
+        preceded(multispace0, char('=')),
+        preceded(multispace0, parse_string_literal),
     ))(source)
     .map(|(i, (_, _, _, datalayout))| (i, ModuleElement::TargetDatalayout(datalayout)))
 }
@@ -48,15 +52,51 @@ fn parse_target_triple<'a>(
 ) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("target"),
-        preceded(space0, tag("triple")),
-        preceded(space0, char('=')),
-        preceded(space0, parse_string_literal),
+        preceded(multispace0, tag("triple")),
+        preceded(multispace0, char('=')),
+        preceded(multispace0, parse_string_literal),
     ))(source)
     .map(|(i, (_, _, _, triple))| (i, ModuleElement::TargetTriple(triple)))
 }
 
+fn parse_attribute_group<'a>(
+    source: &'a str,
+) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+    tuple((
+        tag("attributes"),
+        preceded(multispace0, char('#')),
+        digit1,
+        preceded(multispace0, char('=')),
+        preceded(multispace0, char('{')),
+        preceded(multispace0, parse_attributes),
+        preceded(multispace0, char('}')),
+    ))(source)
+    .map(|(i, (_, _, id, _, _, attrs, _))| {
+        (i, ModuleElement::AttributeGroup(id.parse().unwrap(), attrs))
+    })
+}
+
+fn parse_metadata<'a>(
+    source: &'a str,
+) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+    map(
+        preceded(char('!'), terminated(take_until("\n"), char('\n'))),
+        |_| ModuleElement::Metadata,
+    )(source)
+}
+
+fn parse_comment<'a>(
+    source: &'a str,
+) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+    map(
+        preceded(char(';'), terminated(take_until("\n"), char('\n'))),
+        |_| ModuleElement::Comment,
+    )(source)
+}
+
 pub fn parse_module<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str>>> {
     let mut module = Module::new();
+    let mut attr_groups: FxHashMap<u32, Vec<Attribute>> = FxHashMap::default();
 
     loop {
         let (source_, (_, element, _)) = tuple((
@@ -65,11 +105,10 @@ pub fn parse_module<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<
                 parse_source_filename,
                 parse_target_datalayout,
                 parse_target_triple,
+                parse_attribute_group,
+                parse_metadata,
                 // TODO: How do I deal with comments?
-                map(
-                    preceded(char(';'), terminated(take_until("\n"), char('\n'))),
-                    |_| ModuleElement::Comment,
-                ),
+                parse_comment,
             )),
             multispace0,
         ))(source)?;
@@ -84,6 +123,10 @@ pub fn parse_module<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<
             ModuleElement::TargetTriple(triple) => {
                 module.target.triple = triple.to_string();
             }
+            ModuleElement::AttributeGroup(id, attrs) => {
+                attr_groups.insert(id, attrs);
+            }
+            ModuleElement::Metadata => {}
             ModuleElement::Comment => {}
         }
 
@@ -105,6 +148,8 @@ fn parse1_module() {
             ; comments
             ; bluh bluh
             target triple = "x86_64-pc-linux-gnu" ; hogehoge
+            !0 = {}
+            attributes #0 = { noinline }
         "#,
     );
     println!("{:?}", result);
