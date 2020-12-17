@@ -1,12 +1,13 @@
+use super::super::module::parser::{parse_string_literal, spaces};
 use super::Attribute;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
-    character::complete::{char, digit1, multispace0},
-    combinator::{cut, map},
+    bytes::complete::tag,
+    character::complete::{char, multispace0},
+    combinator::map,
     error::VerboseError,
     multi::many0,
-    sequence::{preceded, terminated, tuple},
+    sequence::{preceded, tuple},
     IResult,
 };
 
@@ -69,6 +70,19 @@ fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, VerboseEr
             map(tag("strictfp"), |_| Attribute::StrictFP),
             map(tag("uwtable"), |_| Attribute::UWTable),
             map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
+            map(
+                tuple((
+                    parse_string_literal,
+                    spaces,
+                    char('='),
+                    spaces,
+                    parse_string_literal,
+                )),
+                |(kind, _, _, _, value)| Attribute::StringAttribute {
+                    kind: kind.to_string(),
+                    value: value.to_string(),
+                },
+            ),
         )),
     ))(source)
 }
@@ -76,5 +90,5 @@ fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, VerboseEr
 pub fn parse_attributes<'a>(
     source: &'a str,
 ) -> IResult<&'a str, Vec<Attribute>, VerboseError<&'a str>> {
-    many0(preceded(multispace0, parse_attribute))(source)
+    many0(preceded(spaces, parse_attribute))(source)
 }
