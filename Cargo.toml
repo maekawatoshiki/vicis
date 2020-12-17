@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 nom = "= 6.0.1"
 rustc-hash = "= 1.1.0"
+id-arena = "= 2.2.1"
