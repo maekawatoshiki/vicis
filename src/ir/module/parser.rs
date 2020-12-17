@@ -5,15 +5,14 @@ use nom::{
     bytes::complete::{tag, take_until},
     character::complete::{char, digit1, multispace0},
     combinator::{cut, map},
-    error::ParseError,
     error::VerboseError,
     multi::many1,
     sequence::{preceded, terminated, tuple},
-    AsChar, Err, IResult, InputTakeAtPosition,
+    Err, IResult,
 };
 use rustc_hash::FxHashMap;
 
-enum ModuleElement<'a> {
+enum ParsedElement<'a> {
     SourceFilename(&'a str),
     TargetDatalayout(&'a str),
     TargetTriple(&'a str),
@@ -43,42 +42,42 @@ pub fn parse_string_literal<'a>(
 
 fn parse_source_filename<'a>(
     source: &'a str,
-) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+) -> IResult<&'a str, ParsedElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("source_filename"),
         preceded(spaces, char('=')),
         preceded(spaces, parse_string_literal),
     ))(source)
-    .map(|(i, (_, _, name))| (i, ModuleElement::SourceFilename(name)))
+    .map(|(i, (_, _, name))| (i, ParsedElement::SourceFilename(name)))
 }
 
 fn parse_target_datalayout<'a>(
     source: &'a str,
-) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+) -> IResult<&'a str, ParsedElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("datalayout")),
         preceded(spaces, char('=')),
         preceded(spaces, parse_string_literal),
     ))(source)
-    .map(|(i, (_, _, _, datalayout))| (i, ModuleElement::TargetDatalayout(datalayout)))
+    .map(|(i, (_, _, _, datalayout))| (i, ParsedElement::TargetDatalayout(datalayout)))
 }
 
 fn parse_target_triple<'a>(
     source: &'a str,
-) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+) -> IResult<&'a str, ParsedElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("triple")),
         preceded(spaces, char('=')),
         preceded(spaces, parse_string_literal),
     ))(source)
-    .map(|(i, (_, _, _, triple))| (i, ModuleElement::TargetTriple(triple)))
+    .map(|(i, (_, _, _, triple))| (i, ParsedElement::TargetTriple(triple)))
 }
 
 fn parse_attribute_group<'a>(
     source: &'a str,
-) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+) -> IResult<&'a str, ParsedElement<'a>, VerboseError<&'a str>> {
     tuple((
         tag("attributes"),
         preceded(spaces, char('#')),
@@ -89,16 +88,16 @@ fn parse_attribute_group<'a>(
         preceded(spaces, char('}')),
     ))(source)
     .map(|(i, (_, _, id, _, _, attrs, _))| {
-        (i, ModuleElement::AttributeGroup(id.parse().unwrap(), attrs))
+        (i, ParsedElement::AttributeGroup(id.parse().unwrap(), attrs))
     })
 }
 
 fn parse_metadata<'a>(
     source: &'a str,
-) -> IResult<&'a str, ModuleElement<'a>, VerboseError<&'a str>> {
+) -> IResult<&'a str, ParsedElement<'a>, VerboseError<&'a str>> {
     map(
         preceded(char('!'), terminated(take_until("\n"), char('\n'))),
-        |_| ModuleElement::Metadata,
+        |_| ParsedElement::Metadata,
     )(source)
 }
 
@@ -120,19 +119,19 @@ pub fn parse_module<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<
         ))(source)?;
 
         match element {
-            ModuleElement::SourceFilename(name) => {
+            ParsedElement::SourceFilename(name) => {
                 module.source_filename = name.to_string();
             }
-            ModuleElement::TargetDatalayout(datalayout) => {
+            ParsedElement::TargetDatalayout(datalayout) => {
                 module.target.datalayout = datalayout.to_string();
             }
-            ModuleElement::TargetTriple(triple) => {
+            ParsedElement::TargetTriple(triple) => {
                 module.target.triple = triple.to_string();
             }
-            ModuleElement::AttributeGroup(id, attrs) => {
+            ParsedElement::AttributeGroup(id, attrs) => {
                 attr_groups.insert(id, attrs);
             }
-            ModuleElement::Metadata => {}
+            ParsedElement::Metadata => {}
         }
 
         if source_.is_empty() {

@@ -3,7 +3,7 @@ use super::Attribute;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{char, multispace0},
+    character::complete::char,
     combinator::map,
     error::VerboseError,
     multi::many0,
