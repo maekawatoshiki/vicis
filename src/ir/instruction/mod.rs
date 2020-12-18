@@ -1,3 +1,7 @@
+pub mod parser;
+
+pub use parser::parse;
+
 use super::{basic_block::BasicBlockId, module::name::Name, types::TypeId, value::ConstantData};
 use id_arena::Id;
 

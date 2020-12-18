@@ -1,5 +1,6 @@
 use super::super::{
     function::{Data, Function, Layout, Parameter},
+    instruction,
     module::{name, preemption_specifier},
     types,
     types::Types,
@@ -10,7 +11,7 @@ use nom::{
     character::complete::{alphanumeric1, char},
     combinator::opt,
     error::VerboseError,
-    sequence::{preceded, tuple},
+    sequence::{preceded, terminated, tuple},
     IResult,
 };
 
@@ -62,16 +63,37 @@ pub fn parse_body<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, (Data, Layout), VerboseError<&'a str>> {
-    let (source, _) = tuple((spaces, char('{')))(source)?;
+    let (mut source, _) = tuple((spaces, char('{')))(source)?;
 
-    let data = Data::new();
-    let layout = Layout::new();
+    let mut data = Data::new();
+    let mut layout = Layout::new();
 
     if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
         return Ok((source, (data, layout)));
     }
 
-    todo!()
+    loop {
+        let (source_, label) = opt(preceded(
+            spaces,
+            terminated(alphanumeric1, preceded(spaces, char(':'))),
+        ))(source)?;
+
+        debug!(label);
+
+        let (source_, ()) = instruction::parse(source_, &mut data, &mut layout, types)?;
+
+        // let (source_, param) = parse_argument(source, types)?;
+        // params.push(param);
+        //
+        // if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
+        //     source = source_;
+        //     continue;
+        // }
+
+        if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
+            return Ok((source, (data, layout)));
+        }
+    }
 }
 
 pub fn parse<'a>(
@@ -105,11 +127,13 @@ pub fn parse<'a>(
 }
 
 #[test]
-fn parse_function1() {
+fn test_parse_function() {
     let types = Types::new();
     let result = parse(
         r#"
-        define dso_local i32 @main(i32 %0, i32 %1) {}
+        define dso_local i32 @main(i32 %0, i32 %1) {
+        entry:
+        }
         "#,
         types,
     );

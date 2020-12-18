@@ -64,6 +64,10 @@ impl Data {
     pub fn create_block(&mut self) -> BasicBlockId {
         self.basic_blocks.alloc(BasicBlock::new())
     }
+
+    pub fn create_inst(&mut self, inst: Instruction) -> InstructionId {
+        self.instructions.alloc(inst)
+    }
 }
 
 impl Layout {
@@ -98,8 +102,19 @@ impl Layout {
 
     pub fn append_inst(&mut self, inst: InstructionId, block: BasicBlockId) {
         self.instructions.entry(inst).or_insert(InstructionNode {
-            prev: self.basic_blocks[&block].first_inst,
+            prev: self.basic_blocks[&block].last_inst,
             next: None,
         });
+
+        if let Some(last_inst) = self.basic_blocks[&block].last_inst {
+            self.instructions.get_mut(&last_inst).unwrap().next = Some(inst);
+            self.instructions.get_mut(&inst).unwrap().prev = Some(last_inst);
+        }
+
+        self.basic_blocks.get_mut(&block).unwrap().last_inst = Some(inst);
+
+        if self.basic_blocks[&block].first_inst.is_none() {
+            self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
+        }
     }
 }
