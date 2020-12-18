@@ -1,6 +1,6 @@
 use super::super::{
     function::{Data, Function, Layout, Parameter},
-    module::preemption_specifier,
+    module::{name, preemption_specifier},
     types,
     types::Types,
     util::spaces,
@@ -21,12 +21,47 @@ use nom::{
 //        [section "name"] [comdat [($name)]] [align N] [gc] [prefix Constant]
 //        [prologue Constant] [personality Constant] (!name !N)* { ... }
 
-pub fn parse_argument_list<'a>(
+pub fn parse_argument<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, Vec<Parameter>, VerboseError<&'a str>> {
-    todo!()
+) -> IResult<&'a str, Parameter, VerboseError<&'a str>> {
+    let (source, ty) = types::parse(source, types)?;
+    let (source, _) = preceded(spaces, char('%'))(source)?;
+    let (source, name) = name::parse(source)?;
+    Ok((source, Parameter { name, ty }))
 }
+
+pub fn parse_argument_list<'a>(
+    mut source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, Vec<Parameter>, VerboseError<&'a str>> {
+    if let Ok((source, _)) = tuple((spaces, char(')')))(source) {
+        return Ok((source, vec![]));
+    }
+
+    let mut params = vec![];
+
+    loop {
+        let (source_, param) = parse_argument(source, types)?;
+        params.push(param);
+
+        if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
+            source = source_;
+            continue;
+        }
+
+        if let Ok((source, _)) = tuple((spaces, char(')')))(source_) {
+            return Ok((source, params));
+        }
+    }
+}
+
+// pub fn parse_body<'a>(
+//     source: &'a str,
+//     types: &Types,
+// ) -> IResult<&'a str, Function, VerboseError<&'a str>> {
+//     todo!()
+// }
 
 pub fn parse<'a>(
     source: &'a str,
@@ -39,7 +74,9 @@ pub fn parse<'a>(
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, _) = tuple((spaces, char('('), spaces))(source)?;
-    // argument_list, spaces, char(')')));
+    let (source, params) = parse_argument_list(source, &types)?;
+    // let (source, body) = parse_body(source, &types)?;
+    debug!(params);
 
     Ok((
         source,
@@ -62,7 +99,7 @@ fn parse_function1() {
     let types = Types::new();
     let result = parse(
         r#"
-        define dso_local i32 @main()
+        define dso_local i32 @main(i32 %0, i32 %1) {}
         "#,
         types,
     );

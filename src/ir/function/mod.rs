@@ -3,7 +3,7 @@ pub mod parser;
 pub use parser::parse;
 
 use super::{
-    module::preemption_specifier::PreemptionSpecifier,
+    module::{name::Name, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
 };
 
@@ -31,8 +31,11 @@ pub struct Function {
     // }
 }
 
+#[derive(Debug, Clone)]
 pub struct Parameter {
-    pub name: String,
+    pub name: Name,
+    pub ty: TypeId,
+    // pub attributes:
 }
 
 pub struct Data {
