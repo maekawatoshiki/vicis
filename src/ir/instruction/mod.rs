@@ -1,4 +1,4 @@
-use super::{module::name::Name, types::TypeId, value::ConstantData};
+use super::{basic_block::BasicBlockId, module::name::Name, types::TypeId, value::ConstantData};
 use id_arena::Id;
 
 pub type InstructionId = Id<Instruction>;
@@ -7,6 +7,7 @@ pub struct Instruction {
     pub opcode: Opcode,
     pub operand: Operand,
     pub dest: Option<Name>,
+    pub parent: BasicBlockId,
     // pub result_ty: Option<TypeIdjj
 }
 
