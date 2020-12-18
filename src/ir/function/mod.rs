@@ -3,9 +3,11 @@ pub mod parser;
 pub use parser::parse;
 
 use super::{
+    instruction::Instruction,
     module::{name::Name, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
 };
+use id_arena::Arena;
 
 pub struct Function {
     pub name: String,
@@ -39,8 +41,8 @@ pub struct Parameter {
 }
 
 pub struct Data {
-    // instructions: Arena<Instruction>,
-// basic_blocks: Arena<BasicBlock>,
+    pub instructions: Arena<Instruction>,
+    // basic_blocks: Arena<BasicBlock>,
 }
 
 pub struct Layout {
@@ -62,7 +64,9 @@ pub struct InstructionNode {
 
 impl Data {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            instructions: Arena::new(),
+        }
     }
 }
 

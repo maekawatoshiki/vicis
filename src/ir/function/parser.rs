@@ -32,9 +32,11 @@ pub fn parse_argument<'a>(
 }
 
 pub fn parse_argument_list<'a>(
-    mut source: &'a str,
+    source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, Vec<Parameter>, VerboseError<&'a str>> {
+    let (mut source, _) = tuple((spaces, char('(')))(source)?;
+
     if let Ok((source, _)) = tuple((spaces, char(')')))(source) {
         return Ok((source, vec![]));
     }
@@ -56,12 +58,21 @@ pub fn parse_argument_list<'a>(
     }
 }
 
-// pub fn parse_body<'a>(
-//     source: &'a str,
-//     types: &Types,
-// ) -> IResult<&'a str, Function, VerboseError<&'a str>> {
-//     todo!()
-// }
+pub fn parse_body<'a>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, (Data, Layout), VerboseError<&'a str>> {
+    let (source, _) = tuple((spaces, char('{')))(source)?;
+
+    let data = Data::new();
+    let layout = Layout::new();
+
+    if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
+        return Ok((source, (data, layout)));
+    }
+
+    todo!()
+}
 
 pub fn parse<'a>(
     source: &'a str,
@@ -73,9 +84,8 @@ pub fn parse<'a>(
     debug!(preemption_specifier);
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
-    let (source, _) = tuple((spaces, char('('), spaces))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
-    // let (source, body) = parse_body(source, &types)?;
+    let (source, body) = parse_body(source, &types)?;
     debug!(params);
 
     Ok((
