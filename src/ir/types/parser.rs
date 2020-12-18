@@ -1,7 +1,5 @@
-use super::super::{
-    parser::spaces,
-    types::{TypeId, Types},
-};
+use super::super::types::{TypeId, Types};
+use crate::ir::util::spaces;
 use nom::{
     bytes::complete::tag, combinator::map, error::VerboseError, sequence::preceded, IResult,
 };

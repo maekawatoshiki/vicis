@@ -2,13 +2,17 @@ pub mod parser;
 
 pub use parser::parse;
 
-use super::types::{TypeId, Types};
+use super::{
+    module::preemption_specifier::PreemptionSpecifier,
+    types::{TypeId, Types},
+};
 
 pub struct Function {
     pub name: String,
     pub is_var_arg: bool,
     pub result_ty: TypeId,
     pub params: Vec<Parameter>,
+    pub preemption_specifier: PreemptionSpecifier,
     pub data: Data,
     pub layout: Layout,
     pub types: Types,
@@ -27,7 +31,9 @@ pub struct Function {
     // }
 }
 
-pub struct Parameter {}
+pub struct Parameter {
+    pub name: String,
+}
 
 pub struct Data {
     // instructions: Arena<Instruction>,

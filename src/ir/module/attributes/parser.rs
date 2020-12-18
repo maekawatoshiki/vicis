@@ -1,6 +1,6 @@
-use super::super::module::parser::parse_string_literal;
-use super::super::parser::spaces;
+use super::super::parser::parse_string_literal;
 use super::Attribute;
+use crate::ir::util::spaces;
 use nom::{
     branch::alt,
     bytes::complete::tag,

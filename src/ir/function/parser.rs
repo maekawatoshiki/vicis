@@ -1,11 +1,17 @@
 use super::super::{
-    function::{Data, Function, Layout},
-    parser::spaces,
-    preemption_specifier, types,
+    function::{Data, Function, Layout, Parameter},
+    module::preemption_specifier,
+    types,
     types::Types,
+    util::spaces,
 };
 use nom::{
-    bytes::complete::tag, combinator::opt, error::VerboseError, sequence::preceded, IResult,
+    bytes::complete::tag,
+    character::complete::{alphanumeric1, char},
+    combinator::opt,
+    error::VerboseError,
+    sequence::{preceded, tuple},
+    IResult,
 };
 
 // define [linkage] [PreemptionSpecifier] [visibility] [DLLStorageClass]
@@ -14,6 +20,13 @@ use nom::{
 //        [(unnamed_addr|local_unnamed_addr)] [AddrSpace] [fn Attrs]
 //        [section "name"] [comdat [($name)]] [align N] [gc] [prefix Constant]
 //        [prologue Constant] [personality Constant] (!name !N)* { ... }
+
+pub fn parse_argument_list<'a>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, Vec<Parameter>, VerboseError<&'a str>> {
+    todo!()
+}
 
 pub fn parse<'a>(
     source: &'a str,
@@ -24,14 +37,18 @@ pub fn parse<'a>(
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     debug!(preemption_specifier);
     let (source, result_ty) = types::parse(source, &types)?;
-    // preceded(spaces, types::parse)(source)?;
+    let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
+    let (source, _) = tuple((spaces, char('('), spaces))(source)?;
+    // argument_list, spaces, char(')')));
 
     Ok((
         source,
         Function {
-            name: "".to_string(),
+            name: name.to_string(),
             is_var_arg: false,
             result_ty,
+            preemption_specifier: preemption_specifier
+                .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
             params: vec![],
             data: Data::new(),
             layout: Layout::new(),
@@ -45,11 +62,15 @@ fn parse_function1() {
     let types = Types::new();
     let result = parse(
         r#"
-        define dso_local i32
+        define dso_local i32 @main()
         "#,
         types,
     );
-    // println!("{:?}", result);
     assert!(result.is_ok());
-    // let result = result.unwrap();
+    let result = result.unwrap().1;
+    assert_eq!(result.name, "main");
+    assert_eq!(
+        result.preemption_specifier,
+        preemption_specifier::PreemptionSpecifier::DsoLocal
+    );
 }

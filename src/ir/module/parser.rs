@@ -1,6 +1,6 @@
-use super::super::attributes::{parser::parse_attributes, Attribute};
-use super::super::parser::spaces;
+use super::attributes::{parser::parse_attributes, Attribute};
 use super::Module;
+use crate::ir::util::spaces;
 use nom::{
     bytes::complete::{tag, take_until},
     character::complete::{char, digit1},

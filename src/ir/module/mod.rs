@@ -1,4 +1,7 @@
+pub mod attributes;
+pub mod name;
 pub mod parser;
+pub mod preemption_specifier;
 
 pub use parser::parse;
 
