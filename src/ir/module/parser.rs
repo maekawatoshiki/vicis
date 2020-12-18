@@ -121,7 +121,7 @@ fn parse_module1() {
     let result = parse(
         r#"
             source_filename = "c.c"
-            target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"        
+            target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
             ; comments
             ; bluh bluh
             target triple = "x86_64-pc-linux-gnu" ; hogehoge
@@ -131,7 +131,7 @@ fn parse_module1() {
                                             "ff"}
         "#,
     );
-    // println!("{:?}", result);
+    debug!(&result);
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(result.source_filename, "c.c");

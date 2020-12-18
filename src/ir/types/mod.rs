@@ -1,3 +1,5 @@
+pub mod parser;
+
 use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
@@ -5,6 +7,8 @@ use std::{
     fmt,
     sync::Arc,
 };
+
+pub use parser::parse;
 
 pub type AddrSpace = u32;
 pub type Cache<T> = FxHashMap<T, TypeId>;
@@ -151,6 +155,7 @@ fn types_identity() {
         let i32_ty = types.base().i32();
         types.base_mut().pointer(i32_ty)
     };
+
     {
         let i32_ty = types.base().i32();
         let ty = types.get(i32_ptr_ty);
@@ -162,4 +167,9 @@ fn types_identity() {
             })
         )
     }
+
+    let i32_ty = types.base().i32();
+    let i32_ptr_ty2 = types.base_mut().pointer(i32_ty);
+
+    assert_eq!(i32_ptr_ty, i32_ptr_ty2);
 }
