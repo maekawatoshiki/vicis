@@ -1,11 +1,13 @@
 pub mod parser;
 
+pub use parser::parse;
+
 use super::types::{TypeId, Types};
 
 pub struct Function {
     pub name: String,
     pub is_var_arg: bool,
-    pub ret_ty: TypeId,
+    pub result_ty: TypeId,
     pub params: Vec<Parameter>,
     pub data: Data,
     pub layout: Layout,
@@ -47,4 +49,16 @@ pub struct BasicBlockNode {
 pub struct InstructionNode {
     // prev: Option<InstructionId>,
 // next: Option<InstructionId>,
+}
+
+impl Data {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Layout {
+    pub fn new() -> Self {
+        Self {}
+    }
 }

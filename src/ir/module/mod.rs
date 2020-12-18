@@ -1,5 +1,7 @@
 pub mod parser;
 
+pub use parser::parse;
+
 use super::types::Types;
 
 #[derive(Debug, Clone)]

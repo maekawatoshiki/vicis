@@ -51,7 +51,7 @@ impl Types {
         self.0.borrow()
     }
 
-    pub fn base_mut(&mut self) -> RefMut<TypesBase> {
+    pub fn base_mut(&self) -> RefMut<TypesBase> {
         self.0.borrow_mut()
     }
 
@@ -146,7 +146,7 @@ impl fmt::Debug for Types {
 
 #[test]
 fn types_identity() {
-    let mut types = Types::new();
+    let types = Types::new();
     let i32_ptr_ty = {
         let i32_ty = types.base().i32();
         types.base_mut().pointer(i32_ty)
