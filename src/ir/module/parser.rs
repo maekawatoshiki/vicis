@@ -1,12 +1,12 @@
 use super::super::attributes::{parser::parse_attributes, Attribute};
+use super::super::parser::spaces;
 use super::Module;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
-    character::complete::{char, digit1, multispace0},
+    character::complete::{char, digit1},
     combinator::{cut, map},
     error::VerboseError,
-    multi::many1,
     sequence::{preceded, terminated, tuple},
     Err, IResult,
 };
@@ -18,20 +18,6 @@ enum ParsedElement<'a> {
     TargetTriple(&'a str),
     AttributeGroup(u32, Vec<Attribute>),
     Metadata,
-}
-
-pub fn spaces<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a str>> {
-    alt((
-        map(
-            many1(tuple((
-                multispace0,
-                preceded(char(';'), terminated(take_until("\n"), char('\n'))),
-                multispace0,
-            ))),
-            |_| (),
-        ),
-        map(multispace0, |_| ()),
-    ))(source)
 }
 
 pub fn parse_string_literal<'a>(
@@ -131,6 +117,7 @@ pub fn parse_module<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<
             ParsedElement::AttributeGroup(id, attrs) => {
                 attr_groups.insert(id, attrs);
             }
+            // ParsedElement::Function() => {}
             ParsedElement::Metadata => {}
         }
 
@@ -160,7 +147,7 @@ fn parse1_module() {
                                             "ff"}
         "#,
     );
-    println!("{:?}", result);
+    // println!("{:?}", result);
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(result.source_filename, "c.c");

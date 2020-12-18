@@ -1,5 +1,7 @@
 pub mod parser;
 
+use super::types::Types;
+
 #[derive(Debug, Clone)]
 struct Target {
     triple: String,
@@ -11,6 +13,7 @@ pub struct Module {
     name: String,
     source_filename: String,
     target: Target,
+    types: Types,
     // TODO: Metadata
 }
 
@@ -20,6 +23,7 @@ impl Module {
             name: "".to_string(),
             source_filename: "".to_string(),
             target: Target::new(),
+            types: Types::new(),
         }
     }
 }

@@ -1,4 +1,5 @@
-use super::super::module::parser::{parse_string_literal, spaces};
+use super::super::module::parser::parse_string_literal;
+use super::super::parser::spaces;
 use super::Attribute;
 use nom::{
     branch::alt,

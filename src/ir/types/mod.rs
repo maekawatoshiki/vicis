@@ -2,6 +2,7 @@ use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
     cell::{Ref, RefCell, RefMut},
+    fmt,
     sync::Arc,
 };
 
@@ -38,7 +39,7 @@ pub struct PointerType {
 pub struct FunctionType {
     pub ret: TypeId,
     pub params: Vec<TypeId>,
-    pub var_arg: bool,
+    pub is_var_arg: bool,
 }
 
 impl Types {
@@ -134,6 +135,12 @@ impl TypesBase {
                     .alloc(Type::Pointer(PointerType { inner, addr_space })),
             )
             .clone()
+    }
+}
+
+impl fmt::Debug for Types {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Types")
     }
 }
 
