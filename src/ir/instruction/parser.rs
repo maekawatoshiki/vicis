@@ -29,8 +29,15 @@ pub fn parse_ret<'a, 'b>(
     }
 
     let (source, ty) = types::parse(source, ctx.types)?;
-    let val = value::parse(source, ctx, ty);
-    todo!()
+    let (source, val) = value::parse(source, ctx, ty)?;
+    Ok((
+        source,
+        ctx.data.create_inst(
+            Opcode::Ret
+                .with_block(ctx.cur_block)
+                .with_operand(Operand::Ret { val: Some(val) }),
+        ),
+    ))
 }
 
 pub fn parse<'a, 'b>(

@@ -66,6 +66,10 @@ impl Types {
     pub fn get_mut(&mut self, id: TypeId) -> RefMut<Type> {
         RefMut::map(self.0.borrow_mut(), |base| &mut base.arena[id])
     }
+
+    pub fn to_string(&self, ty: TypeId) -> String {
+        self.base().to_string(ty)
+    }
 }
 
 impl TypesBase {
@@ -139,6 +143,21 @@ impl TypesBase {
                     .alloc(Type::Pointer(PointerType { inner, addr_space })),
             )
             .clone()
+    }
+
+    pub fn to_string(&self, ty: TypeId) -> String {
+        let ty = &self.arena[ty];
+        match ty {
+            Type::Void => "void".to_string(),
+            Type::Int(bits) => format!("i{}", bits),
+            Type::Pointer(PointerType { inner, addr_space }) if *addr_space == 0 => {
+                format!("{}*", self.to_string(*inner))
+            }
+            Type::Pointer(PointerType { inner, addr_space }) => {
+                format!("{} addrspace({})*", self.to_string(*inner), addr_space)
+            }
+            _ => todo!(),
+        }
     }
 }
 

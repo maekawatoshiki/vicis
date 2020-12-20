@@ -125,8 +125,7 @@ pub fn parse<'a>(
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
-    let (source, _body) = parse_body(source, &types)?;
-    debug!(params);
+    let (source, (data, layout)) = parse_body(source, &types)?;
 
     Ok((
         source,
@@ -136,9 +135,9 @@ pub fn parse<'a>(
             result_ty,
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
-            params: vec![],
-            data: Data::new(),
-            layout: Layout::new(),
+            params,
+            data,
+            layout,
             types,
         },
     ))
@@ -163,4 +162,6 @@ fn test_parse_function() {
         result.preemption_specifier,
         preemption_specifier::PreemptionSpecifier::DsoLocal
     );
+
+    println!("{:?}", result);
 }

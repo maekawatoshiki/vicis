@@ -10,6 +10,7 @@ use super::{
 };
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
+use std::fmt;
 
 pub struct Function {
     pub name: String,
@@ -17,6 +18,7 @@ pub struct Function {
     pub result_ty: TypeId,
     pub params: Vec<Parameter>,
     pub preemption_specifier: PreemptionSpecifier,
+    // pub attributes:
     pub data: Data,
     pub layout: Layout,
     pub types: Types,
@@ -53,6 +55,11 @@ pub struct InstructionNode {
     next: Option<InstructionId>,
 }
 
+pub struct BasicBlockIter<'a> {
+    layout: &'a Layout,
+    cur: Option<BasicBlockId>,
+}
+
 impl Data {
     pub fn new() -> Self {
         Self {
@@ -77,6 +84,13 @@ impl Layout {
             instructions: FxHashMap::default(),
             first_block: None,
             last_block: None,
+        }
+    }
+
+    pub fn block_iter<'a>(&'a self) -> BasicBlockIter<'a> {
+        BasicBlockIter {
+            layout: self,
+            cur: self.first_block,
         }
     }
 
@@ -116,5 +130,47 @@ impl Layout {
         if self.basic_blocks[&block].first_inst.is_none() {
             self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
         }
+    }
+}
+
+impl<'a> Iterator for BasicBlockIter<'a> {
+    type Item = BasicBlockId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let cur = self.cur?;
+        self.cur = self.layout.basic_blocks[&cur].next;
+        Some(cur)
+    }
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "define ")?;
+        write!(f, "{:?} ", self.preemption_specifier)?;
+        write!(f, "{} ", self.types.to_string(self.result_ty))?;
+        write!(f, "@{}(", self.name)?;
+        for (i, param) in self.params.iter().enumerate() {
+            write!(
+                f,
+                "{}{}",
+                param.to_string(&self.types),
+                if i == self.params.len() - 1 { "" } else { ", " }
+            )?;
+        }
+        write!(f, ") ")?;
+        write!(f, "{{\n")?;
+
+        for block_id in self.layout.block_iter() {
+            writeln!(f, "{:?}", block_id)?;
+        }
+
+        write!(f, "}}\n")?;
+        Ok(())
+    }
+}
+
+impl Parameter {
+    pub fn to_string(&self, types: &Types) -> String {
+        format!("{} %{:?}", types.to_string(self.ty), self.name)
     }
 }
