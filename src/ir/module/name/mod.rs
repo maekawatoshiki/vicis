@@ -4,7 +4,7 @@ pub use parser::parse;
 
 use std::fmt;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub enum Name {
     Name(String),
     Number(usize),

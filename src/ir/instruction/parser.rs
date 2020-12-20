@@ -30,6 +30,7 @@ pub fn parse_ret<'a, 'b>(
 
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, val) = value::parse(source, ctx, ty)?;
+
     Ok((
         source,
         ctx.data.create_inst(
@@ -40,6 +41,7 @@ pub fn parse_ret<'a, 'b>(
     ))
 }
 
+/// Only parses `source` as Instruction. Doesn't append instruction to block.
 pub fn parse<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,

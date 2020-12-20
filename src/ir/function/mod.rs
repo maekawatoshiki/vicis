@@ -7,6 +7,7 @@ use super::{
     instruction::{Instruction, InstructionId},
     module::{name::Name, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
+    value::{Value, ValueId},
 };
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
@@ -32,6 +33,7 @@ pub struct Parameter {
 }
 
 pub struct Data {
+    pub values: Arena<Value>,
     pub instructions: Arena<Instruction>,
     pub basic_blocks: Arena<BasicBlock>,
 }
@@ -60,9 +62,16 @@ pub struct BasicBlockIter<'a> {
     cur: Option<BasicBlockId>,
 }
 
+pub struct InstructionIter<'a> {
+    layout: &'a Layout,
+    block: BasicBlockId,
+    cur: Option<InstructionId>,
+}
+
 impl Data {
     pub fn new() -> Self {
         Self {
+            values: Arena::new(),
             instructions: Arena::new(),
             basic_blocks: Arena::new(),
         }
@@ -74,6 +83,23 @@ impl Data {
 
     pub fn create_inst(&mut self, inst: Instruction) -> InstructionId {
         self.instructions.alloc(inst)
+    }
+
+    pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
+        &self.basic_blocks[id]
+    }
+
+    // TODO: Is this the right way?
+    pub fn block_ref_mut(&mut self, id: BasicBlockId) -> &mut BasicBlock {
+        &mut self.basic_blocks[id]
+    }
+
+    pub fn inst_ref(&self, id: InstructionId) -> &Instruction {
+        &self.instructions[id]
+    }
+
+    pub fn value_ref(&self, id: ValueId) -> &Value {
+        &self.values[id]
     }
 }
 
@@ -91,6 +117,14 @@ impl Layout {
         BasicBlockIter {
             layout: self,
             cur: self.first_block,
+        }
+    }
+
+    pub fn inst_iter<'a>(&'a self, block: BasicBlockId) -> InstructionIter<'a> {
+        InstructionIter {
+            layout: self,
+            block,
+            cur: self.basic_blocks[&block].first_inst,
         }
     }
 
@@ -143,6 +177,20 @@ impl<'a> Iterator for BasicBlockIter<'a> {
     }
 }
 
+impl<'a> Iterator for InstructionIter<'a> {
+    type Item = InstructionId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let cur = self.cur?;
+        if Some(cur) == self.layout.basic_blocks[&self.block].last_inst {
+            self.cur = None;
+        } else {
+            self.cur = self.layout.instructions[&cur].next;
+        }
+        Some(cur)
+    }
+}
+
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "define ")?;
@@ -161,7 +209,20 @@ impl fmt::Debug for Function {
         write!(f, "{{\n")?;
 
         for block_id in self.layout.block_iter() {
-            writeln!(f, "{:?}", block_id)?;
+            writeln!(
+                f,
+                "{:?}:",
+                if let Some(name) = &self.data.block_ref(block_id).name {
+                    name
+                } else {
+                    // Unnamed block must be entry block
+                    &Name::Number(0)
+                }
+            )?;
+            for inst_id in self.layout.inst_iter(block_id) {
+                let inst = self.data.inst_ref(inst_id);
+                println!("    {}", inst.to_string(&self.data, &self.types));
+            }
         }
 
         write!(f, "}}\n")?;

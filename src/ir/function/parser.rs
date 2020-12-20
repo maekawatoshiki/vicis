@@ -72,7 +72,7 @@ pub fn parse_body<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, (Data, Layout), VerboseError<&'a str>> {
-    let (source, _) = tuple((spaces, char('{')))(source)?;
+    let (mut source, _) = tuple((spaces, char('{')))(source)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -85,18 +85,20 @@ pub fn parse_body<'a>(
 
     // Parse each block
     loop {
-        let (source_, label) = opt(preceded(
+        // Parse label if any
+        let (mut source_, label) = opt(preceded(
             spaces,
-            terminated(alphanumeric1, preceded(spaces, char(':'))),
+            terminated(name::parse, preceded(spaces, char(':'))),
         ))(source)?;
-
-        debug!(label);
+        debug!(&label);
 
         let block = data.create_block();
         layout.append_block(block);
 
+        // If label is present, set it to block
         if let Some(label) = label {
-            label_to_block.insert(label, block);
+            label_to_block.insert(label.clone(), block);
+            data.block_ref_mut(block).name = Some(label);
         }
 
         let mut ctx = ParserContext {
@@ -106,11 +108,16 @@ pub fn parse_body<'a>(
             cur_block: block,
         };
 
-        let (source_, _) = instruction::parse(source_, &mut ctx)?;
+        while let Ok((source__, inst)) = instruction::parse(source_, &mut ctx) {
+            ctx.layout.append_inst(inst, ctx.cur_block);
+            source_ = source__
+        }
 
         if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
             return Ok((source, (data, layout)));
         }
+
+        source = source_
     }
 }
 
@@ -149,7 +156,6 @@ fn test_parse_function() {
     let result = parse(
         r#"
         define dso_local i32 @main(i32 %0, i32 %1) {
-        entry:
             ret void
         }
         "#,
@@ -162,6 +168,5 @@ fn test_parse_function() {
         result.preemption_specifier,
         preemption_specifier::PreemptionSpecifier::DsoLocal
     );
-
     println!("{:?}", result);
 }

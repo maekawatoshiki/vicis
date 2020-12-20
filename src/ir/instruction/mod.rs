@@ -4,8 +4,10 @@ pub use parser::parse;
 
 use super::{
     basic_block::BasicBlockId,
+    function::Data,
     module::name::Name,
     types::TypeId,
+    types::Types,
     value::{ConstantData, ValueId},
 };
 use id_arena::Id;
@@ -42,6 +44,25 @@ impl Instruction {
         self.operand = operand;
         self
     }
+
+    pub fn to_string(&self, data: &Data, types: &Types) -> String {
+        match self.opcode {
+            Opcode::Alloca => {
+                format!("alloca ")
+            }
+            Opcode::Ret => {
+                let args = self.operand.args();
+                format!(
+                    "ret {}",
+                    if args.len() == 0 {
+                        "void".to_string()
+                    } else {
+                        data.value_ref(args[0]).to_string(data, types)
+                    }
+                )
+            }
+        }
+    }
 }
 
 impl Opcode {
@@ -51,6 +72,17 @@ impl Opcode {
             operand: Operand::Invalid,
             dest: None,
             parent,
+        }
+    }
+}
+
+impl Operand {
+    pub fn args(&self) -> &[ValueId] {
+        match self {
+            Self::Alloca { .. } => &[],
+            Self::Ret { val } if val.is_none() => &[],
+            Self::Ret { val } => ::std::slice::from_ref(val.as_ref().unwrap()),
+            Self::Invalid => &[],
         }
     }
 }

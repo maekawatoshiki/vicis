@@ -1,9 +1,11 @@
+use super::module::name::Name;
 use id_arena::Id;
 use rustc_hash::FxHashSet;
 
 pub type BasicBlockId = Id<BasicBlock>;
 
 pub struct BasicBlock {
+    pub name: Option<Name>,
     preds: FxHashSet<BasicBlockId>,
     succs: FxHashSet<BasicBlockId>,
 }
@@ -11,6 +13,7 @@ pub struct BasicBlock {
 impl BasicBlock {
     pub fn new() -> Self {
         Self {
+            name: None,
             preds: FxHashSet::default(),
             succs: FxHashSet::default(),
         }
