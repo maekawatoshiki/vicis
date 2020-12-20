@@ -1,3 +1,4 @@
+use super::super::{function, function::Function};
 use super::attributes::{parser::parse_attributes, Attribute};
 use super::Module;
 use crate::ir::util::spaces;
@@ -105,6 +106,12 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
             continue;
         }
 
+        if let Ok((source_, func)) = function::parse(source, module.types.clone()) {
+            module.functions.alloc(func);
+            source = source_;
+            continue;
+        }
+
         if let Ok((source_, _)) = parse_metadata(source) {
             source = source_;
             continue;
@@ -126,12 +133,14 @@ fn parse_module1() {
             ; bluh bluh
             target triple = "x86_64-pc-linux-gnu" ; hogehoge
             !0 = {}
+            define dso_local i32 @main(i32 %0, i32 %1) {
+                ret void
+            }
             attributes #0 = { noinline "abcde" = ;fff
             ;ff
                                             "ff"}
         "#,
     );
-    debug!(&result);
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(result.source_filename, "c.c");
@@ -140,4 +149,5 @@ fn parse_module1() {
         "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
     );
     assert_eq!(result.target.triple, "x86_64-pc-linux-gnu");
+    println!("{:?}", result);
 }
