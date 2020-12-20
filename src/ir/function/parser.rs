@@ -1,4 +1,5 @@
 use super::super::{
+    basic_block::BasicBlockId,
     function::{Data, Function, Layout, Parameter},
     instruction,
     module::{name, preemption_specifier},
@@ -14,6 +15,7 @@ use nom::{
     sequence::{preceded, terminated, tuple},
     IResult,
 };
+use rustc_hash::FxHashMap;
 
 // define [linkage] [PreemptionSpecifier] [visibility] [DLLStorageClass]
 //        [cconv] [ret attrs]
@@ -21,6 +23,13 @@ use nom::{
 //        [(unnamed_addr|local_unnamed_addr)] [AddrSpace] [fn Attrs]
 //        [section "name"] [comdat [($name)]] [align N] [gc] [prefix Constant]
 //        [prologue Constant] [personality Constant] (!name !N)* { ... }
+
+pub struct ParserContext<'a> {
+    pub types: &'a Types,
+    pub data: &'a mut Data,
+    pub layout: &'a mut Layout,
+    pub cur_block: BasicBlockId,
+}
 
 pub fn parse_argument<'a>(
     source: &'a str,
@@ -63,7 +72,7 @@ pub fn parse_body<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, (Data, Layout), VerboseError<&'a str>> {
-    let (mut source, _) = tuple((spaces, char('{')))(source)?;
+    let (source, _) = tuple((spaces, char('{')))(source)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -72,6 +81,9 @@ pub fn parse_body<'a>(
         return Ok((source, (data, layout)));
     }
 
+    let mut label_to_block = FxHashMap::default();
+
+    // Parse each block
     loop {
         let (source_, label) = opt(preceded(
             spaces,
@@ -80,15 +92,21 @@ pub fn parse_body<'a>(
 
         debug!(label);
 
-        let (source_, ()) = instruction::parse(source_, &mut data, &mut layout, types)?;
+        let block = data.create_block();
+        layout.append_block(block);
 
-        // let (source_, param) = parse_argument(source, types)?;
-        // params.push(param);
-        //
-        // if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
-        //     source = source_;
-        //     continue;
-        // }
+        if let Some(label) = label {
+            label_to_block.insert(label, block);
+        }
+
+        let mut ctx = ParserContext {
+            types,
+            data: &mut data,
+            layout: &mut layout,
+            cur_block: block,
+        };
+
+        let (source_, _) = instruction::parse(source_, &mut ctx)?;
 
         if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
             return Ok((source, (data, layout)));
@@ -107,7 +125,7 @@ pub fn parse<'a>(
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
-    let (source, body) = parse_body(source, &types)?;
+    let (source, _body) = parse_body(source, &types)?;
     debug!(params);
 
     Ok((
@@ -133,6 +151,7 @@ fn test_parse_function() {
         r#"
         define dso_local i32 @main(i32 %0, i32 %1) {
         entry:
+            ret void
         }
         "#,
         types,
