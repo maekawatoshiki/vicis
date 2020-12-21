@@ -33,6 +33,10 @@ impl Module {
             types: Types::new(),
         }
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
 }
 
 impl Target {

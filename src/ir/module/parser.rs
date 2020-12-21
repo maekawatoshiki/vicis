@@ -1,4 +1,4 @@
-use super::super::{function, function::Function};
+use super::super::function;
 use super::attributes::{parser::parse_attributes, Attribute};
 use super::Module;
 use crate::ir::util::spaces;

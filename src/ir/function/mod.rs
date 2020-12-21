@@ -221,7 +221,7 @@ impl fmt::Debug for Function {
             )?;
             for inst_id in self.layout.inst_iter(block_id) {
                 let inst = self.data.inst_ref(inst_id);
-                println!("    {}", inst.to_string(&self.data, &self.types));
+                writeln!(f, "    {}", inst.to_string(&self.data, &self.types))?;
             }
         }
 
