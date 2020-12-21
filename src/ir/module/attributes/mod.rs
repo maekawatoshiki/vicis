@@ -1,6 +1,8 @@
 pub mod parser;
 
-#[derive(Debug, Clone)]
+use std::fmt;
+
+#[derive(Clone)]
 pub enum Attribute {
     AlignStack(u64),
     AllocSize {
@@ -57,4 +59,59 @@ pub enum Attribute {
         value: String,
     },
     UnknownAttribute,
+}
+
+impl fmt::Debug for Attribute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Attribute::AlwaysInline => write!(f, "alwaysinline"),
+            Attribute::Builtin => write!(f, "builtin"),
+            Attribute::Cold => write!(f, "cold"),
+            Attribute::Convergent => write!(f, "convergent"),
+            Attribute::InaccessibleMemOnly => write!(f, "inaccessiblememonly"),
+            Attribute::InaccessibleMemOrArgMemOnly => write!(f, "inaccessiblememorargmemonly"),
+            Attribute::InlineHint => write!(f, "inlinehint"),
+            Attribute::JumpTable => write!(f, "jumptable"),
+            Attribute::MinimizeSize => write!(f, "minimizesize"),
+            Attribute::Naked => write!(f, "naked"),
+            Attribute::NoBuiltin => write!(f, "nobuiltin"),
+            Attribute::NoCFCheck => write!(f, "nocfcheck"),
+            Attribute::NoDuplicate => write!(f, "noduplicate"),
+            Attribute::NoFree => write!(f, "nofree"),
+            Attribute::NoImplicitFloat => write!(f, "noimplicitfloat"),
+            Attribute::NoInline => write!(f, "noinline"),
+            Attribute::NonLazyBind => write!(f, "nonlazybind"),
+            Attribute::NoRedZone => write!(f, "noredzone"),
+            Attribute::NoReturn => write!(f, "noreturn"),
+            Attribute::NoRecurse => write!(f, "norecurse"),
+            Attribute::WillReturn => write!(f, "willreturn"),
+            Attribute::ReturnsTwice => write!(f, "returnstwice"),
+            Attribute::NoSync => write!(f, "nosync"),
+            Attribute::NoUnwind => write!(f, "nounwind"),
+            Attribute::OptForFuzzing => write!(f, "optforfuzzing"),
+            Attribute::OptNone => write!(f, "optnone"),
+            Attribute::OptSize => write!(f, "optsize"),
+            Attribute::ReadNone => write!(f, "readnone"),
+            Attribute::ReadOnly => write!(f, "readonly"),
+            Attribute::WriteOnly => write!(f, "writeonly"),
+            Attribute::ArgMemOnly => write!(f, "argmemonly"),
+            Attribute::SafeStack => write!(f, "safestack"),
+            Attribute::SanitizeAddress => write!(f, "sanitizeaddress"),
+            Attribute::SanitizeMemory => write!(f, "sanitizememory"),
+            Attribute::SanitizeThread => write!(f, "sanitizethread"),
+            Attribute::SanitizeHWAddress => write!(f, "sanitizehwaddress"),
+            Attribute::SanitizeMemTag => write!(f, "sanitizememtag"),
+            Attribute::ShadowCallStack => write!(f, "shadowcallstack"),
+            Attribute::SpeculativeLoadHardening => write!(f, "speculativeloadhardening"),
+            Attribute::Speculatable => write!(f, "speculatable"),
+            Attribute::StackProtect => write!(f, "stackprotect"),
+            Attribute::StackProtectReq => write!(f, "stackprotectreq"),
+            Attribute::StackProtectStrong => write!(f, "stackprotectstrong"),
+            Attribute::StrictFP => write!(f, "strictfp"),
+            Attribute::UWTable => write!(f, "uwtable"),
+            Attribute::UnknownAttribute => write!(f, "unknownattribute"),
+            Attribute::StringAttribute { kind, value } => write!(f, "\"{}\"=\"{}\"", kind, value),
+            _ => todo!(),
+        }
+    }
 }
