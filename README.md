@@ -1,6 +1,6 @@
 # Vicis
 
-Edit and Lower LLVM-IR from Pure Rust
+Manipulate LLVM-IR in Pure Rust
 
 # TODO
 
