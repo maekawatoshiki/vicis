@@ -10,7 +10,6 @@ use nom::{
     sequence::{preceded, terminated, tuple},
     Err, IResult,
 };
-use rustc_hash::FxHashMap;
 
 pub fn parse_string_literal<'a>(
     source: &'a str,
@@ -73,7 +72,6 @@ fn parse_metadata<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a 
 
 pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str>>> {
     let mut module = Module::new();
-    let mut attr_groups: FxHashMap<u32, Vec<Attribute>> = FxHashMap::default();
 
     loop {
         source = spaces(source)?.0;
@@ -101,7 +99,7 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
         }
 
         if let Ok((source_, (id, attrs))) = parse_attribute_group(source) {
-            attr_groups.insert(id, attrs);
+            module.attributes.insert(id, attrs);
             source = source_;
             continue;
         }
@@ -118,8 +116,6 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
         }
     }
 
-    debug!(attr_groups);
-
     Ok(module)
 }
 
@@ -133,7 +129,7 @@ fn parse_module1() {
             ; bluh bluh
             target triple = "x86_64-pc-linux-gnu" ; hogehoge
             !0 = {}
-            define dso_local i32 @main(i32 %0, i32 %1) {
+            define dso_local i32 @main(i32 %0, i32 %1) #0 {
                 ret void
             }
             attributes #0 = { noinline "abcde" = ;fff

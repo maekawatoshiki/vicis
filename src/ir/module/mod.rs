@@ -6,7 +6,9 @@ pub mod preemption_specifier;
 pub use parser::parse;
 
 use super::{function::Function, types::Types};
+use attributes::Attribute;
 use id_arena::Arena;
+use rustc_hash::FxHashMap;
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -20,6 +22,7 @@ pub struct Module {
     source_filename: String,
     target: Target,
     functions: Arena<Function>,
+    attributes: FxHashMap<u32, Vec<Attribute>>,
     types: Types,
     // TODO: Metadata
 }
@@ -30,6 +33,7 @@ impl Module {
             source_filename: "".to_string(),
             target: Target::new(),
             functions: Arena::new(),
+            attributes: FxHashMap::default(),
             types: Types::new(),
         }
     }
@@ -55,6 +59,13 @@ impl fmt::Debug for Module {
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
         for (_, func) in &self.functions {
             writeln!(f, "{:?}", func)?;
+        }
+        for (id, attrs) in &self.attributes {
+            write!(f, "attributes #{} = {{ ", id)?;
+            for attr in attrs {
+                write!(f, "{:?} ", attr)?;
+            }
+            writeln!(f, "}}")?
         }
         Ok(())
     }
