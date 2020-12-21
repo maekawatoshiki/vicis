@@ -18,7 +18,41 @@ pub fn parse_alloca<'a, 'b>(
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
     let (source, _) = tuple((spaces, char('='), spaces, tag("alloca"), spaces))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
-    // let (source, num_elements) =
+    let (source, align) = opt(preceded(
+        spaces,
+        preceded(
+            char(','),
+            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
+        ),
+    ))(source)?;
+    let inst_id = ctx.data.create_inst(
+        Opcode::Alloca
+            .with_block(ctx.cur_block)
+            .with_dest(name.clone())
+            .with_operand(Operand::Alloca {
+                ty,
+                num_elements: value::ConstantData::Int(value::ConstantInt::Int32(1)),
+                align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+            }),
+    );
+    let inst_val_id = ctx.data.create_value(value::Value::Instruction(
+        inst_id,
+        ctx.types.base_mut().pointer(ty),
+    ));
+    ctx.name_to_value.insert(name, inst_val_id);
+    Ok((source, inst_id))
+}
+
+pub fn parse_store<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, preceded(tag("store"), spaces))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, src) = value::parse(source, ctx, ty)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, dst) = value::parse(source, ctx, ty)?;
     let (source, align) = opt(preceded(
         spaces,
         preceded(
@@ -28,16 +62,15 @@ pub fn parse_alloca<'a, 'b>(
     ))(source)?;
     Ok((
         source,
-        ctx.data.create_inst(
-            Opcode::Alloca
-                .with_block(ctx.cur_block)
-                .with_dest(name)
-                .with_operand(Operand::Alloca {
-                    ty,
-                    num_elements: value::ConstantData::Int(value::ConstantInt::Int32(1)),
-                    align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-                }),
-        ),
+        ctx.data
+            .create_inst(
+                Opcode::Store
+                    .with_block(ctx.cur_block)
+                    .with_operand(Operand::Store {
+                        args: [src, dst],
+                        align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+                    }),
+            ),
     ))
 }
 
@@ -78,6 +111,10 @@ pub fn parse<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     if let Ok((source, id)) = parse_alloca(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_store(source, ctx) {
         return Ok((source, id));
     }
 

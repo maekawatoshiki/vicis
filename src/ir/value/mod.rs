@@ -30,6 +30,9 @@ impl Value {
     pub fn to_string(&self, data: &Data, types: &Types) -> String {
         match self {
             Self::Constant(c) => c.to_string(data, types),
+            Self::Instruction(id, ty) => {
+                format!("{} %id{}", types.to_string(*ty), id.index())
+            }
             _ => todo!(),
         }
     }

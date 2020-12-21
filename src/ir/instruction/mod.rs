@@ -25,6 +25,7 @@ pub struct Instruction {
 
 pub enum Opcode {
     Alloca,
+    Store,
     Ret,
 }
 
@@ -32,6 +33,10 @@ pub enum Operand {
     Alloca {
         ty: TypeId,
         num_elements: ConstantData,
+        align: u32,
+    },
+    Store {
+        args: [ValueId; 2],
         align: u32,
     },
     Ret {
@@ -60,10 +65,18 @@ impl Instruction {
             } => {
                 // TODO: %id_{index} or %{self.dest}
                 format!(
-                    "%id_{} = alloca {}, {}, align {}",
+                    "%id{} = alloca {}, {}, align {}",
                     self.id.unwrap().index(),
                     types.to_string(*ty),
                     num_elements.to_string(data, types),
+                    align
+                )
+            }
+            Operand::Store { args, align } => {
+                format!(
+                    "store {}, {}, align {}",
+                    data.value_ref(args[0]).to_string(data, types),
+                    data.value_ref(args[1]).to_string(data, types),
                     align
                 )
             }
@@ -94,6 +107,7 @@ impl Operand {
             Self::Alloca { .. } => &[],
             Self::Ret { val } if val.is_none() => &[],
             Self::Ret { val } => ::std::slice::from_ref(val.as_ref().unwrap()),
+            Self::Store { args, .. } => args,
             Self::Invalid => &[],
         }
     }
@@ -102,6 +116,7 @@ impl Operand {
         match self {
             Self::Alloca { ty, .. } => ::std::slice::from_ref(ty),
             Self::Ret { .. } => &[],
+            Self::Store { .. } => &[],
             Self::Invalid => &[],
         }
     }

@@ -6,6 +6,7 @@ use super::super::{
     types,
     types::Types,
     util::spaces,
+    value::ValueId,
 };
 use either::Either;
 use nom::{
@@ -29,6 +30,7 @@ pub struct ParserContext<'a> {
     pub types: &'a Types,
     pub data: &'a mut Data,
     pub layout: &'a mut Layout,
+    pub name_to_value: &'a mut FxHashMap<name::Name, ValueId>,
     pub cur_block: BasicBlockId,
 }
 
@@ -102,6 +104,7 @@ pub fn parse_body<'a>(
     }
 
     let mut label_to_block = FxHashMap::default();
+    let mut name_to_value = FxHashMap::default();
 
     // Parse each block
     loop {
@@ -125,6 +128,7 @@ pub fn parse_body<'a>(
             types,
             data: &mut data,
             layout: &mut layout,
+            name_to_value: &mut name_to_value,
             cur_block: block,
         };
 
@@ -200,6 +204,7 @@ fn test_parse_function2() {
         define dso_local i32 @main() #0 noinline {
         entry:
             %1 = alloca i32, align 4
+            store i32 1, i32* %1
             ret i32 0
         }
         "#,
