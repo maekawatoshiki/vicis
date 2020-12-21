@@ -12,7 +12,7 @@ use nom::{
     IResult,
 };
 
-fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, VerboseError<&'a str>> {
+pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, VerboseError<&'a str>> {
     alt((
         alt((
             map(tag("alwaysinline"), |_| Attribute::AlwaysInline),

@@ -5,13 +5,16 @@ pub use parser::parse;
 use super::{
     basic_block::{BasicBlock, BasicBlockId},
     instruction::{Instruction, InstructionId},
-    module::{name::Name, preemption_specifier::PreemptionSpecifier},
+    module::{attributes::Attribute, name::Name, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
     value::{Value, ValueId},
 };
+use either::Either;
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
 use std::fmt;
+
+pub type UnresolvedAttributeId = u32;
 
 pub struct Function {
     pub name: String,
@@ -19,7 +22,7 @@ pub struct Function {
     pub result_ty: TypeId,
     pub params: Vec<Parameter>,
     pub preemption_specifier: PreemptionSpecifier,
-    // pub attributes:
+    pub attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
     pub data: Data,
     pub layout: Layout,
     pub types: Types,
@@ -213,6 +216,12 @@ impl fmt::Debug for Function {
             )?;
         }
         write!(f, ") ")?;
+        for attr in &self.attributes {
+            match attr {
+                Either::Left(attr) => write!(f, "{:?} ", attr)?,
+                Either::Right(id) => write!(f, "#{} ", id)?,
+            }
+        }
         write!(f, "{{\n")?;
 
         for block_id in self.layout.block_iter() {

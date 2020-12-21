@@ -2,14 +2,15 @@ use super::super::{
     basic_block::BasicBlockId,
     function::{Data, Function, Layout, Parameter},
     instruction,
-    module::{name, preemption_specifier},
+    module::{attributes, name, preemption_specifier},
     types,
     types::Types,
     util::spaces,
 };
+use either::Either;
 use nom::{
     bytes::complete::tag,
-    character::complete::{alphanumeric1, char},
+    character::complete::{alphanumeric1, char, digit1},
     combinator::opt,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
@@ -66,6 +67,25 @@ pub fn parse_argument_list<'a>(
             return Ok((source, params));
         }
     }
+}
+//
+pub fn parse_func_attrs<'a>(
+    mut source: &'a str,
+) -> IResult<&'a str, Vec<Either<attributes::Attribute, u32>>, VerboseError<&'a str>> {
+    let mut attrs = vec![];
+    loop {
+        if let Ok((source_, num)) = preceded(spaces, preceded(char('#'), digit1))(source) {
+            attrs.push(Either::Right(num.parse::<u32>().unwrap()));
+            source = source_;
+            continue;
+        }
+        if let Ok((source_, attr)) = preceded(spaces, attributes::parser::parse_attribute)(source) {
+            attrs.push(Either::Left(attr));
+            source = source_;
+        }
+        break;
+    }
+    Ok((source, attrs))
 }
 
 pub fn parse_body<'a>(
@@ -128,10 +148,10 @@ pub fn parse<'a>(
     let (source, _) = preceded(spaces, tag("define"))(source)?;
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
-    debug!(preemption_specifier);
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
+    let (source, fn_attrs) = parse_func_attrs(source)?;
     let (source, (data, layout)) = parse_body(source, &types)?;
 
     Ok((
@@ -142,6 +162,7 @@ pub fn parse<'a>(
             result_ty,
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
+            attributes: fn_attrs,
             params,
             data,
             layout,
@@ -176,7 +197,7 @@ fn test_parse_function2() {
     let types = Types::new();
     let result = parse(
         r#"
-        define dso_local i32 @main() {
+        define dso_local i32 @main() #0 noinline {
         entry:
             %1 = alloca i32, align 4
             ret i32 0
