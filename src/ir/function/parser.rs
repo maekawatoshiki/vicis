@@ -151,11 +151,34 @@ pub fn parse<'a>(
 }
 
 #[test]
-fn test_parse_function() {
+fn test_parse_function1() {
     let types = Types::new();
     let result = parse(
         r#"
         define dso_local i32 @main(i32 %0, i32 %1) {
+            ret i32 0
+        }
+        "#,
+        types,
+    );
+    assert!(result.is_ok());
+    let result = result.unwrap().1;
+    assert_eq!(result.name, "main");
+    assert_eq!(
+        result.preemption_specifier,
+        preemption_specifier::PreemptionSpecifier::DsoLocal
+    );
+    println!("{:?}", result);
+}
+
+#[test]
+fn test_parse_function2() {
+    let types = Types::new();
+    let result = parse(
+        r#"
+        define dso_local i32 @main() {
+        entry:
+            %1 = alloca i32, align 4
             ret i32 0
         }
         "#,

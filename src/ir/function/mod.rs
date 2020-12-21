@@ -81,8 +81,11 @@ impl Data {
         self.basic_blocks.alloc(BasicBlock::new())
     }
 
-    pub fn create_inst(&mut self, inst: Instruction) -> InstructionId {
-        self.instructions.alloc(inst)
+    pub fn create_inst(&mut self, mut inst: Instruction) -> InstructionId {
+        self.instructions.alloc_with_id(|id| {
+            inst.id = Some(id);
+            inst
+        })
     }
 
     pub fn create_value(&mut self, inst: Value) -> ValueId {

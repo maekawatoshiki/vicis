@@ -1,14 +1,45 @@
 use super::{
-    super::{function::parser::ParserContext, types, util::spaces, value},
+    super::{function::parser::ParserContext, module::name, types, util::spaces, value},
     InstructionId, Opcode, Operand,
 };
 use nom::{
     bytes::complete::tag,
-    // combinator::map,
+    character::complete::{char, digit1},
+    combinator::opt,
     error::VerboseError,
-    sequence::preceded,
+    sequence::{preceded, tuple},
     IResult,
 };
+
+pub fn parse_alloca<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = tuple((spaces, char('='), spaces, tag("alloca"), spaces))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    // let (source, num_elements) =
+    let (source, align) = opt(preceded(
+        spaces,
+        preceded(
+            char(','),
+            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
+        ),
+    ))(source)?;
+    Ok((
+        source,
+        ctx.data.create_inst(
+            Opcode::Alloca
+                .with_block(ctx.cur_block)
+                .with_dest(name)
+                .with_operand(Operand::Alloca {
+                    ty,
+                    num_elements: value::ConstantData::Int(value::ConstantInt::Int32(1)),
+                    align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+                }),
+        ),
+    ))
+}
 
 pub fn parse_ret<'a, 'b>(
     source: &'a str,
@@ -45,10 +76,10 @@ pub fn parse_ret<'a, 'b>(
 pub fn parse<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-    // data: &mut Data,
-    // layout: &mut Layout,
-    // types: &Types,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
-    // alt((inst1, inst2, ...))
+    if let Ok((source, id)) = parse_alloca(source, ctx) {
+        return Ok((source, id));
+    }
+
     parse_ret(source, ctx)
 }

@@ -9,7 +9,7 @@ use super::{
 };
 use nom::{character::complete::digit1, error::VerboseError, sequence::preceded, IResult};
 
-pub fn parse<'a, 'b>(
+pub fn parse_constant_int<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
     ty: TypeId,
@@ -21,6 +21,13 @@ pub fn parse<'a, 'b>(
         ))),
         _ => todo!(),
     };
-    let val_id = ctx.data.create_value(val);
-    Ok((source, val_id))
+    Ok((source, ctx.data.create_value(val)))
+}
+
+pub fn parse<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+    ty: TypeId,
+) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
+    parse_constant_int(source, ctx, ty)
 }

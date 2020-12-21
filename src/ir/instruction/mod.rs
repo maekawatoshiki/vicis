@@ -18,6 +18,7 @@ pub struct Instruction {
     pub opcode: Opcode,
     pub operand: Operand,
     pub dest: Option<Name>,
+    pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
     // pub result_ty: Option<TypeIdjj
 }
@@ -45,22 +46,32 @@ impl Instruction {
         self
     }
 
+    pub fn with_dest(mut self, dest: Name) -> Self {
+        self.dest = Some(dest);
+        self
+    }
+
     pub fn to_string(&self, data: &Data, types: &Types) -> String {
-        match self.opcode {
-            Opcode::Alloca => {
-                format!("alloca ")
-            }
-            Opcode::Ret => {
-                let args = self.operand.args();
+        match &self.operand {
+            Operand::Alloca {
+                ty,
+                num_elements,
+                align,
+            } => {
+                // TODO: %id_{index} or %{self.dest}
                 format!(
-                    "ret {}",
-                    if args.len() == 0 {
-                        "void".to_string()
-                    } else {
-                        data.value_ref(args[0]).to_string(data, types)
-                    }
+                    "%id_{} = alloca {}, {}, align {}",
+                    self.id.unwrap().index(),
+                    types.to_string(*ty),
+                    num_elements.to_string(data, types),
+                    align
                 )
             }
+            Operand::Ret { val: None } => format!("ret void"),
+            Operand::Ret { val: Some(val) } => {
+                format!("ret {}", data.value_ref(*val).to_string(data, types))
+            }
+            Operand::Invalid => panic!(),
         }
     }
 }
@@ -71,6 +82,7 @@ impl Opcode {
             opcode: self,
             operand: Operand::Invalid,
             dest: None,
+            id: None,
             parent,
         }
     }
@@ -82,6 +94,14 @@ impl Operand {
             Self::Alloca { .. } => &[],
             Self::Ret { val } if val.is_none() => &[],
             Self::Ret { val } => ::std::slice::from_ref(val.as_ref().unwrap()),
+            Self::Invalid => &[],
+        }
+    }
+
+    pub fn types(&self) -> &[TypeId] {
+        match self {
+            Self::Alloca { ty, .. } => ::std::slice::from_ref(ty),
+            Self::Ret { .. } => &[],
             Self::Invalid => &[],
         }
     }
