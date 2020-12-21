@@ -85,6 +85,10 @@ impl Data {
         self.instructions.alloc(inst)
     }
 
+    pub fn create_value(&mut self, inst: Value) -> ValueId {
+        self.values.alloc(inst)
+    }
+
     pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
         &self.basic_blocks[id]
     }

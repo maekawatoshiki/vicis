@@ -1,13 +1,26 @@
 use super::{
-    super::{function::parser::ParserContext, types::TypeId},
+    super::{
+        function::parser::ParserContext,
+        types::{Type, TypeId},
+        util::spaces,
+        value::{ConstantData, ConstantInt, Value},
+    },
     ValueId,
 };
-use nom::{error::VerboseError, IResult};
+use nom::{character::complete::digit1, error::VerboseError, sequence::preceded, IResult};
 
 pub fn parse<'a, 'b>(
-    _source: &'a str,
-    _ctx: &mut ParserContext<'b>,
-    _ty: TypeId,
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+    ty: TypeId,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
-    todo!()
+    let (source, num) = preceded(spaces, digit1)(source)?;
+    let val = match &*ctx.types.get(ty) {
+        Type::Int(32) => Value::Constant(ConstantData::Int(ConstantInt::Int32(
+            num.parse::<i32>().unwrap(),
+        ))),
+        _ => todo!(),
+    };
+    let val_id = ctx.data.create_value(val);
+    Ok((source, val_id))
 }

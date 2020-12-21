@@ -46,7 +46,7 @@ impl ConstantData {
 impl ConstantInt {
     pub fn to_string(&self) -> String {
         match self {
-            Self::Int32(i) => format!("{}", i),
+            Self::Int32(i) => format!("i32 {}", i),
         }
     }
 }

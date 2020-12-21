@@ -156,7 +156,7 @@ fn test_parse_function() {
     let result = parse(
         r#"
         define dso_local i32 @main(i32 %0, i32 %1) {
-            ret void
+            ret i32 0
         }
         "#,
         types,
