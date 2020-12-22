@@ -58,7 +58,7 @@ pub enum Attribute {
         kind: String,
         value: String,
     },
-    UnknownAttribute,
+    // UnknownAttribute,
 }
 
 impl fmt::Debug for Attribute {
@@ -109,7 +109,9 @@ impl fmt::Debug for Attribute {
             Attribute::StackProtectStrong => write!(f, "stackprotectstrong"),
             Attribute::StrictFP => write!(f, "strictfp"),
             Attribute::UWTable => write!(f, "uwtable"),
-            Attribute::UnknownAttribute => write!(f, "unknownattribute"),
+            Attribute::StringAttribute { kind, value } if value.is_empty() => {
+                write!(f, "\"{}\"", kind)
+            }
             Attribute::StringAttribute { kind, value } => write!(f, "\"{}\"=\"{}\"", kind, value),
             _ => todo!(),
         }

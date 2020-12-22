@@ -70,7 +70,7 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
             map(tag("stackprotectstrong"), |_| Attribute::StackProtectStrong),
             map(tag("strictfp"), |_| Attribute::StrictFP),
             map(tag("uwtable"), |_| Attribute::UWTable),
-            map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
+            // map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
             map(
                 tuple((
                     parse_string_literal,
@@ -84,6 +84,10 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
                     value: value.to_string(),
                 },
             ),
+            map(parse_string_literal, |kind| Attribute::StringAttribute {
+                kind: kind.to_string(),
+                value: "".to_string(),
+            }),
         )),
     ))(source)
 }

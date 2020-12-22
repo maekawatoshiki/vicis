@@ -134,7 +134,7 @@ fn parse_module1() {
             }
             attributes #0 = { noinline "abcde" = ;fff
             ;ff
-                                            "ff"}
+                                            "ff" "xxx"}
         "#,
     );
     assert!(result.is_ok());
