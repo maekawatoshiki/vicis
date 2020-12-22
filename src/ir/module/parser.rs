@@ -120,6 +120,31 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
 }
 
 #[test]
+fn parse_all_examples() {
+    use std::{fs, io::Write, process};
+    let paths = match fs::read_dir("./examples") {
+        Ok(paths) => paths,
+        Err(e) => panic!("{:?}", e.kind()),
+    };
+    for path in paths {
+        println!("{:?}", path);
+        let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
+        let module = parse(&fs::read_to_string(name).unwrap()).unwrap();
+        println!("{:?}", module);
+        {
+            let mut file = fs::File::create("/tmp/output.ll").unwrap();
+            write!(file, "{:?}", module).unwrap();
+            file.flush().unwrap();
+        }
+        assert!(process::Command::new("clang")
+            .args(&["/tmp/output.ll"])
+            .status()
+            .unwrap()
+            .success());
+    }
+}
+
+#[test]
 fn parse_module1() {
     let result = parse(
         r#"
