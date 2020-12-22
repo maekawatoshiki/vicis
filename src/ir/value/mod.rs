@@ -2,17 +2,17 @@ pub mod parser;
 
 pub use parser::parse;
 
-use super::{function::Data, instruction::InstructionId, types::TypeId, types::Types};
+use super::{function::Data, instruction::InstructionId, types::Types};
 use id_arena::Id;
 
 pub type ValueId = Id<Value>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
-    Instruction(InstructionId, TypeId),
-    Argument(usize, TypeId),
+    Instruction(InstructionId),
+    Argument(usize),
     Constant(ConstantData),
-    UnresolvedGlobalIdentifier(String, TypeId),
+    UnresolvedGlobalIdentifier(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,8 +30,8 @@ impl Value {
     pub fn to_string(&self, data: &Data, types: &Types) -> String {
         match self {
             Self::Constant(c) => c.to_string(data, types),
-            Self::Instruction(id, ty) => {
-                format!("{} %id{}", types.to_string(*ty), id.index())
+            Self::Instruction(id) => {
+                format!("%id{}", id.index())
             }
             _ => todo!(),
         }
@@ -49,7 +49,7 @@ impl ConstantData {
 impl ConstantInt {
     pub fn to_string(&self) -> String {
         match self {
-            Self::Int32(i) => format!("i32 {}", i),
+            Self::Int32(i) => format!("{}", i),
         }
     }
 }
