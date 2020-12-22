@@ -147,3 +147,48 @@ fn parse_module1() {
     assert_eq!(result.target.triple, "x86_64-pc-linux-gnu");
     println!("{:?}", result);
 }
+
+#[test]
+#[rustfmt::skip]
+fn parse_module2() {
+    use rustc_hash::FxHashMap;
+    let result = parse(include_str!("../../../examples/ret42.ll"));
+    assert!(result.is_ok());
+    let result = result.unwrap();
+    assert_eq!(result.source_filename, "c.c");
+    assert_eq!(
+        result.target.datalayout,
+        "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+    );
+    assert_eq!(result.target.triple, "x86_64-pc-linux-gnu");
+    let attrs = vec![(
+        0u32,
+        vec![
+            Attribute::NoInline,
+            Attribute::NoUnwind,
+            Attribute::OptNone,
+            Attribute::UWTable, 
+            Attribute::StringAttribute {kind: "correctly-rounded-divide-sqrt-fp-math".to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "disable-tail-calls"                   .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "frame-pointer"                        .to_string() , value: "all"                            .to_string()} ,
+            Attribute::StringAttribute {kind: "less-precise-fpmad"                   .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "min-legal-vector-width"               .to_string() , value: "0"                              .to_string()} ,
+            Attribute::StringAttribute {kind: "no-infs-fp-math"                      .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "no-jump-tables"                       .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "no-nans-fp-math"                      .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "no-signed-zeros-fp-math"              .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "no-trapping-math"                     .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "stack-protector-buffer-size"          .to_string() , value: "8"                              .to_string()} ,
+            Attribute::StringAttribute {kind: "target-cpu"                           .to_string() , value: "x86-64"                         .to_string()} ,
+            Attribute::StringAttribute {kind: "target-features"                      .to_string() , value: "+cx8,+fxsr,+mmx,+sse,+sse2,+x87".to_string()} ,
+            Attribute::StringAttribute {kind: "unsafe-fp-math"                       .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "use-soft-float"                       .to_string() , value: "false"                          .to_string()} ,
+        ],
+    )]
+    .into_iter()
+    .collect::<FxHashMap<u32, Vec<Attribute>>>();
+    for (key1, val1) in &result.attributes {
+        assert!(&attrs[key1] == val1)
+    }
+    println!("{:?}", result);
+}

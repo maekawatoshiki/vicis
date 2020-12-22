@@ -25,6 +25,7 @@ pub struct Instruction {
 
 pub enum Opcode {
     Alloca,
+    Load,
     Store,
     Ret,
 }
@@ -33,6 +34,11 @@ pub enum Operand {
     Alloca {
         ty: TypeId,
         num_elements: ConstantData,
+        align: u32,
+    },
+    Load {
+        ty: TypeId,
+        addr: ValueId,
         align: u32,
     },
     Store {
@@ -72,6 +78,15 @@ impl Instruction {
                     align
                 )
             }
+            Operand::Load { ty, addr, align } => {
+                format!(
+                    "%id{} = load {}, {}, align {}",
+                    self.id.unwrap().index(),
+                    types.to_string(*ty),
+                    data.value_ref(*addr).to_string(data, types),
+                    align
+                )
+            }
             Operand::Store { args, align } => {
                 format!(
                     "store {}, {}, align {}",
@@ -107,6 +122,7 @@ impl Operand {
             Self::Alloca { .. } => &[],
             Self::Ret { val } if val.is_none() => &[],
             Self::Ret { val } => ::std::slice::from_ref(val.as_ref().unwrap()),
+            Self::Load { addr, .. } => ::std::slice::from_ref(addr),
             Self::Store { args, .. } => args,
             Self::Invalid => &[],
         }
@@ -116,6 +132,7 @@ impl Operand {
         match self {
             Self::Alloca { ty, .. } => ::std::slice::from_ref(ty),
             Self::Ret { .. } => &[],
+            Self::Load { ty, .. } => ::std::slice::from_ref(ty),
             Self::Store { .. } => &[],
             Self::Invalid => &[],
         }

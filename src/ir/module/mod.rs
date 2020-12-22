@@ -57,6 +57,7 @@ impl fmt::Debug for Module {
         writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
         writeln!(f, "target datalayout = \"{}\"", self.target.datalayout)?;
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
+        writeln!(f)?;
         for (_, func) in &self.functions {
             writeln!(f, "{:?}", func)?;
         }

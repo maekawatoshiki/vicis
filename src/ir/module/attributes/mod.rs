@@ -2,7 +2,7 @@ pub mod parser;
 
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum Attribute {
     AlignStack(u64),
     AllocSize {

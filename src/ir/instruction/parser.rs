@@ -43,6 +43,43 @@ pub fn parse_alloca<'a, 'b>(
     Ok((source, inst_id))
 }
 
+pub fn parse_load<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(
+        spaces,
+        preceded(char('='), preceded(spaces, preceded(tag("load"), spaces))),
+    )(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let (source, ty_) = types::parse(source, ctx.types)?;
+    let (source, addr) = value::parse(source, ctx, ty_)?;
+    let (source, align) = opt(preceded(
+        spaces,
+        preceded(
+            char(','),
+            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
+        ),
+    ))(source)?;
+    let inst_id = ctx.data.create_inst(
+        Opcode::Load
+            .with_block(ctx.cur_block)
+            .with_dest(name.clone())
+            .with_operand(Operand::Load {
+                ty,
+                addr,
+                align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+            }),
+    );
+    let inst_val_id = ctx
+        .data
+        .create_value(value::Value::Instruction(inst_id, ty));
+    ctx.name_to_value.insert(name, inst_val_id);
+    Ok((source, inst_id))
+}
+
 pub fn parse_store<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -111,6 +148,10 @@ pub fn parse<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     if let Ok((source, id)) = parse_alloca(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_load(source, ctx) {
         return Ok((source, id));
     }
 
