@@ -129,7 +129,10 @@ fn parse_all_examples() {
     for path in paths {
         println!("{:?}", path);
         let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
-        let module = parse(&fs::read_to_string(name).unwrap()).unwrap();
+
+        let mut module = parse(&fs::read_to_string(name).unwrap()).unwrap();
+        crate::ir::pass::dce::run_on_module(&mut module);
+
         println!("{:?}", module);
         {
             let mut file = fs::File::create("/tmp/output.ll").unwrap();

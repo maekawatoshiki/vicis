@@ -14,18 +14,19 @@ use id_arena::Arena;
 use rustc_hash::FxHashMap;
 use std::fmt;
 
+/// `Attribute Group`s may be attached to `Function`s in the form of `#0`
 pub type UnresolvedAttributeId = u32;
 
 pub struct Function {
-    pub name: String,
-    pub is_var_arg: bool,
-    pub result_ty: TypeId,
-    pub params: Vec<Parameter>,
-    pub preemption_specifier: PreemptionSpecifier,
-    pub attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
+    name: String,
+    is_var_arg: bool,
+    result_ty: TypeId,
+    params: Vec<Parameter>,
+    preemption_specifier: PreemptionSpecifier,
+    attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
     pub data: Data,
     pub layout: Layout,
-    pub types: Types,
+    types: Types,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +57,7 @@ pub struct BasicBlockNode {
 }
 
 pub struct InstructionNode {
+    block: Option<BasicBlockId>,
     prev: Option<InstructionId>,
     next: Option<InstructionId>,
 }
@@ -116,7 +118,7 @@ impl Data {
 
     // For `Instruction`s
 
-    pub fn set_inst_users(&mut self, id: InstructionId) {
+    fn set_inst_users(&mut self, id: InstructionId) {
         let args = self.instructions[id]
             .operand
             .args()
@@ -128,6 +130,21 @@ impl Data {
             .collect::<Vec<InstructionId>>();
         for arg in args {
             self.instructions[arg].users.insert(id);
+        }
+    }
+
+    fn remove_uses(&mut self, id: InstructionId) {
+        let args = self.instructions[id]
+            .operand
+            .args()
+            .into_iter()
+            .filter_map(|&arg| match &self.values[arg] {
+                Value::Instruction(id) => Some(*id),
+                _ => None,
+            })
+            .collect::<Vec<InstructionId>>();
+        for arg in args {
+            self.instructions[arg].users.remove(&id);
         }
     }
 }
@@ -178,10 +195,14 @@ impl Layout {
     }
 
     pub fn append_inst(&mut self, inst: InstructionId, block: BasicBlockId) {
-        self.instructions.entry(inst).or_insert(InstructionNode {
-            prev: self.basic_blocks[&block].last_inst,
-            next: None,
-        });
+        self.instructions
+            .entry(inst)
+            .or_insert(InstructionNode {
+                prev: self.basic_blocks[&block].last_inst,
+                next: None,
+                block: Some(block),
+            })
+            .block = Some(block);
 
         if let Some(last_inst) = self.basic_blocks[&block].last_inst {
             self.instructions.get_mut(&last_inst).unwrap().next = Some(inst);
@@ -193,6 +214,29 @@ impl Layout {
         if self.basic_blocks[&block].first_inst.is_none() {
             self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
         }
+    }
+
+    fn remove_inst(&mut self, inst: InstructionId) -> Option<()> {
+        let block = self.instructions[&inst].block?;
+        let prev;
+        let next;
+        {
+            let inst_node = &mut self.instructions.get_mut(&inst)?;
+            prev = inst_node.prev;
+            next = inst_node.next;
+            inst_node.block = None;
+            inst_node.prev = None;
+            inst_node.next = None;
+        }
+        match prev {
+            Some(prev) => self.instructions.get_mut(&prev)?.next = next,
+            None => self.basic_blocks.get_mut(&block)?.first_inst = next,
+        }
+        match next {
+            Some(next) => self.instructions.get_mut(&next)?.prev = prev,
+            None => self.basic_blocks.get_mut(&block)?.last_inst = prev,
+        }
+        Some(())
     }
 }
 
@@ -217,6 +261,17 @@ impl<'a> Iterator for InstructionIter<'a> {
             self.cur = self.layout.instructions[&cur].next;
         }
         Some(cur)
+    }
+}
+
+impl Function {
+    pub fn is_var_arg(&self) -> bool {
+        self.is_var_arg
+    }
+
+    pub fn remove_inst(&mut self, inst: InstructionId) -> Option<()> {
+        self.data.remove_uses(inst);
+        self.layout.remove_inst(inst)
     }
 }
 

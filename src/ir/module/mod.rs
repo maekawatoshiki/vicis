@@ -41,6 +41,14 @@ impl Module {
     pub fn name(&self) -> &String {
         &self.name
     }
+
+    pub fn functions(&self) -> &Arena<Function> {
+        &self.functions
+    }
+
+    pub fn functions_mut(&mut self) -> &mut Arena<Function> {
+        &mut self.functions
+    }
 }
 
 impl Target {
