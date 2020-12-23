@@ -31,8 +31,9 @@ impl Value {
         match self {
             Self::Constant(c) => c.to_string(data, types),
             Self::Instruction(id) => {
-                format!("%id{}", id.index())
+                format!("%I{}", id.index())
             }
+            Self::Argument(n) => format!("%A{}", n),
             _ => todo!(),
         }
     }

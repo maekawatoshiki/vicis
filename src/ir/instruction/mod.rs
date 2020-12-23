@@ -81,7 +81,7 @@ impl Instruction {
             } => {
                 // TODO: %id_{index} or %{self.dest}
                 format!(
-                    "%id{} = alloca {}, {} {}, align {}",
+                    "%I{} = alloca {}, {} {}, align {}",
                     self.id.unwrap().index(),
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
@@ -91,7 +91,7 @@ impl Instruction {
             }
             Operand::Load { tys, addr, align } => {
                 format!(
-                    "%id{} = load {}, {} {}, align {}",
+                    "%I{} = load {}, {} {}, align {}",
                     self.id.unwrap().index(),
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
@@ -111,7 +111,7 @@ impl Instruction {
             }
             Operand::IntBinary { ty, nuw, nsw, args } => {
                 format!(
-                    "%id{} = {:?}{}{} {} {}, {}",
+                    "%I{} = {:?}{}{} {} {}, {}",
                     self.id.unwrap().index(),
                     self.opcode,
                     if *nuw { " nuw" } else { "" },

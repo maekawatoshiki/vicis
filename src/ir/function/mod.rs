@@ -210,8 +210,9 @@ impl fmt::Debug for Function {
         for (i, param) in self.params.iter().enumerate() {
             write!(
                 f,
-                "{}{}",
-                param.to_string(&self.types),
+                "{} %A{}{}",
+                self.types.to_string(param.ty),
+                i,
                 if i == self.params.len() - 1 { "" } else { ", " }
             )?;
         }
@@ -225,16 +226,7 @@ impl fmt::Debug for Function {
         write!(f, "{{\n")?;
 
         for block_id in self.layout.block_iter() {
-            writeln!(
-                f,
-                "{:?}:",
-                if let Some(name) = &self.data.block_ref(block_id).name {
-                    name
-                } else {
-                    // Unnamed block must be entry block
-                    &Name::Number(0)
-                }
-            )?;
+            writeln!(f, "B{:?}:", block_id.index())?;
             for inst_id in self.layout.inst_iter(block_id) {
                 let inst = self.data.inst_ref(inst_id);
                 writeln!(f, "    {}", inst.to_string(&self.data, &self.types))?;

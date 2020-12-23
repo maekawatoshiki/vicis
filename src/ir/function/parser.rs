@@ -6,7 +6,7 @@ use super::super::{
     types,
     types::Types,
     util::spaces,
-    value::ValueId,
+    value::{Value, ValueId},
 };
 use either::Either;
 use nom::{
@@ -90,21 +90,17 @@ pub fn parse_func_attrs<'a>(
     Ok((source, attrs))
 }
 
-pub fn parse_body<'a>(
+pub fn parse_body<'a, 'b>(
     source: &'a str,
-    types: &Types,
-) -> IResult<&'a str, (Data, Layout), VerboseError<&'a str>> {
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, (), VerboseError<&'a str>> {
     let (mut source, _) = tuple((spaces, char('{')))(source)?;
 
-    let mut data = Data::new();
-    let mut layout = Layout::new();
-
     if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
-        return Ok((source, (data, layout)));
+        return Ok((source, ()));
     }
 
     let mut label_to_block = FxHashMap::default();
-    let mut name_to_value = FxHashMap::default();
 
     // Parse each block
     loop {
@@ -115,30 +111,23 @@ pub fn parse_body<'a>(
         ))(source)?;
         debug!(&label);
 
-        let block = data.create_block();
-        layout.append_block(block);
+        let block = ctx.data.create_block();
+        ctx.layout.append_block(block);
+        ctx.cur_block = block;
 
         // If label is present, set it to block
         if let Some(label) = label {
             label_to_block.insert(label.clone(), block);
-            data.block_ref_mut(block).name = Some(label);
+            ctx.data.block_ref_mut(block).name = Some(label);
         }
 
-        let mut ctx = ParserContext {
-            types,
-            data: &mut data,
-            layout: &mut layout,
-            name_to_value: &mut name_to_value,
-            cur_block: block,
-        };
-
-        while let Ok((source__, inst)) = instruction::parse(source_, &mut ctx) {
+        while let Ok((source__, inst)) = instruction::parse(source_, ctx) {
             ctx.layout.append_inst(inst, ctx.cur_block);
             source_ = source__
         }
 
         if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
-            return Ok((source, (data, layout)));
+            return Ok((source, ()));
         }
 
         source = source_
@@ -156,7 +145,27 @@ pub fn parse<'a>(
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
     let (source, fn_attrs) = parse_func_attrs(source)?;
-    let (source, (data, layout)) = parse_body(source, &types)?;
+
+    let mut data = Data::new();
+    let mut layout = Layout::new();
+    let mut name_to_value = FxHashMap::default();
+    let dummy_block = data.create_block();
+
+    for (i, param) in params.iter().enumerate() {
+        let arg = data.create_value(Value::Argument(i));
+        name_to_value.insert(param.name.clone(), arg);
+    }
+
+    let (source, _) = parse_body(
+        source,
+        &mut ParserContext {
+            types: &types,
+            data: &mut data,
+            layout: &mut layout,
+            name_to_value: &mut name_to_value,
+            cur_block: dummy_block,
+        },
+    )?;
 
     Ok((
         source,
