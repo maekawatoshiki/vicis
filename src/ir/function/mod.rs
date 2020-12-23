@@ -85,10 +85,12 @@ impl Data {
     }
 
     pub fn create_inst(&mut self, mut inst: Instruction) -> InstructionId {
-        self.instructions.alloc_with_id(|id| {
+        let id = self.instructions.alloc_with_id(|id| {
             inst.id = Some(id);
             inst
-        })
+        });
+        self.set_inst_users(id);
+        id
     }
 
     pub fn create_value(&mut self, inst: Value) -> ValueId {
@@ -110,6 +112,23 @@ impl Data {
 
     pub fn value_ref(&self, id: ValueId) -> &Value {
         &self.values[id]
+    }
+
+    // For `Instruction`s
+
+    pub fn set_inst_users(&mut self, id: InstructionId) {
+        let args = self.instructions[id]
+            .operand
+            .args()
+            .into_iter()
+            .filter_map(|&arg| match &self.values[arg] {
+                Value::Instruction(id) => Some(*id),
+                _ => None,
+            })
+            .collect::<Vec<InstructionId>>();
+        for arg in args {
+            self.instructions[arg].users.insert(id);
+        }
     }
 }
 

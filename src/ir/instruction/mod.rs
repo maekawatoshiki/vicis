@@ -7,6 +7,7 @@ use super::{
     value::ValueId,
 };
 use id_arena::Id;
+use rustc_hash::FxHashSet;
 use std::{fmt, slice};
 
 pub type InstructionId = Id<Instruction>;
@@ -17,6 +18,7 @@ pub struct Instruction {
     pub dest: Option<Name>,
     pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
+    pub users: FxHashSet<InstructionId>,
     // pub result_ty: Option<TypeId>
 }
 
@@ -32,6 +34,7 @@ pub enum Opcode {
     Ret,
 }
 
+#[derive(Clone)]
 pub enum Operand {
     Alloca {
         tys: [TypeId; 2],
@@ -84,7 +87,7 @@ impl Instruction {
                 num_elements,
                 align,
             } => {
-                // TODO: %id_{index} or %{self.dest}
+                // TODO: %I{index} or %{self.dest}
                 format!(
                     "%I{} = alloca {}, {} {}, align {}",
                     self.id.unwrap().index(),
@@ -168,6 +171,7 @@ impl Opcode {
             dest: None,
             id: None,
             parent,
+            users: FxHashSet::default(),
         }
     }
 }
