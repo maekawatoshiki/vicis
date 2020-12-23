@@ -27,6 +27,7 @@ pub enum Opcode {
     Store,
     Add,
     Sub,
+    Mul,
     Ret,
 }
 
@@ -181,6 +182,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Store => "store",
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
+                Opcode::Mul => "mul",
                 Opcode::Ret => "ret",
             }
         )

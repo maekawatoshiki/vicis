@@ -3,9 +3,10 @@ use super::{
     InstructionId, Opcode, Operand,
 };
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
-    combinator::opt,
+    combinator::{map, opt},
     error::VerboseError,
     sequence::{preceded, tuple},
     IResult,
@@ -113,14 +114,24 @@ pub fn parse_store<'a, 'b>(
     ))
 }
 
-pub fn parse_add<'a, 'b>(
+pub fn parse_add_sub_mul<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
-    let (source, _) = preceded(
+    let (source, opcode) = preceded(
         spaces,
-        preceded(char('='), preceded(spaces, preceded(tag("add"), spaces))),
+        preceded(
+            char('='),
+            preceded(
+                spaces,
+                alt((
+                    map(tag("add"), |_| Opcode::Add),
+                    map(tag("sub"), |_| Opcode::Sub),
+                    map(tag("mul"), |_| Opcode::Mul),
+                )),
+            ),
+        ),
     )(source)?;
     let (source, nuw) = opt(preceded(spaces, tag("nuw")))(source)?;
     let (source, nsw) = opt(preceded(spaces, tag("nsw")))(source)?;
@@ -129,7 +140,7 @@ pub fn parse_add<'a, 'b>(
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, rhs) = value::parse(source, ctx, ty)?;
     let inst_id = ctx.data.create_inst(
-        Opcode::Add
+        opcode
             .with_block(ctx.cur_block)
             .with_dest(name.clone())
             .with_operand(Operand::IntBinary {
@@ -183,7 +194,7 @@ pub fn parse<'a, 'b>(
         return Ok((source, id));
     }
 
-    if let Ok((source, id)) = parse_add(source, ctx) {
+    if let Ok((source, id)) = parse_add_sub_mul(source, ctx) {
         return Ok((source, id));
     }
 
