@@ -7,7 +7,7 @@ use super::{
     value::ValueId,
 };
 use id_arena::Id;
-use std::slice;
+use std::{fmt, slice};
 
 pub type InstructionId = Id<Instruction>;
 
@@ -17,14 +17,16 @@ pub struct Instruction {
     pub dest: Option<Name>,
     pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
-    // pub result_ty: Option<TypeIdjj
+    // pub result_ty: Option<TypeId>
 }
 
+#[derive(Clone, Copy)]
 pub enum Opcode {
     Alloca,
     Load,
     Store,
     Add,
+    Sub,
     Ret,
 }
 
@@ -39,12 +41,13 @@ pub enum Operand {
         addr: ValueId,
         align: u32,
     },
-    Add {
+    IntBinary {
         ty: TypeId,
         nsw: bool,
         nuw: bool,
         args: [ValueId; 2],
     },
+    // IntDiv { .. }
     Store {
         tys: [TypeId; 2],
         args: [ValueId; 2],
@@ -105,10 +108,11 @@ impl Instruction {
                     align
                 )
             }
-            Operand::Add { ty, nuw, nsw, args } => {
+            Operand::IntBinary { ty, nuw, nsw, args } => {
                 format!(
-                    "%id{} = add{}{} {} {}, {}",
+                    "%id{} = {:?}{}{} {} {}, {}",
                     self.id.unwrap().index(),
+                    self.opcode,
                     if *nuw { " nuw" } else { "" },
                     if *nsw { " nsw" } else { "" },
                     types.to_string(*ty),
@@ -149,7 +153,7 @@ impl Operand {
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
             Self::Load { addr, .. } => slice::from_ref(addr),
             Self::Store { args, .. } => args,
-            Self::Add { args, .. } => args,
+            Self::IntBinary { args, .. } => args,
             Self::Invalid => &[],
         }
     }
@@ -160,8 +164,25 @@ impl Operand {
             Self::Ret { ty, .. } => slice::from_ref(ty),
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
-            Self::Add { ty, .. } => slice::from_ref(ty),
+            Self::IntBinary { ty, .. } => slice::from_ref(ty),
             Self::Invalid => &[],
         }
+    }
+}
+
+impl fmt::Debug for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Opcode::Alloca => "alloca",
+                Opcode::Load => "load",
+                Opcode::Store => "store",
+                Opcode::Add => "add",
+                Opcode::Sub => "sub",
+                Opcode::Ret => "ret",
+            }
+        )
     }
 }

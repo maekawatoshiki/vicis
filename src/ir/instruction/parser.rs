@@ -132,7 +132,7 @@ pub fn parse_add<'a, 'b>(
         Opcode::Add
             .with_block(ctx.cur_block)
             .with_dest(name.clone())
-            .with_operand(Operand::Add {
+            .with_operand(Operand::IntBinary {
                 ty,
                 args: [lhs, rhs],
                 nuw: nuw.map_or(false, |_| true),
