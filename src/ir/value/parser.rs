@@ -30,6 +30,18 @@ pub fn parse_constant_int<'a, 'b>(
     Ok((source, ctx.data.create_value(val)))
 }
 
+pub fn parse_global<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+    _ty: TypeId,
+) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('@'), name::parse))(source)?;
+    Ok((
+        source,
+        ctx.data.create_value(Value::UnresolvedGlobalName(name)),
+    ))
+}
+
 pub fn parse_local<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -45,6 +57,10 @@ pub fn parse<'a, 'b>(
     ty: TypeId,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
     if let Ok((source, id)) = parse_constant_int(source, ctx, ty) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_global(source, ctx, ty) {
         return Ok((source, id));
     }
 

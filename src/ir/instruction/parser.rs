@@ -155,6 +155,52 @@ pub fn parse_add_sub_mul<'a, 'b>(
     Ok((source, inst_id))
 }
 
+pub fn parse_call_args<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Vec<(types::TypeId, value::ValueId)>, VerboseError<&'a str>> {
+    let (mut source, _) = preceded(spaces, char('('))(source)?;
+    let mut args = vec![];
+    loop {
+        let (source_, ty) = types::parse(source, ctx.types)?;
+        let (source_, arg) = value::parse(source_, ctx, ty)?;
+        args.push((ty, arg));
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        if let Ok((source, _)) = preceded(spaces, char(')'))(source_) {
+            return Ok((source, args));
+        }
+    }
+}
+
+pub fn parse_call<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("call"))))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, callee) = value::parse(source, ctx, ty)?;
+    let (source, args_) = parse_call_args(source, ctx)?;
+    let mut tys = vec![ty];
+    let mut args = vec![callee];
+    for (t, a) in args_ {
+        tys.push(t);
+        args.push(a);
+    }
+    let inst_id = ctx.data.create_inst(
+        Opcode::Call
+            .with_block(ctx.cur_block)
+            .with_dest(name.clone())
+            .with_operand(Operand::Call { tys, args }),
+    );
+    let inst_val_id = ctx.data.create_value(value::Value::Instruction(inst_id));
+    ctx.name_to_value.insert(name, inst_val_id);
+    Ok((source, inst_id))
+}
+
 pub fn parse_ret<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -195,6 +241,10 @@ pub fn parse<'a, 'b>(
     }
 
     if let Ok((source, id)) = parse_add_sub_mul(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_call(source, ctx) {
         return Ok((source, id));
     }
 

@@ -28,6 +28,7 @@ pub enum Opcode {
     Add,
     Sub,
     Mul,
+    Call,
     Ret,
 }
 
@@ -53,6 +54,10 @@ pub enum Operand {
         tys: [TypeId; 2],
         args: [ValueId; 2],
         align: u32,
+    },
+    Call {
+        args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
+        tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
     },
     Ret {
         ty: TypeId,
@@ -121,6 +126,27 @@ impl Instruction {
                     data.value_ref(args[1]).to_string(data, types),
                 )
             }
+            Operand::Call { tys, args } => {
+                format!(
+                    "%I{} = call {} {}({})",
+                    self.id.unwrap().index(),
+                    types.to_string(tys[0]),
+                    data.value_ref(args[0]).to_string(data, types),
+                    tys[1..]
+                        .iter()
+                        .zip(args[1..].iter())
+                        .into_iter()
+                        .fold("".to_string(), |acc, (t, a)| {
+                            format!(
+                                "{}{} {}, ",
+                                acc,
+                                types.to_string(*t),
+                                data.value_ref(*a).to_string(data, types),
+                            )
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
             Operand::Ret { val: None, .. } => format!("ret void"),
             Operand::Ret { val: Some(val), ty } => {
                 format!(
@@ -155,6 +181,7 @@ impl Operand {
             Self::Load { addr, .. } => slice::from_ref(addr),
             Self::Store { args, .. } => args,
             Self::IntBinary { args, .. } => args,
+            Self::Call { args, .. } => args.as_slice(),
             Self::Invalid => &[],
         }
     }
@@ -166,6 +193,7 @@ impl Operand {
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
             Self::IntBinary { ty, .. } => slice::from_ref(ty),
+            Self::Call { tys, .. } => tys.as_slice(),
             Self::Invalid => &[],
         }
     }
@@ -183,6 +211,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",
+                Opcode::Call => "call",
                 Opcode::Ret => "ret",
             }
         )

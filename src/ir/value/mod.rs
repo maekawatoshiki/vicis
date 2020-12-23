@@ -2,7 +2,7 @@ pub mod parser;
 
 pub use parser::parse;
 
-use super::{function::Data, instruction::InstructionId, types::Types};
+use super::{function::Data, instruction::InstructionId, module::name::Name, types::Types};
 use id_arena::Id;
 
 pub type ValueId = Id<Value>;
@@ -12,7 +12,7 @@ pub enum Value {
     Instruction(InstructionId),
     Argument(usize),
     Constant(ConstantData),
-    UnresolvedGlobalIdentifier(String),
+    UnresolvedGlobalName(Name),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,7 +34,7 @@ impl Value {
                 format!("%I{}", id.index())
             }
             Self::Argument(n) => format!("%A{}", n),
-            _ => todo!(),
+            Self::UnresolvedGlobalName(n) => format!("@{:?}", n),
         }
     }
 }
