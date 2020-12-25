@@ -9,6 +9,7 @@ use nom::{
     combinator::{map, opt},
     error::VerboseError,
     sequence::{preceded, tuple},
+    Err::Error,
     IResult,
 };
 
@@ -341,37 +342,24 @@ pub fn parse<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
-    if let Ok((source, id)) = parse_alloca(source, ctx) {
-        return Ok((source, id));
+    let mut res = Err(Error(VerboseError { errors: vec![] }));
+    for f in [
+        parse_alloca,
+        parse_load,
+        parse_store,
+        parse_add_sub_mul,
+        parse_icmp,
+        parse_zext,
+        parse_call,
+        parse_br,
+        parse_ret,
+    ]
+    .iter()
+    {
+        res = f(source, ctx);
+        if let Ok((source, id)) = res {
+            return Ok((source, id));
+        }
     }
-
-    if let Ok((source, id)) = parse_load(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_store(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_add_sub_mul(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_icmp(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_zext(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_call(source, ctx) {
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_br(source, ctx) {
-        return Ok((source, id));
-    }
-
-    parse_ret(source, ctx)
+    res
 }
