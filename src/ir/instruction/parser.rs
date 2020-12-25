@@ -266,6 +266,54 @@ pub fn parse_call<'a, 'b>(
     Ok((source, inst_id))
 }
 
+pub fn parse_br<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("br"))(source)?;
+    if let Ok((source, _)) = preceded(spaces, tag("label"))(source) {
+        let (source, label) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+        let block = ctx.get_or_create_named_block(label);
+        let inst_id = ctx.data.create_inst(
+            Opcode::Br
+                .with_block(ctx.cur_block)
+                .with_operand(Operand::Br { block }),
+        );
+        Ok((source, inst_id))
+    } else {
+        let (source, ty) = types::parse(source, ctx.types)?;
+        assert_eq!(*ctx.types.get(ty), types::Type::Int(1));
+        let (source, arg) = value::parse(source, ctx, ty)?;
+        let (source, _) = preceded(spaces, char(','))(source)?;
+        let (source, iftrue) = preceded(
+            spaces,
+            preceded(
+                tag("label"),
+                preceded(spaces, preceded(char('%'), name::parse)),
+            ),
+        )(source)?;
+        let (source, _) = preceded(spaces, char(','))(source)?;
+        let (source, iffalse) = preceded(
+            spaces,
+            preceded(
+                tag("label"),
+                preceded(spaces, preceded(char('%'), name::parse)),
+            ),
+        )(source)?;
+        let iftrue = ctx.get_or_create_named_block(iftrue);
+        let iffalse = ctx.get_or_create_named_block(iffalse);
+        let inst_id =
+            ctx.data
+                .create_inst(Opcode::CondBr.with_block(ctx.cur_block).with_operand(
+                    Operand::CondBr {
+                        arg,
+                        blocks: [iftrue, iffalse],
+                    },
+                ));
+        Ok((source, inst_id))
+    }
+}
+
 pub fn parse_ret<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -318,6 +366,10 @@ pub fn parse<'a, 'b>(
     }
 
     if let Ok((source, id)) = parse_call(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_br(source, ctx) {
         return Ok((source, id));
     }
 

@@ -33,6 +33,8 @@ pub enum Opcode {
     ICmp,
     Zext,
     Call,
+    Br,
+    CondBr,
     Ret,
 }
 
@@ -86,6 +88,13 @@ pub enum Operand {
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
         tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+    },
+    Br {
+        block: BasicBlockId,
+    },
+    CondBr {
+        arg: ValueId,
+        blocks: [BasicBlockId; 2], // iftrue, iffalse
     },
     Ret {
         ty: TypeId,
@@ -195,6 +204,17 @@ impl Instruction {
                         .trim_end_matches(", ")
                 )
             }
+            Operand::Br { block } => {
+                format!("br label %B{}", block.index())
+            }
+            Operand::CondBr { arg, blocks } => {
+                format!(
+                    "br i1 {}, label %B{}, label %B{}",
+                    data.value_ref(*arg).to_string(data, types),
+                    blocks[0].index(),
+                    blocks[1].index()
+                )
+            }
             Operand::Ret { val: None, .. } => format!("ret void"),
             Operand::Ret { val: Some(val), ty } => {
                 format!(
@@ -233,6 +253,8 @@ impl Operand {
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
             Self::Call { args, .. } => args.as_slice(),
+            Self::Br { .. } => &[],
+            Self::CondBr { arg, .. } => slice::from_ref(arg),
             Self::Invalid => &[],
         }
     }
@@ -247,7 +269,17 @@ impl Operand {
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
             Self::Call { tys, .. } => tys.as_slice(),
+            Self::Br { .. } => &[],
+            Self::CondBr { .. } => &[],
             Self::Invalid => &[],
+        }
+    }
+
+    pub fn blocks(&self) -> &[BasicBlockId] {
+        match self {
+            Self::Br { block } => slice::from_ref(block),
+            Self::CondBr { blocks, .. } => blocks,
+            _ => &[],
         }
     }
 }
@@ -267,6 +299,7 @@ impl fmt::Debug for Opcode {
                 Opcode::ICmp => "icmp",
                 Opcode::Zext => "zext",
                 Opcode::Call => "call",
+                Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
             }
         )

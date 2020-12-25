@@ -11,7 +11,10 @@ pub fn run_on_function(func: &mut Function) {
     for block in func.layout.block_iter() {
         for inst_id in func.layout.inst_iter(block) {
             let inst = func.data.inst_ref(inst_id);
-            if matches!(inst.opcode, Opcode::Call | Opcode::Store | Opcode::Ret) {
+            if matches!(
+                inst.opcode,
+                Opcode::Call | Opcode::Store | Opcode::Ret | Opcode::Br | Opcode::CondBr
+            ) {
                 continue;
             }
             if inst.users.len() == 0 {

@@ -31,6 +31,7 @@ pub struct ParserContext<'a> {
     pub data: &'a mut Data,
     pub layout: &'a mut Layout,
     pub name_to_value: &'a mut FxHashMap<name::Name, ValueId>,
+    pub name_to_block: &'a mut FxHashMap<name::Name, BasicBlockId>,
     pub cur_block: BasicBlockId,
 }
 
@@ -100,8 +101,6 @@ pub fn parse_body<'a, 'b>(
         return Ok((source, ()));
     }
 
-    let mut label_to_block = FxHashMap::default();
-
     // Parse each block
     loop {
         // Parse label if any
@@ -111,13 +110,16 @@ pub fn parse_body<'a, 'b>(
         ))(source)?;
         debug!(&label);
 
-        let block = ctx.data.create_block();
+        let block = match label {
+            Some(ref label) if ctx.name_to_block.contains_key(label) => ctx.name_to_block[label],
+            _ => ctx.data.create_block(),
+        };
+
         ctx.layout.append_block(block);
         ctx.cur_block = block;
 
         // If label is present, set it to block
         if let Some(label) = label {
-            label_to_block.insert(label.clone(), block);
             ctx.data.block_ref_mut(block).name = Some(label);
         }
 
@@ -149,6 +151,7 @@ pub fn parse<'a>(
     let mut data = Data::new();
     let mut layout = Layout::new();
     let mut name_to_value = FxHashMap::default();
+    let mut name_to_block = FxHashMap::default();
     let dummy_block = data.create_block();
 
     for (i, param) in params.iter().enumerate() {
@@ -163,6 +166,7 @@ pub fn parse<'a>(
             data: &mut data,
             layout: &mut layout,
             name_to_value: &mut name_to_value,
+            name_to_block: &mut name_to_block,
             cur_block: dummy_block,
         },
     )?;
@@ -182,6 +186,18 @@ pub fn parse<'a>(
             types,
         },
     ))
+}
+
+impl<'a> ParserContext<'a> {
+    pub fn get_or_create_named_block(&mut self, name: name::Name) -> BasicBlockId {
+        if let Some(block) = self.name_to_block.get(&name) {
+            return *block;
+        }
+        let block = self.data.create_block();
+        self.data.block_ref_mut(block).name = Some(name.clone());
+        self.name_to_block.insert(name, block);
+        block
+    }
 }
 
 #[test]
