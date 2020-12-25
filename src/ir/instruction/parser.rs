@@ -1,6 +1,6 @@
 use super::{
     super::{function::parser::ParserContext, module::name, types, util::spaces, value},
-    InstructionId, Opcode, Operand,
+    ICmpCond, InstructionId, Opcode, Operand,
 };
 use nom::{
     branch::alt,
@@ -155,6 +155,71 @@ pub fn parse_add_sub_mul<'a, 'b>(
     Ok((source, inst_id))
 }
 
+pub fn parse_icmp<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    pub fn icmp_cond<'a, 'b>(source: &'a str) -> IResult<&'a str, ICmpCond, VerboseError<&'a str>> {
+        alt((
+            map(tag("eq"), |_| ICmpCond::Eq),
+            map(tag("ne"), |_| ICmpCond::Ne),
+            map(tag("ugt"), |_| ICmpCond::Ugt),
+            map(tag("uge"), |_| ICmpCond::Uge),
+            map(tag("ult"), |_| ICmpCond::Ult),
+            map(tag("ule"), |_| ICmpCond::Ule),
+            map(tag("sgt"), |_| ICmpCond::Sgt),
+            map(tag("sge"), |_| ICmpCond::Sge),
+            map(tag("slt"), |_| ICmpCond::Slt),
+            map(tag("sle"), |_| ICmpCond::Sle),
+        ))(source)
+    }
+
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("icmp"))))(source)?;
+    let (source, cond) = preceded(spaces, icmp_cond)(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, lhs) = value::parse(source, ctx, ty)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let (source, rhs) = value::parse(source, ctx, ty)?;
+    let inst_id = ctx.data.create_inst(
+        Opcode::ICmp
+            .with_block(ctx.cur_block)
+            .with_dest(name.clone())
+            .with_operand(Operand::ICmp {
+                ty,
+                args: [lhs, rhs],
+                cond,
+            }),
+    );
+    let inst_val_id = ctx.data.create_value(value::Value::Instruction(inst_id));
+    ctx.name_to_value.insert(name, inst_val_id);
+    Ok((source, inst_id))
+}
+
+pub fn parse_zext<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("zext"))))(source)?;
+    let (source, from) = types::parse(source, ctx.types)?;
+    let (source, arg) = value::parse(source, ctx, from)?;
+    let (source, _) = preceded(spaces, tag("to"))(source)?;
+    let (source, to) = types::parse(source, ctx.types)?;
+    let inst_id = ctx.data.create_inst(
+        Opcode::Zext
+            .with_block(ctx.cur_block)
+            .with_dest(name.clone())
+            .with_operand(Operand::Cast {
+                tys: [from, to],
+                arg,
+            }),
+    );
+    let inst_val_id = ctx.data.create_value(value::Value::Instruction(inst_id));
+    ctx.name_to_value.insert(name, inst_val_id);
+    Ok((source, inst_id))
+}
+
 pub fn parse_call_args<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -241,6 +306,14 @@ pub fn parse<'a, 'b>(
     }
 
     if let Ok((source, id)) = parse_add_sub_mul(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_icmp(source, ctx) {
+        return Ok((source, id));
+    }
+
+    if let Ok((source, id)) = parse_zext(source, ctx) {
         return Ok((source, id));
     }
 

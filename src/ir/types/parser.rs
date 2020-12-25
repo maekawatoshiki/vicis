@@ -13,6 +13,7 @@ pub fn parse<'a>(
         spaces,
         alt((
             map(tag("void"), |_| types.base().void()),
+            map(tag("i1"), |_| types.base().i1()),
             map(tag("i32"), |_| types.base().i32()),
         )),
     )(source)?;

@@ -30,8 +30,24 @@ pub enum Opcode {
     Add,
     Sub,
     Mul,
+    ICmp,
+    Zext,
     Call,
     Ret,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum ICmpCond {
+    Eq,
+    Ne,
+    Ugt,
+    Uge,
+    Ult,
+    Ule,
+    Sgt,
+    Sge,
+    Slt,
+    Sle,
 }
 
 #[derive(Clone)]
@@ -57,6 +73,15 @@ pub enum Operand {
         tys: [TypeId; 2],
         args: [ValueId; 2],
         align: u32,
+    },
+    ICmp {
+        ty: TypeId,
+        args: [ValueId; 2],
+        cond: ICmpCond,
+    },
+    Cast {
+        tys: [TypeId; 2], // from, to
+        arg: ValueId,
     },
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
@@ -129,6 +154,26 @@ impl Instruction {
                     data.value_ref(args[1]).to_string(data, types),
                 )
             }
+            Operand::ICmp { ty, args, cond } => {
+                format!(
+                    "%I{} = icmp {:?} {} {}, {}",
+                    self.id.unwrap().index(),
+                    cond,
+                    types.to_string(*ty),
+                    data.value_ref(args[0]).to_string(data, types),
+                    data.value_ref(args[1]).to_string(data, types)
+                )
+            }
+            Operand::Cast { tys, arg } => {
+                format!(
+                    "%I{} = {:?} {} {} to {}",
+                    self.id.unwrap().index(),
+                    self.opcode,
+                    types.to_string(tys[0]),
+                    data.value_ref(*arg).to_string(data, types),
+                    types.to_string(tys[1]),
+                )
+            }
             Operand::Call { tys, args } => {
                 format!(
                     "%I{} = call {} {}({})",
@@ -185,6 +230,8 @@ impl Operand {
             Self::Load { addr, .. } => slice::from_ref(addr),
             Self::Store { args, .. } => args,
             Self::IntBinary { args, .. } => args,
+            Self::ICmp { args, .. } => args,
+            Self::Cast { arg, .. } => slice::from_ref(arg),
             Self::Call { args, .. } => args.as_slice(),
             Self::Invalid => &[],
         }
@@ -197,6 +244,8 @@ impl Operand {
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
             Self::IntBinary { ty, .. } => slice::from_ref(ty),
+            Self::ICmp { ty, .. } => slice::from_ref(ty),
+            Self::Cast { tys, .. } => tys,
             Self::Call { tys, .. } => tys.as_slice(),
             Self::Invalid => &[],
         }
@@ -215,8 +264,31 @@ impl fmt::Debug for Opcode {
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",
+                Opcode::ICmp => "icmp",
+                Opcode::Zext => "zext",
                 Opcode::Call => "call",
                 Opcode::Ret => "ret",
+            }
+        )
+    }
+}
+
+impl fmt::Debug for ICmpCond {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Eq => "eq",
+                Self::Ne => "ne",
+                Self::Ugt => "ugt",
+                Self::Uge => "uge",
+                Self::Ult => "ult",
+                Self::Ule => "ule",
+                Self::Sgt => "sgt",
+                Self::Sge => "sge",
+                Self::Slt => "slt",
+                Self::Sle => "sle",
             }
         )
     }
