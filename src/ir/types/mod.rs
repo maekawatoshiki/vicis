@@ -22,6 +22,7 @@ pub struct TypesBase {
     void: TypeId,
     int: Cache<u32>,
     pointer: Cache<(TypeId, u32)>,
+    array: Cache<(TypeId, u32)>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -29,6 +30,7 @@ pub enum Type {
     Void,
     Int(u32),
     Pointer(PointerType),
+    Array(ArrayType),
     Function(FunctionType),
     // TODO: Add more types
 }
@@ -37,6 +39,12 @@ pub enum Type {
 pub struct PointerType {
     pub inner: TypeId,
     pub addr_space: AddrSpace,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct ArrayType {
+    pub inner: TypeId,
+    pub num_elements: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -91,6 +99,7 @@ impl TypesBase {
             void,
             int,
             pointer: Cache::default(),
+            array: Cache::default(),
         }
     }
 
@@ -142,6 +151,16 @@ impl TypesBase {
                 self.arena
                     .alloc(Type::Pointer(PointerType { inner, addr_space })),
             )
+            .clone()
+    }
+
+    pub fn array(&mut self, inner: TypeId, num_elements: u32) -> TypeId {
+        self.array
+            .entry((inner, num_elements))
+            .or_insert(self.arena.alloc(Type::Array(ArrayType {
+                inner,
+                num_elements,
+            })))
             .clone()
     }
 

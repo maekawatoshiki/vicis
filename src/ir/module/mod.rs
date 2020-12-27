@@ -1,4 +1,6 @@
 pub mod attributes;
+pub mod global_variable;
+pub mod linkage;
 pub mod name;
 pub mod parser;
 pub mod preemption_specifier;

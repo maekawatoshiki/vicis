@@ -1,6 +1,9 @@
 use super::super::function;
-use super::attributes::{parser::parse_attributes, Attribute};
 use super::Module;
+use super::{
+    attributes::{parser::parse_attributes, Attribute},
+    global_variable,
+};
 use crate::ir::util::spaces;
 use nom::{
     bytes::complete::{tag, take_until},
@@ -100,6 +103,12 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
 
         if let Ok((source_, (id, attrs))) = parse_attribute_group(source) {
             module.attributes.insert(id, attrs);
+            source = source_;
+            continue;
+        }
+
+        if let Ok((source_, gv)) = global_variable::parse(source, &module.types) {
+            // module.functions.alloc(func);
             source = source_;
             continue;
         }
