@@ -2,9 +2,9 @@ use super::{
     super::{
         function::parser::ParserContext,
         module::name,
-        types::{Type, TypeId},
-        util::spaces,
-        value::{ConstantData, ConstantInt, Value},
+        types::{Type, TypeId, Types},
+        util::{spaces, string_literal},
+        value::{ConstantArray, ConstantData, ConstantInt, Value},
     },
     ValueId,
 };
@@ -15,19 +15,63 @@ use nom::{
     IResult,
 };
 
-pub fn parse_constant_int<'a, 'b>(
+pub fn parse_constant<'a>(
     source: &'a str,
-    ctx: &mut ParserContext<'b>,
+    types: &Types,
     ty: TypeId,
-) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    if let Ok((source, id)) = parse_constant_int(source, types, ty) {
+        return Ok((source, id));
+    }
+    parse_constant_array(source, types)
+}
+
+pub fn parse_constant_int<'a>(
+    source: &'a str,
+    types: &Types,
+    ty: TypeId,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (source, num) = preceded(spaces, digit1)(source)?;
-    let val = match &*ctx.types.get(ty) {
-        Type::Int(32) => Value::Constant(ConstantData::Int(ConstantInt::Int32(
-            num.parse::<i32>().unwrap(),
-        ))),
+    let val = match &*types.get(ty) {
+        Type::Int(32) => ConstantData::Int(ConstantInt::Int32(num.parse::<i32>().unwrap())),
         _ => todo!(),
     };
-    Ok((source, ctx.data.create_value(val)))
+    Ok((source, val))
+}
+
+pub fn parse_constant_array<'a, 'b>(
+    source: &'a str,
+    types: &Types,
+    // ty: TypeId,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    // TODO: Support arrays in the form of [a, b, c]
+    let (source, _) = preceded(spaces, char('c'))(source)?;
+    let (source, s) = preceded(spaces, string_literal)(source)?;
+    let val = ConstantData::Array(ConstantArray {
+        elem_ty: types.base().i8(),
+        elems: s
+            .as_bytes()
+            .into_iter()
+            .map(|c| ConstantData::Int(ConstantInt::Int8(*c as i8)))
+            .collect(),
+        is_string: true,
+    });
+    Ok((source, val))
+
+    // let (mut source, _) = preceded(spaces, char('['))(source)?;
+    // loop {
+    //     let (source_, ty) = types::parse(source, ctx.types)?;
+    //
+    // }
+
+    // let (source, num) = preceded(spaces, digit1)(source)?;
+    // let val = match &*ctx.types.get(ty) {
+    //     Type::Int(32) => Value::Constant(ConstantData::Int(ConstantInt::Int32(
+    //         num.parse::<i32>().unwrap(),
+    //     ))),
+    //     _ => todo!(),
+    // };
+    // Ok((source, ctx.data.create_value(val)))
 }
 
 pub fn parse_global<'a, 'b>(
@@ -56,7 +100,8 @@ pub fn parse<'a, 'b>(
     ctx: &mut ParserContext<'b>,
     ty: TypeId,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
-    if let Ok((source, id)) = parse_constant_int(source, ctx, ty) {
+    if let Ok((source, konst)) = parse_constant(source, ctx.types, ty) {
+        let id = ctx.data.create_value(Value::Constant(konst));
         return Ok((source, id));
     }
 

@@ -9,7 +9,9 @@ pub use parser::parse;
 
 use super::{function::Function, types::Types};
 use attributes::Attribute;
+use global_variable::GlobalVariable;
 use id_arena::Arena;
+use name::Name;
 use rustc_hash::FxHashMap;
 use std::fmt;
 
@@ -25,6 +27,7 @@ pub struct Module {
     target: Target,
     functions: Arena<Function>,
     attributes: FxHashMap<u32, Vec<Attribute>>,
+    global_variables: FxHashMap<Name, GlobalVariable>,
     types: Types,
     // TODO: Metadata
 }
@@ -36,6 +39,7 @@ impl Module {
             target: Target::new(),
             functions: Arena::new(),
             attributes: FxHashMap::default(),
+            global_variables: FxHashMap::default(),
             types: Types::new(),
         }
     }
@@ -67,6 +71,10 @@ impl fmt::Debug for Module {
         writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
         writeln!(f, "target datalayout = \"{}\"", self.target.datalayout)?;
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
+        writeln!(f)?;
+        for (_, gv) in &self.global_variables {
+            writeln!(f, "{}", gv.to_string(&self.types))?;
+        }
         writeln!(f)?;
         for (_, func) in &self.functions {
             writeln!(f, "{:?}", func)?;

@@ -4,27 +4,21 @@ use super::{
     attributes::{parser::parse_attributes, Attribute},
     global_variable,
 };
-use crate::ir::util::spaces;
+use crate::ir::util::{spaces, string_literal};
 use nom::{
     bytes::complete::{tag, take_until},
     character::complete::{char, digit1},
-    combinator::{cut, map},
+    combinator::map,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
     Err, IResult,
 };
 
-pub fn parse_string_literal<'a>(
-    source: &'a str,
-) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
-    preceded(char('\"'), cut(terminated(take_until("\""), char('\"'))))(source)
-}
-
 fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
     tuple((
         tag("source_filename"),
         preceded(spaces, char('=')),
-        preceded(spaces, parse_string_literal),
+        preceded(spaces, string_literal),
     ))(source)
     .map(|(i, (_, _, name))| (i, name))
 }
@@ -36,7 +30,7 @@ fn parse_target_datalayout<'a>(
         tag("target"),
         preceded(spaces, tag("datalayout")),
         preceded(spaces, char('=')),
-        preceded(spaces, parse_string_literal),
+        preceded(spaces, string_literal),
     ))(source)
     .map(|(i, (_, _, _, datalayout))| (i, datalayout))
 }
@@ -46,7 +40,7 @@ fn parse_target_triple<'a>(source: &'a str) -> IResult<&'a str, &'a str, Verbose
         tag("target"),
         preceded(spaces, tag("triple")),
         preceded(spaces, char('=')),
-        preceded(spaces, parse_string_literal),
+        preceded(spaces, string_literal),
     ))(source)
     .map(|(i, (_, _, _, triple))| (i, triple))
 }
@@ -108,7 +102,7 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
         }
 
         if let Ok((source_, gv)) = global_variable::parse(source, &module.types) {
-            // module.functions.alloc(func);
+            module.global_variables.insert(gv.name.clone(), gv);
             source = source_;
             continue;
         }

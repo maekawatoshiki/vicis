@@ -3,15 +3,15 @@ use crate::ir::{
     types,
     types::Types,
     util::spaces,
+    value,
 };
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
-    combinator::{map, opt},
+    combinator::opt,
     error::VerboseError,
-    sequence::{preceded, tuple},
-    Err::Error,
+    sequence::preceded,
     IResult,
 };
 
@@ -23,7 +23,7 @@ use nom::{
 //                    [, section "name"] [, comdat [($name)]]
 //                    [, align <Alignment>] (, !name !N)*
 
-pub fn parse<'a, 'b>(
+pub fn parse<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, GlobalVariable, VerboseError<&'a str>> {
@@ -35,7 +35,19 @@ pub fn parse<'a, 'b>(
         alt((tag("unnamed_addr"), tag("local_unnamed_addr"))),
     ))(source)?;
     let (source, kind) = preceded(spaces, alt((tag("global"), tag("constant"))))(source)?;
-    let (source, ty) = types::parse(source, types)?;
+    let (mut source, ty) = types::parse(source, types)?;
+    let mut init = None;
+    if let Ok((source_, init_)) = value::parser::parse_constant(source, types, ty) {
+        init = Some(init_);
+        source = source_
+    }
+    let (source, align) = opt(preceded(
+        spaces,
+        preceded(
+            char(','),
+            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
+        ),
+    ))(source)?;
     Ok((
         source,
         GlobalVariable {
@@ -44,6 +56,8 @@ pub fn parse<'a, 'b>(
             is_local_unnamed_addr: unnamed_addr.unwrap_or("unnamed_addr") == "local_unnamed_addr",
             is_constant: kind == "constant",
             ty,
+            init,
+            align: align.map_or(0, |align| align.parse::<u32>().unwrap()),
         },
     ))
 }

@@ -1,13 +1,8 @@
 use super::Name;
 use crate::ir::util::spaces;
 use nom::{
-    branch::alt,
-    bytes::complete::take_while1,
-    character::complete::{alphanumeric1, anychar, digit1},
-    combinator::{all_consuming, map, recognize, verify},
-    error::VerboseError,
-    sequence::preceded,
-    IResult,
+    branch::alt, bytes::complete::take_while1, character::complete::digit1, combinator::map,
+    error::VerboseError, sequence::preceded, IResult,
 };
 
 pub fn parse<'a>(source: &'a str) -> IResult<&'a str, Name, VerboseError<&'a str>> {

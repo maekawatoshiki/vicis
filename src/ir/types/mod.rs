@@ -175,6 +175,12 @@ impl TypesBase {
             Type::Pointer(PointerType { inner, addr_space }) => {
                 format!("{} addrspace({})*", self.to_string(*inner), addr_space)
             }
+            Type::Array(ArrayType {
+                inner,
+                num_elements,
+            }) => {
+                format!("[{} x {}]", num_elements, self.to_string(*inner))
+            }
             _ => todo!(),
         }
     }

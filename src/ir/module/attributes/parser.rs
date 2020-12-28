@@ -1,6 +1,5 @@
-use super::super::parser::parse_string_literal;
 use super::Attribute;
-use crate::ir::util::spaces;
+use crate::ir::util::{spaces, string_literal};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -72,19 +71,13 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
             map(tag("uwtable"), |_| Attribute::UWTable),
             // map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
             map(
-                tuple((
-                    parse_string_literal,
-                    spaces,
-                    char('='),
-                    spaces,
-                    parse_string_literal,
-                )),
+                tuple((string_literal, spaces, char('='), spaces, string_literal)),
                 |(kind, _, _, _, value)| Attribute::StringAttribute {
                     kind: kind.to_string(),
                     value: value.to_string(),
                 },
             ),
-            map(parse_string_literal, |kind| Attribute::StringAttribute {
+            map(string_literal, |kind| Attribute::StringAttribute {
                 kind: kind.to_string(),
                 value: "".to_string(),
             }),

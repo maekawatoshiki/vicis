@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::take_until,
     character::complete::{char, multispace0},
-    combinator::map,
+    combinator::{cut, map},
     error::VerboseError,
     multi::many1,
     sequence::{preceded, terminated, tuple},
@@ -21,4 +21,8 @@ pub fn spaces<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a str>
         ),
         map(multispace0, |_| ()),
     ))(source)
+}
+
+pub fn string_literal<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+    preceded(char('\"'), cut(terminated(take_until("\""), char('\"'))))(source)
 }
