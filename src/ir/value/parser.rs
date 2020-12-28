@@ -2,14 +2,17 @@ use super::{
     super::{
         function::parser::ParserContext,
         module::name,
+        types,
         types::{Type, TypeId, Types},
         util::{spaces, string_literal},
-        value::{ConstantArray, ConstantData, ConstantInt, Value},
+        value::{ConstantArray, ConstantData, ConstantExpr, ConstantInt, Value},
     },
     ValueId,
 };
 use nom::{
+    bytes::complete::tag,
     character::complete::{char, digit1},
+    combinator::opt,
     error::VerboseError,
     sequence::preceded,
     IResult,
@@ -23,7 +26,13 @@ pub fn parse_constant<'a>(
     if let Ok((source, id)) = parse_constant_int(source, types, ty) {
         return Ok((source, id));
     }
-    parse_constant_array(source, types)
+    if let Ok((source, id)) = parse_constant_array(source, types) {
+        return Ok((source, id));
+    }
+    if let Ok((source, id)) = parse_constant_global_ref(source) {
+        return Ok((source, id));
+    }
+    parse_constant_expr(source, types)
 }
 
 pub fn parse_constant_int<'a>(
@@ -34,6 +43,7 @@ pub fn parse_constant_int<'a>(
     let (source, num) = preceded(spaces, digit1)(source)?;
     let val = match &*types.get(ty) {
         Type::Int(32) => ConstantData::Int(ConstantInt::Int32(num.parse::<i32>().unwrap())),
+        Type::Int(64) => ConstantData::Int(ConstantInt::Int64(num.parse::<i64>().unwrap())),
         _ => todo!(),
     };
     Ok((source, val))
@@ -74,16 +84,44 @@ pub fn parse_constant_array<'a, 'b>(
     // Ok((source, ctx.data.create_value(val)))
 }
 
-pub fn parse_global<'a, 'b>(
+pub fn parse_constant_expr<'a, 'b>(
     source: &'a str,
-    ctx: &mut ParserContext<'b>,
-    _ty: TypeId,
-) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
+    types: &Types,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
+    let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
+    let (source, _) = preceded(spaces, char('('))(source)?;
+    let (source, ty) = types::parse(source, types)?;
+    let (mut source, _) = preceded(spaces, char(','))(source)?;
+    let mut args = vec![];
+    let mut tys = vec![ty];
+    loop {
+        let (source_, ty) = types::parse(source, types)?;
+        let (source_, arg) = parse_constant(source_, types, ty)?;
+        tys.push(ty);
+        args.push(arg);
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        if let Ok((source, _)) = preceded(spaces, char(')'))(source_) {
+            return Ok((
+                source,
+                ConstantData::Expr(ConstantExpr::GetElementPtr {
+                    inbounds: inbounds.is_some(),
+                    tys,
+                    args,
+                }),
+            ));
+        }
+    }
+}
+
+pub fn parse_constant_global_ref<'a, 'b>(
+    source: &'a str,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('@'), name::parse))(source)?;
-    Ok((
-        source,
-        ctx.data.create_value(Value::UnresolvedGlobalName(name)),
-    ))
+    Ok((source, ConstantData::GlobalRef(name)))
 }
 
 pub fn parse_local<'a, 'b>(
@@ -102,10 +140,6 @@ pub fn parse<'a, 'b>(
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
     if let Ok((source, konst)) = parse_constant(source, ctx.types, ty) {
         let id = ctx.data.create_value(Value::Constant(konst));
-        return Ok((source, id));
-    }
-
-    if let Ok((source, id)) = parse_global(source, ctx, ty) {
         return Ok((source, id));
     }
 

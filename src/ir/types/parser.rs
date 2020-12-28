@@ -15,19 +15,31 @@ pub fn parse<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
-    if let Ok((source, _)) = preceded(spaces, char('['))(source) {
-        return parse_array(source, types);
-    }
+    let (source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
+        parse_array(source, types)?
+    } else {
+        preceded(
+            spaces,
+            alt((
+                map(tag("void"), |_| types.base().void()),
+                map(tag("i1"), |_| types.base().i1()),
+                map(tag("i8"), |_| types.base().i8()),
+                map(tag("i32"), |_| types.base().i32()),
+                map(tag("i64"), |_| types.base().i64()),
+            )),
+        )(source)?
+    };
 
-    let (source, mut base) = preceded(
-        spaces,
-        alt((
-            map(tag("void"), |_| types.base().void()),
-            map(tag("i1"), |_| types.base().i1()),
-            map(tag("i8"), |_| types.base().i8()),
-            map(tag("i32"), |_| types.base().i32()),
-        )),
-    )(source)?;
+    // let (source, mut base) = preceded(
+    //     spaces,
+    //     alt((
+    //         map(tag("void"), |_| types.base().void()),
+    //         map(tag("i1"), |_| types.base().i1()),
+    //         map(tag("i8"), |_| types.base().i8()),
+    //         map(tag("i32"), |_| types.base().i32()),
+    //         map(tag("i64"), |_| types.base().i64()),
+    //     )),
+    // )(source)?;
     let (source, ptrs) = many0(preceded(spaces, char('*')))(source)?;
     for _ in 0..ptrs.len() {
         base = types.base_mut().pointer(base);

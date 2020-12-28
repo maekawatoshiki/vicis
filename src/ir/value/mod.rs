@@ -17,20 +17,21 @@ pub enum Value {
     Instruction(InstructionId),
     Argument(usize),
     Constant(ConstantData),
-    UnresolvedGlobalName(Name),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConstantData {
     Int(ConstantInt),
     Array(ConstantArray),
-    // Expr(ConstantExprId, TypeId),
+    Expr(ConstantExpr),
+    GlobalRef(Name),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ConstantInt {
     Int8(i8),
     Int32(i32),
+    Int64(i64),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +39,15 @@ pub struct ConstantArray {
     pub elem_ty: TypeId,
     pub elems: Vec<ConstantData>,
     pub is_string: bool, // Int32(i32),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConstantExpr {
+    GetElementPtr {
+        inbounds: bool,
+        tys: Vec<TypeId>,
+        args: Vec<ConstantData>,
+    },
 }
 
 impl Value {
@@ -48,7 +58,7 @@ impl Value {
                 format!("%I{}", id.index())
             }
             Self::Argument(n) => format!("%A{}", n),
-            Self::UnresolvedGlobalName(n) => format!("@{:?}", n),
+            // Self::UnresolvedGlobalName(n) => format!("@{:?}", n),
         }
     }
 }
@@ -58,6 +68,8 @@ impl ConstantData {
         match self {
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
+            Self::Expr(e) => e.to_string(types),
+            Self::GlobalRef(name) => format!("@{:?}", name),
         }
     }
 
@@ -74,6 +86,7 @@ impl ConstantInt {
         match self {
             Self::Int8(i) => format!("{}", i),
             Self::Int32(i) => format!("{}", i),
+            Self::Int64(i) => format!("{}", i),
         }
     }
 
@@ -115,5 +128,30 @@ impl ConstantArray {
                 })
                 .trim_end_matches(", ")
         )
+    }
+}
+
+impl ConstantExpr {
+    pub fn to_string(&self, types: &Types) -> String {
+        match self {
+            Self::GetElementPtr {
+                inbounds,
+                tys,
+                args,
+            } => {
+                format!(
+                    "getelementptr {}({}, {})",
+                    if *inbounds { "inbounds " } else { "" },
+                    types.to_string(tys[0]),
+                    tys[1..]
+                        .iter()
+                        .zip(args.iter())
+                        .fold("".to_string(), |acc, (ty, arg)| {
+                            format!("{}{} {}, ", acc, types.to_string(*ty), arg.to_string(types))
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
+        }
     }
 }
