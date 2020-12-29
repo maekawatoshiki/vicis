@@ -16,5 +16,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install dependencies
+      run:  |
+            sudo apt-get update && \
+            sudo apt-get upgrade -y && \
+            sudo apt-get install -y zlib1g-dev apt-utils && \
+            sudo apt-get install -y opt libedit-dev build-essential make && \
+            sudo apt-get install -y cmake g++ clang pkg-config jq && \
+            sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev && \
+            cargo install cargo-kcov && \
+            cargo kcov --print-install-kcov-sh | sh
     - name: Run tests
       run: cargo test --verbose
+    - name: Run kcov
+      run: |
+            REPORT=$(find ./target/debug -maxdepth 2 -regex '.+/deps/.*' -a ! -regex '.+\.\(d\|rlib\|rmeta\|so\)'); \
+            for file in $REPORT; do                                                                                 \
+              echo $file                                                                                         ;  \
+              kcov --include-pattern=vicis/src --exclude-pattern=/.cargo ./target/cov "$file"                    ;  \
+            done                                                                                                  ; \
+            bash <(curl -s https://codecov.io/bash) -s ./target/cov -t $CODECOV_TOKEN
+
+
+
