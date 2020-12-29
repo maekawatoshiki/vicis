@@ -27,6 +27,7 @@ pub struct Function {
     pub data: Data,
     pub layout: Layout,
     types: Types,
+    is_prototype: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -277,7 +278,11 @@ impl Function {
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "define ")?;
+        if self.is_prototype {
+            write!(f, "declare ")?
+        } else {
+            write!(f, "define ")?
+        }
         write!(f, "{:?} ", self.preemption_specifier)?;
         write!(f, "{} ", self.types.to_string(self.result_ty))?;
         write!(f, "@{}(", self.name)?;
@@ -297,17 +302,21 @@ impl fmt::Debug for Function {
                 Either::Right(id) => write!(f, "#{} ", id)?,
             }
         }
-        write!(f, "{{\n")?;
 
-        for block_id in self.layout.block_iter() {
-            writeln!(f, "B{:?}:", block_id.index())?;
-            for inst_id in self.layout.inst_iter(block_id) {
-                let inst = self.data.inst_ref(inst_id);
-                writeln!(f, "    {}", inst.to_string(&self.data, &self.types))?;
+        if self.is_prototype {
+            writeln!(f)?;
+        } else {
+            write!(f, "{{\n")?;
+            for block_id in self.layout.block_iter() {
+                writeln!(f, "B{:?}:", block_id.index())?;
+                for inst_id in self.layout.inst_iter(block_id) {
+                    let inst = self.data.inst_ref(inst_id);
+                    writeln!(f, "    {}", inst.to_string(&self.data, &self.types))?;
+                }
             }
+            write!(f, "}}\n")?;
         }
 
-        write!(f, "}}\n")?;
         Ok(())
     }
 }

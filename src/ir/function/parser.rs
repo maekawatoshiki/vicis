@@ -10,6 +10,7 @@ use super::super::{
 };
 use either::Either;
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{alphanumeric1, char, digit1},
     combinator::opt,
@@ -38,11 +39,20 @@ pub struct ParserContext<'a> {
 pub fn parse_argument<'a>(
     source: &'a str,
     types: &Types,
+    index: &mut usize,
 ) -> IResult<&'a str, Parameter, VerboseError<&'a str>> {
     let (source, ty) = types::parse(source, types)?;
-    let (source, _) = preceded(spaces, char('%'))(source)?;
-    let (source, name) = name::parse(source)?;
-    Ok((source, Parameter { name, ty }))
+    let (source, name) = opt(preceded(spaces, preceded(char('%'), name::parse)))(source)?;
+    Ok((
+        source,
+        Parameter {
+            name: name.unwrap_or(name::Name::Number({
+                *index += 1;
+                *index
+            })),
+            ty,
+        },
+    ))
 }
 
 pub fn parse_argument_list<'a>(
@@ -56,9 +66,10 @@ pub fn parse_argument_list<'a>(
     }
 
     let mut params = vec![];
+    let mut index = 0;
 
     loop {
-        let (source_, param) = parse_argument(source, types)?;
+        let (source_, param) = parse_argument(source, types, &mut index)?;
         params.push(param);
 
         if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
@@ -140,13 +151,15 @@ pub fn parse<'a>(
     source: &'a str,
     types: Types,
 ) -> IResult<&'a str, Function, VerboseError<&'a str>> {
-    let (source, _) = preceded(spaces, tag("define"))(source)?;
+    let (source, define_or_declare) =
+        preceded(spaces, alt((tag("define"), tag("declare"))))(source)?;
+    let is_prototype = define_or_declare == "declare";
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
     let (source, params) = parse_argument_list(source, &types)?;
-    let (source, fn_attrs) = parse_func_attrs(source)?;
+    let (mut source, fn_attrs) = parse_func_attrs(source)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -159,17 +172,20 @@ pub fn parse<'a>(
         name_to_value.insert(param.name.clone(), arg);
     }
 
-    let (source, _) = parse_body(
-        source,
-        &mut ParserContext {
-            types: &types,
-            data: &mut data,
-            layout: &mut layout,
-            name_to_value: &mut name_to_value,
-            name_to_block: &mut name_to_block,
-            cur_block: dummy_block,
-        },
-    )?;
+    if !is_prototype {
+        source = parse_body(
+            source,
+            &mut ParserContext {
+                types: &types,
+                data: &mut data,
+                layout: &mut layout,
+                name_to_value: &mut name_to_value,
+                name_to_block: &mut name_to_block,
+                cur_block: dummy_block,
+            },
+        )?
+        .0;
+    }
 
     Ok((
         source,
@@ -184,6 +200,7 @@ pub fn parse<'a>(
             data,
             layout,
             types,
+            is_prototype,
         },
     ))
 }
