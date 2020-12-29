@@ -239,6 +239,10 @@ impl Opcode {
             users: FxHashSet::default(),
         }
     }
+
+    pub fn is_terminator(&self) -> bool {
+        matches!(self, Self::Ret | Self::Br | Self::CondBr)
+    }
 }
 
 impl Operand {

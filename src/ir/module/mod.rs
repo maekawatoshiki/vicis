@@ -5,7 +5,7 @@ pub mod name;
 pub mod parser;
 pub mod preemption_specifier;
 
-pub use parser::parse;
+pub use parser::parse as parse_assembly;
 
 use super::{function::Function, types::Types};
 use attributes::Attribute;
@@ -31,6 +31,7 @@ pub struct Module {
     types: Types,
     // TODO: Metadata
 }
+
 impl Module {
     pub fn new() -> Self {
         Self {

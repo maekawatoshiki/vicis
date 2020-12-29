@@ -1,4 +1,9 @@
-use crate::ir::{function::Function, instruction::Opcode, module::Module};
+use crate::ir::{
+    function::{Data, Function},
+    instruction::{InstructionId, Opcode},
+    module::Module,
+    value::Value,
+};
 
 pub fn run_on_module(module: &mut Module) {
     for (_, function) in module.functions_mut().iter_mut() {
@@ -7,22 +12,51 @@ pub fn run_on_module(module: &mut Module) {
 }
 
 pub fn run_on_function(func: &mut Function) {
-    let mut remove_list = vec![];
+    let mut worklist = vec![];
+    let mut elimination_list = vec![];
+
     for block in func.layout.block_iter() {
-        for inst_id in func.layout.inst_iter(block) {
-            let inst = func.data.inst_ref(inst_id);
-            if matches!(
-                inst.opcode,
-                Opcode::Call | Opcode::Store | Opcode::Ret | Opcode::Br | Opcode::CondBr
-            ) {
-                continue;
-            }
-            if inst.users.len() == 0 {
-                remove_list.push(inst_id)
-            }
+        for inst in func.layout.inst_iter(block) {
+            check_if_elimination_possible(&func.data, inst, &mut elimination_list, &mut worklist)
         }
     }
-    for inst_id in remove_list {
-        func.remove_inst(inst_id).unwrap();
+
+    while let Some(inst) = elimination_list.pop() {
+        func.remove_inst(inst).unwrap();
+    }
+
+    while let Some(inst) = worklist.pop() {
+        check_if_elimination_possible(&func.data, inst, &mut elimination_list, &mut worklist);
+        while let Some(inst) = elimination_list.pop() {
+            func.remove_inst(inst).unwrap();
+        }
+    }
+}
+
+fn check_if_elimination_possible(
+    data: &Data,
+    inst: InstructionId,
+    elimination_list: &mut Vec<InstructionId>,
+    worklist: &mut Vec<InstructionId>,
+) {
+    let inst = data.inst_ref(inst);
+    let do_not_eliminate =
+        matches!(inst.opcode, Opcode::Store | Opcode::Call) || inst.opcode.is_terminator();
+    if do_not_eliminate {
+        return;
+    }
+    if inst.users.len() == 0 {
+        elimination_list.push(inst.id.unwrap());
+        for arg in inst
+            .operand
+            .args()
+            .iter()
+            .filter_map(|&arg| match data.value_ref(arg) {
+                Value::Instruction(id) => Some(*id),
+                _ => None,
+            })
+        {
+            worklist.push(arg)
+        }
     }
 }
