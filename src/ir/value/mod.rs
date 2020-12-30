@@ -23,7 +23,7 @@ pub enum Value {
 pub enum ConstantData {
     Int(ConstantInt),
     Array(ConstantArray),
-    Expr(ConstantExpr),
+    Expr(ConstantExpr), // TODO: Boxing?
     GlobalRef(Name),
 }
 

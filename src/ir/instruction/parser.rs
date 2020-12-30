@@ -28,11 +28,7 @@ pub fn parse_alloca<'a, 'b>(
         ),
     ))(source)?;
     // TODO: Implement parser for num_elements
-    let num_elements = ctx
-        .data
-        .create_value(value::Value::Constant(value::ConstantData::Int(
-            value::ConstantInt::Int32(1),
-        )));
+    let num_elements = value::ConstantData::Int(value::ConstantInt::Int32(1));
     let inst_id = ctx.data.create_inst(
         Opcode::Alloca
             .with_block(ctx.cur_block)

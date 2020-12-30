@@ -3,8 +3,12 @@ pub mod parser;
 pub use parser::parse;
 
 use super::{
-    basic_block::BasicBlockId, function::Data, module::name::Name, types::TypeId, types::Types,
-    value::ValueId,
+    basic_block::BasicBlockId,
+    function::Data,
+    module::name::Name,
+    types::TypeId,
+    types::Types,
+    value::{ConstantData, ValueId},
 };
 use id_arena::Id;
 use rustc_hash::FxHashSet;
@@ -56,7 +60,7 @@ pub enum ICmpCond {
 pub enum Operand {
     Alloca {
         tys: [TypeId; 2],
-        num_elements: ValueId,
+        num_elements: ConstantData,
         align: u32,
     },
     Load {
@@ -127,7 +131,7 @@ impl Instruction {
                     self.id.unwrap().index(),
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
-                    data.value_ref(*num_elements).to_string(data, types),
+                    num_elements.to_string(types),
                     align
                 )
             }
@@ -248,7 +252,7 @@ impl Opcode {
 impl Operand {
     pub fn args(&self) -> &[ValueId] {
         match self {
-            Self::Alloca { num_elements, .. } => slice::from_ref(num_elements),
+            Self::Alloca { .. } => &[],
             Self::Ret { val, .. } if val.is_none() => &[],
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
             Self::Load { addr, .. } => slice::from_ref(addr),
