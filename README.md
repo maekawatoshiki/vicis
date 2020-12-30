@@ -8,5 +8,6 @@ Manipulate LLVM-IR in Pure Rust
 
 # TODO
 
-- [ ] Implement parser for LLVM-IR
+- [ ] Implement parser for LLVM Assembly
+- [ ] Implement interpreter
 - [ ] Write documents
