@@ -7,7 +7,10 @@ pub mod preemption_specifier;
 
 pub use parser::parse as parse_assembly;
 
-use super::{function::Function, types::Types};
+use super::{
+    function::{Function, FunctionId},
+    types::Types,
+};
 use attributes::Attribute;
 use global_variable::GlobalVariable;
 use id_arena::Arena;
@@ -55,6 +58,15 @@ impl Module {
 
     pub fn functions_mut(&mut self) -> &mut Arena<Function> {
         &mut self.functions
+    }
+
+    pub fn find_function_by_name<T: AsRef<str>>(&self, name: T) -> Option<FunctionId> {
+        for (id, func) in &self.functions {
+            if func.name() == name.as_ref() {
+                return Some(id);
+            }
+        }
+        None
     }
 }
 

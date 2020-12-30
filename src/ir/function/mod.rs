@@ -10,12 +10,14 @@ use super::{
     value::{Value, ValueId},
 };
 use either::Either;
-use id_arena::Arena;
+use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::fmt;
 
 /// `Attribute Group`s may be attached to `Function`s in the form of `#0`
 pub type UnresolvedAttributeId = u32;
+
+pub type FunctionId = Id<Function>;
 
 pub struct Function {
     name: String,
@@ -266,6 +268,10 @@ impl<'a> Iterator for InstructionIter<'a> {
 }
 
 impl Function {
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
     pub fn is_var_arg(&self) -> bool {
         self.is_var_arg
     }
