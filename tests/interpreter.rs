@@ -23,5 +23,5 @@ attributes #0 = { noinline nounwind optnone uwtable }
     let module = module::parse_assembly(asm).unwrap();
     let main = module.find_function_by_name("main").unwrap();
     let mut interpreter = Interpreter::new(&module);
-    interpreter.run_function(main)
+    interpreter.run_function(main).unwrap();
 }

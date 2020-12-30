@@ -1,1 +1,3 @@
-pub enum GenericValue {}
+pub enum GenericValue {
+    Int32(i32),
+}

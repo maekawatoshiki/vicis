@@ -31,7 +31,7 @@ pub struct Module {
     functions: Arena<Function>,
     attributes: FxHashMap<u32, Vec<Attribute>>,
     global_variables: FxHashMap<Name, GlobalVariable>,
-    types: Types,
+    pub types: Types,
     // TODO: Metadata
 }
 

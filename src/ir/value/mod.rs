@@ -96,6 +96,15 @@ impl ConstantInt {
             _ => panic!(),
         }
     }
+
+    // TODO: Generics?
+    pub fn cast_to_usize(self) -> usize {
+        match self {
+            Self::Int8(i) => i as usize,
+            Self::Int32(i) => i as usize,
+            Self::Int64(i) => i as usize,
+        }
+    }
 }
 
 impl ConstantArray {

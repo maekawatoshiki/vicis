@@ -48,8 +48,8 @@ pub struct Data {
 pub struct Layout {
     basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode>,
     instructions: FxHashMap<InstructionId, InstructionNode>,
-    first_block: Option<BasicBlockId>,
-    last_block: Option<BasicBlockId>,
+    pub first_block: Option<BasicBlockId>,
+    pub last_block: Option<BasicBlockId>,
 }
 
 pub struct BasicBlockNode {
@@ -175,6 +175,10 @@ impl Layout {
             block,
             cur: self.basic_blocks[&block].first_inst,
         }
+    }
+
+    pub fn next_block_of(&self, block: BasicBlockId) -> Option<BasicBlockId> {
+        self.basic_blocks[&block].next
     }
 
     pub fn append_block(&mut self, block: BasicBlockId) {
