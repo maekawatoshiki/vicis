@@ -35,7 +35,7 @@ jobs:
               echo $file; \
               kcov --include-pattern=vicis/src --exclude-pattern=/.cargo ./target/cov "$file"; \
             done; \
-            bash <(curl -s https://codecov.io/bash) -s ./target/cov -t $CODECOV_TOKEN
+            bash <(curl -s https://codecov.io/bash) -s ./target/cov
 
 
 
