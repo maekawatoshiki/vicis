@@ -28,7 +28,7 @@ pub struct Function {
     attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
     pub data: Data,
     pub layout: Layout,
-    types: Types,
+    pub types: Types,
     is_prototype: bool,
 }
 

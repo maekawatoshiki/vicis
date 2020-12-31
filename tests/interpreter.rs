@@ -14,8 +14,7 @@ define dso_local i32 @main() #0 {
   store i32 0, i32* %1, align 4                                                                  
   store i32 5, i32* %2, align 4                                                                 
   %3 = load i32, i32* %2, align 4                                                                
-  %4 = add nsw i32 %3, 2                                                                         
-  ret i32 %4 ; must be 7
+  ret i32 %3 ; must be 5
 }                                                                                                
                                                                                                  
 attributes #0 = { noinline nounwind optnone uwtable }
@@ -23,5 +22,5 @@ attributes #0 = { noinline nounwind optnone uwtable }
     let module = module::parse_assembly(asm).unwrap();
     let main = module.find_function_by_name("main").unwrap();
     let mut interpreter = Interpreter::new(&module);
-    interpreter.run_function(main).unwrap();
+    println!("return: {:?}", interpreter.run_function(main).unwrap());
 }
