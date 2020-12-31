@@ -83,20 +83,14 @@ impl<'a> Interpreter<'a> {
                         nsw: _,
                         nuw: _,
                         args,
-                    } if inst.opcode == Opcode::Add => {
+                    } => {
                         let x = genvalue(&func.data, &id_to_genvalue, args[0]);
                         let y = genvalue(&func.data, &id_to_genvalue, args[1]);
-                        id_to_genvalue.insert(inst_id, add(x, y).unwrap());
-                    }
-                    Operand::IntBinary {
-                        ty: _,
-                        nsw: _,
-                        nuw: _,
-                        args,
-                    } if inst.opcode == Opcode::Sub => {
-                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
-                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
-                        id_to_genvalue.insert(inst_id, sub(x, y).unwrap());
+                        match inst.opcode {
+                            Opcode::Add => id_to_genvalue.insert(inst_id, add(x, y).unwrap()),
+                            Opcode::Sub => id_to_genvalue.insert(inst_id, sub(x, y).unwrap()),
+                            _ => todo!(),
+                        };
                     }
                     Operand::Ret { val, .. } if val.is_none() => return Some(GenericValue::Void),
                     Operand::Ret {

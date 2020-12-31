@@ -1,4 +1,7 @@
-use vicis::{exec::interpreter::Interpreter, ir::module};
+use vicis::{
+    exec::{generic_value::GenericValue, interpreter::Interpreter},
+    ir::module,
+};
 
 #[test]
 fn exec() {
@@ -24,5 +27,8 @@ attributes #0 = { noinline nounwind optnone uwtable }
     let module = module::parse_assembly(asm).unwrap();
     let main = module.find_function_by_name("main").unwrap();
     let mut interpreter = Interpreter::new(&module);
-    println!("return: {:?}", interpreter.run_function(main).unwrap());
+    assert_eq!(
+        interpreter.run_function(main).unwrap(),
+        GenericValue::Int32(0)
+    );
 }
