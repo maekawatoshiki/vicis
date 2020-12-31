@@ -1,10 +1,10 @@
 use super::generic_value::GenericValue;
 use crate::ir::{
-    function::FunctionId,
-    instruction::Operand,
+    function::{Data, FunctionId},
+    instruction::{InstructionId, Opcode, Operand},
     module::Module,
     types::{Type, TypeId, Types},
-    value::{ConstantData, ConstantInt, Value},
+    value::{ConstantData, ConstantInt, Value, ValueId},
 };
 use rustc_hash::FxHashMap;
 
@@ -24,7 +24,6 @@ impl<'a> Interpreter<'a> {
         mem.resize(1024, 0);
         let mem = mem.into_raw_parts().0;
         let mut id_to_genvalue = FxHashMap::default();
-
         let mut block = func.layout.first_block?;
 
         loop {
@@ -54,10 +53,7 @@ impl<'a> Interpreter<'a> {
                     } => {
                         let src = args[0];
                         let dst = args[1];
-                        let dst_addr = match func.data.value_ref(dst) {
-                            Value::Instruction(id) => id_to_genvalue[id],
-                            _ => todo!(),
-                        };
+                        let dst_addr = genvalue(&func.data, &id_to_genvalue, dst);
                         match func.data.value_ref(src) {
                             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => unsafe {
                                 *(dst_addr.as_ptr().unwrap() as *mut i32) = *i;
@@ -71,10 +67,7 @@ impl<'a> Interpreter<'a> {
                         align: _,
                     } => {
                         let ty = tys[0];
-                        let addr = match func.data.value_ref(*addr) {
-                            Value::Instruction(id) => id_to_genvalue[id],
-                            _ => todo!(),
-                        };
+                        let addr = genvalue(&func.data, &id_to_genvalue, *addr);
                         match &*func.types.get(ty) {
                             Type::Int(32) => id_to_genvalue.insert(
                                 inst_id,
@@ -84,6 +77,26 @@ impl<'a> Interpreter<'a> {
                             ),
                             _ => todo!(),
                         };
+                    }
+                    Operand::IntBinary {
+                        ty: _,
+                        nsw: _,
+                        nuw: _,
+                        args,
+                    } if inst.opcode == Opcode::Add => {
+                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
+                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
+                        id_to_genvalue.insert(inst_id, add(x, y).unwrap());
+                    }
+                    Operand::IntBinary {
+                        ty: _,
+                        nsw: _,
+                        nuw: _,
+                        args,
+                    } if inst.opcode == Opcode::Sub => {
+                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
+                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
+                        id_to_genvalue.insert(inst_id, sub(x, y).unwrap());
                     }
                     Operand::Ret { val, .. } if val.is_none() => return Some(GenericValue::Void),
                     Operand::Ret {
@@ -106,6 +119,32 @@ impl<'a> Interpreter<'a> {
         }
 
         panic!("reached end of function without terminator");
+    }
+}
+
+fn genvalue(
+    data: &Data,
+    id_to_genvalue: &FxHashMap<InstructionId, GenericValue>,
+    id: ValueId,
+) -> GenericValue {
+    match data.value_ref(id) {
+        Value::Instruction(id) => id_to_genvalue[id],
+        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => GenericValue::Int32(*i),
+        _ => todo!(),
+    }
+}
+
+fn add(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x + y)),
+        _ => None,
+    }
+}
+
+fn sub(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x - y)),
+        _ => None,
     }
 }
 

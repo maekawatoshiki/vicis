@@ -26,7 +26,7 @@ pub struct Instruction {
     // pub result_ty: Option<TypeId>
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Opcode {
     Alloca,
     Load,
