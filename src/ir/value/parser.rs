@@ -88,6 +88,13 @@ pub fn parse_constant_expr<'a, 'b>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    parse_constant_getelementptr(source, types)
+}
+
+pub fn parse_constant_getelementptr<'a, 'b>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
     let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
     let (source, _) = preceded(spaces, char('('))(source)?;

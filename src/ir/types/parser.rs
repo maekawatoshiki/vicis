@@ -30,16 +30,6 @@ pub fn parse<'a>(
         )(source)?
     };
 
-    // let (source, mut base) = preceded(
-    //     spaces,
-    //     alt((
-    //         map(tag("void"), |_| types.base().void()),
-    //         map(tag("i1"), |_| types.base().i1()),
-    //         map(tag("i8"), |_| types.base().i8()),
-    //         map(tag("i32"), |_| types.base().i32()),
-    //         map(tag("i64"), |_| types.base().i64()),
-    //     )),
-    // )(source)?;
     let (source, ptrs) = many0(preceded(spaces, char('*')))(source)?;
     for _ in 0..ptrs.len() {
         base = types.base_mut().pointer(base);

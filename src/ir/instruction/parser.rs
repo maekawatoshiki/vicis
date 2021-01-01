@@ -193,18 +193,30 @@ pub fn parse_icmp<'a, 'b>(
     Ok((source, inst_id))
 }
 
-pub fn parse_zext<'a, 'b>(
+pub fn parse_cast<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
-    let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("zext"))))(source)?;
+    let (source, opcode) = preceded(
+        spaces,
+        preceded(
+            char('='),
+            preceded(
+                spaces,
+                alt((
+                    map(tag("sext"), |_| Opcode::Sext),
+                    map(tag("zext"), |_| Opcode::Zext),
+                )),
+            ),
+        ),
+    )(source)?;
     let (source, from) = types::parse(source, ctx.types)?;
     let (source, arg) = value::parse(source, ctx, from)?;
     let (source, _) = preceded(spaces, tag("to"))(source)?;
     let (source, to) = types::parse(source, ctx.types)?;
     let inst_id = ctx.data.create_inst(
-        Opcode::Zext
+        opcode
             .with_block(ctx.cur_block)
             .with_dest(name.clone())
             .with_operand(Operand::Cast {
@@ -234,6 +246,45 @@ pub fn parse_call_args<'a, 'b>(
         if let Ok((source, _)) = preceded(spaces, char(')'))(source_) {
             return Ok((source, args));
         }
+    }
+}
+
+pub fn parse_getelementptr<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(
+        spaces,
+        preceded(char('='), preceded(spaces, tag("getelementptr"))),
+    )(source)?;
+    let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (mut source, _) = preceded(spaces, char(','))(source)?;
+    let mut args = vec![];
+    let mut tys = vec![ty];
+    loop {
+        let (source_, ty) = types::parse(source, ctx.types)?;
+        let (source_, arg) = value::parse(source_, ctx, ty)?;
+        tys.push(ty);
+        args.push(arg);
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        let inst_id = ctx.data.create_inst(
+            Opcode::GetElementPtr
+                .with_block(ctx.cur_block)
+                .with_dest(name.clone())
+                .with_operand(Operand::GetElementPtr {
+                    inbounds: inbounds.is_some(),
+                    tys,
+                    args,
+                }),
+        );
+        let inst_val_id = ctx.data.create_value(value::Value::Instruction(inst_id));
+        ctx.name_to_value.insert(name, inst_val_id);
+        return Ok((source_, inst_id));
     }
 }
 
@@ -345,7 +396,8 @@ pub fn parse<'a, 'b>(
         parse_store,
         parse_add_sub_mul,
         parse_icmp,
-        parse_zext,
+        parse_cast,
+        parse_getelementptr,
         parse_call,
         parse_br,
         parse_ret,

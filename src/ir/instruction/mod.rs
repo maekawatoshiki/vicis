@@ -35,7 +35,9 @@ pub enum Opcode {
     Sub,
     Mul,
     ICmp,
+    Sext,
     Zext,
+    GetElementPtr,
     Call,
     Br,
     CondBr,
@@ -88,6 +90,11 @@ pub enum Operand {
     Cast {
         tys: [TypeId; 2], // from, to
         arg: ValueId,
+    },
+    GetElementPtr {
+        inbounds: bool,
+        tys: Vec<TypeId>,
+        args: Vec<ValueId>,
     },
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
@@ -187,6 +194,30 @@ impl Instruction {
                     types.to_string(tys[1]),
                 )
             }
+            Operand::GetElementPtr {
+                inbounds,
+                tys,
+                args,
+            } => {
+                format!(
+                    "%I{} = getelementptr {}{}, {}",
+                    self.id.unwrap().index(),
+                    if *inbounds { "inbounds " } else { "" },
+                    types.to_string(tys[0]),
+                    tys[1..]
+                        .iter()
+                        .zip(args.iter())
+                        .fold("".to_string(), |acc, (ty, arg)| {
+                            format!(
+                                "{}{} {}, ",
+                                acc,
+                                types.to_string(*ty),
+                                data.value_ref(*arg).to_string(data, types)
+                            )
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
             Operand::Call { tys, args } => {
                 format!(
                     "%I{} = call {} {}({})",
@@ -260,6 +291,7 @@ impl Operand {
             Self::IntBinary { args, .. } => args,
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
+            Self::GetElementPtr { args, .. } => args.as_slice(),
             Self::Call { args, .. } => args.as_slice(),
             Self::Br { .. } => &[],
             Self::CondBr { arg, .. } => slice::from_ref(arg),
@@ -276,6 +308,7 @@ impl Operand {
             Self::IntBinary { ty, .. } => slice::from_ref(ty),
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
+            Self::GetElementPtr { tys, .. } => tys.as_slice(),
             Self::Call { tys, .. } => tys.as_slice(),
             Self::Br { .. } => &[],
             Self::CondBr { .. } => &[],
@@ -305,7 +338,9 @@ impl fmt::Debug for Opcode {
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",
                 Opcode::ICmp => "icmp",
+                Opcode::Sext => "sext",
                 Opcode::Zext => "zext",
+                Opcode::GetElementPtr => "getelementptr",
                 Opcode::Call => "call",
                 Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
