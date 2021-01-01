@@ -115,6 +115,10 @@ impl Data {
         &self.instructions[id]
     }
 
+    pub fn inst_ref_mut(&mut self, id: InstructionId) -> &mut Instruction {
+        &mut self.instructions[id]
+    }
+
     pub fn value_ref(&self, id: ValueId) -> &Value {
         &self.values[id]
     }
