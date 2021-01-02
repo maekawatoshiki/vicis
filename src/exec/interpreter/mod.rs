@@ -1,7 +1,7 @@
 use super::generic_value::GenericValue;
 use crate::ir::{
     function::{Data, FunctionId},
-    instruction::{InstructionId, Opcode, Operand},
+    instruction::{ICmpCond, InstructionId, Opcode, Operand},
     module::Module,
     types::{Type, TypeId, Types},
     value::{ConstantData, ConstantInt, Value, ValueId},
@@ -26,7 +26,7 @@ impl<'a> Interpreter<'a> {
         let mut id_to_genvalue = FxHashMap::default();
         let mut block = func.layout.first_block?;
 
-        loop {
+        'outer: loop {
             for (inst_id, inst) in func
                 .layout
                 .inst_iter(block)
@@ -47,18 +47,25 @@ impl<'a> Interpreter<'a> {
                         alloca_size += alloc_sz;
                     }
                     Operand::Store {
-                        tys: _,
+                        tys,
                         args,
                         align: _,
                     } => {
+                        let ty = tys[0];
                         let src = args[0];
                         let dst = args[1];
                         let dst_addr = genvalue(&func.data, &id_to_genvalue, dst);
                         match func.data.value_ref(src) {
                             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => unsafe {
-                                *(dst_addr.as_ptr().unwrap() as *mut i32) = *i;
+                                *(dst_addr.to_ptr().unwrap() as *mut i32) = *i;
                             },
-                            _ => todo!(),
+                            Value::Instruction(id)
+                                if matches!(&*func.types.get(ty), Type::Int(32)) =>
+                            unsafe {
+                                *(dst_addr.to_ptr().unwrap() as *mut i32) =
+                                    id_to_genvalue[id].to_i32().unwrap();
+                            }
+                            e => todo!("{:?}", e),
                         }
                     }
                     Operand::Load {
@@ -72,7 +79,7 @@ impl<'a> Interpreter<'a> {
                             Type::Int(32) => id_to_genvalue.insert(
                                 inst_id,
                                 GenericValue::Int32(unsafe {
-                                    *(addr.as_ptr().unwrap() as *const i32)
+                                    *(addr.to_ptr().unwrap() as *const i32)
                                 }),
                             ),
                             _ => todo!(),
@@ -92,15 +99,37 @@ impl<'a> Interpreter<'a> {
                             _ => todo!(),
                         };
                     }
+                    Operand::ICmp { ty: _, args, cond } => {
+                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
+                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
+                        let res = match cond {
+                            ICmpCond::Slt => slt(x, y).unwrap(),
+                            _ => todo!(),
+                        };
+                        id_to_genvalue.insert(inst_id, res);
+                    }
+                    Operand::CondBr { arg, blocks } => {
+                        let arg = genvalue(&func.data, &id_to_genvalue, *arg);
+                        if matches!(arg, GenericValue::Int1(true)) {
+                            block = blocks[0];
+                        } else {
+                            block = blocks[1];
+                        }
+                        continue 'outer;
+                    }
+                    Operand::Br { block: b } => {
+                        block = *b;
+                        continue 'outer;
+                    }
                     Operand::Ret { val, .. } if val.is_none() => return Some(GenericValue::Void),
                     Operand::Ret {
                         ty: _,
                         val: Some(val),
-                    } => match func.data.value_ref(*val) {
-                        Value::Instruction(id) => return Some(id_to_genvalue[id]),
-                        _ => todo!(),
-                    },
-                    _ => todo!(),
+                    } => {
+                        let val = genvalue(&func.data, &id_to_genvalue, *val);
+                        return Some(val);
+                    }
+                    _ => todo!("{:?}", inst.opcode),
                 }
             }
 
@@ -138,6 +167,13 @@ fn add(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn sub(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x - y)),
+        _ => None,
+    }
+}
+
+fn slt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x < y)),
         _ => None,
     }
 }

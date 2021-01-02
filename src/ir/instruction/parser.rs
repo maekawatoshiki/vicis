@@ -17,7 +17,6 @@ pub fn parse_alloca<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
-    // let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
     let (source, _) = preceded(spaces, tag("alloca"))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, align) = opt(preceded(
