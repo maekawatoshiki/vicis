@@ -19,18 +19,18 @@ use rustc_hash::FxHashMap;
 use std::fmt;
 
 #[derive(Debug, Clone)]
-struct Target {
+pub struct Target {
     triple: String,
     datalayout: String,
 }
 
 pub struct Module {
-    name: String,
-    source_filename: String,
-    target: Target,
-    functions: Arena<Function>,
-    attributes: FxHashMap<u32, Vec<Attribute>>,
-    global_variables: FxHashMap<Name, GlobalVariable>,
+    pub(crate) name: String,
+    pub(crate) source_filename: String,
+    pub(crate) target: Target,
+    pub(crate) functions: Arena<Function>,
+    pub(crate) attributes: FxHashMap<u32, Vec<Attribute>>,
+    pub(crate) global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
     // TODO: Metadata
 }
