@@ -50,7 +50,6 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
             }
         }
         for mach_inst in mach_insts {
-            println!("{:?}", mach_inst);
             let mach_inst = data.create_inst(mach_inst);
             layout.append_inst(mach_inst, block_map[&block_id])
         }

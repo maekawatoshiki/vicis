@@ -11,13 +11,19 @@ pub fn ret<'a>(
     inst: &'a IrInstruction,
 ) -> Option<Vec<MachInstruction<InstructionData>>> {
     if let Some(imm32) = ir::ret(ir::any_i32())(data, inst) {
-        return Some(vec![MachInstruction {
-            id: None,
-            data: InstructionData::MOVri32 {
-                dst: Either::Left(GR32::EAX),
-                src: *imm32,
+        return Some(vec![
+            MachInstruction {
+                id: None,
+                data: InstructionData::MOVri32 {
+                    dst: Either::Left(GR32::EAX),
+                    src: *imm32,
+                },
             },
-        }]);
+            MachInstruction {
+                id: None,
+                data: InstructionData::RET,
+            },
+        ]);
     }
     None
 }

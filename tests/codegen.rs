@@ -1,9 +1,13 @@
 use vicis::{
-    codegen::{inst_selection::convert_module, target::x86_64::X86_64},
+    codegen::{
+        inst_selection::convert_module,
+        target::x86_64::{asm, pass, X86_64},
+    },
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::module,
 };
 
+#[test]
 fn gen() {
     let asm = r#"
 source_filename = "asm.c"                                                                          
@@ -19,7 +23,9 @@ attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let _mach_module = convert_module::<X86_64>(module);
+    let mut mach_module = convert_module::<X86_64>(module);
+    pass::pro_epi_inserter::run_on_module(&mut mach_module);
+    println!("{}", mach_module);
     // let mut interpreter = Interpreter::new(&module);
     // assert_eq!(
     //     interpreter.run_function(main).unwrap(),

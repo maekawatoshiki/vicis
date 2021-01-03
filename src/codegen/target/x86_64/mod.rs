@@ -1,5 +1,7 @@
+pub mod asm;
 pub mod inst_selection;
 pub mod instruction;
+pub mod pass;
 pub mod register;
 
 use super::Target;

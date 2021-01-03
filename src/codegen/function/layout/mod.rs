@@ -81,6 +81,57 @@ impl<InstData> Layout<InstData> {
         }
     }
 
+    pub fn insert_inst_at_start(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
+        self.instructions
+            .entry(inst)
+            .or_insert(InstructionNode {
+                prev: None,
+                next: None,
+                block: Some(block),
+            })
+            .block = Some(block);
+
+        if let Some(first_inst) = self.basic_blocks[&block].first_inst {
+            self.instructions.get_mut(&first_inst).unwrap().prev = Some(inst);
+            self.instructions.get_mut(&inst).unwrap().next = Some(first_inst);
+        }
+
+        self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
+
+        if self.basic_blocks[&block].last_inst.is_none() {
+            self.basic_blocks.get_mut(&block).unwrap().last_inst = Some(inst);
+        }
+    }
+
+    pub fn insert_inst_before(
+        &mut self,
+        before: InstructionId<InstData>,
+        inst: InstructionId<InstData>,
+        block: BasicBlockId,
+    ) {
+        {
+            let prev = self.instructions[&before].prev;
+            self.instructions
+                .entry(inst)
+                .or_insert(InstructionNode {
+                    prev,
+                    next: Some(before),
+                    block: Some(block),
+                })
+                .block = Some(block);
+        }
+
+        if let Some(prev) = self.instructions[&before].prev {
+            self.instructions.get_mut(&prev).unwrap().next = Some(inst);
+        }
+
+        self.instructions.get_mut(&before).unwrap().prev = Some(inst);
+
+        if self.basic_blocks[&block].first_inst == Some(before) {
+            self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
+        }
+    }
+
     pub fn append_inst(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
         self.instructions
             .entry(inst)
