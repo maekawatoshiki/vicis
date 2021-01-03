@@ -1,38 +1,38 @@
 use crate::codegen::{basic_block::BasicBlockId, instruction::InstructionId};
 use rustc_hash::FxHashMap;
 
-pub struct Layout {
-    basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode>,
-    instructions: FxHashMap<InstructionId, InstructionNode>,
+pub struct Layout<InstData> {
+    basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode<InstData>>,
+    instructions: FxHashMap<InstructionId<InstData>, InstructionNode<InstData>>,
     pub first_block: Option<BasicBlockId>,
     pub last_block: Option<BasicBlockId>,
 }
 
-pub struct BasicBlockNode {
+pub struct BasicBlockNode<InstData> {
     prev: Option<BasicBlockId>,
     next: Option<BasicBlockId>,
-    first_inst: Option<InstructionId>,
-    last_inst: Option<InstructionId>,
+    first_inst: Option<InstructionId<InstData>>,
+    last_inst: Option<InstructionId<InstData>>,
 }
 
-pub struct InstructionNode {
+pub struct InstructionNode<InstData> {
     block: Option<BasicBlockId>,
-    prev: Option<InstructionId>,
-    next: Option<InstructionId>,
+    prev: Option<InstructionId<InstData>>,
+    next: Option<InstructionId<InstData>>,
 }
 
-pub struct BasicBlockIter<'a> {
-    layout: &'a Layout,
+pub struct BasicBlockIter<'a, InstData> {
+    layout: &'a Layout<InstData>,
     cur: Option<BasicBlockId>,
 }
 
-pub struct InstructionIter<'a> {
-    layout: &'a Layout,
+pub struct InstructionIter<'a, InstData> {
+    layout: &'a Layout<InstData>,
     block: BasicBlockId,
-    cur: Option<InstructionId>,
+    cur: Option<InstructionId<InstData>>,
 }
 
-impl Layout {
+impl<InstData> Layout<InstData> {
     pub fn new() -> Self {
         Self {
             basic_blocks: FxHashMap::default(),
@@ -42,14 +42,14 @@ impl Layout {
         }
     }
 
-    pub fn block_iter<'a>(&'a self) -> BasicBlockIter<'a> {
+    pub fn block_iter<'a>(&'a self) -> BasicBlockIter<'a, InstData> {
         BasicBlockIter {
             layout: self,
             cur: self.first_block,
         }
     }
 
-    pub fn inst_iter<'a>(&'a self, block: BasicBlockId) -> InstructionIter<'a> {
+    pub fn inst_iter<'a>(&'a self, block: BasicBlockId) -> InstructionIter<'a, InstData> {
         InstructionIter {
             layout: self,
             block,
@@ -81,7 +81,7 @@ impl Layout {
         }
     }
 
-    pub fn append_inst(&mut self, inst: InstructionId, block: BasicBlockId) {
+    pub fn append_inst(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
         self.instructions
             .entry(inst)
             .or_insert(InstructionNode {
@@ -127,7 +127,7 @@ impl Layout {
     // }
 }
 
-impl<'a> Iterator for BasicBlockIter<'a> {
+impl<'a, InstData> Iterator for BasicBlockIter<'a, InstData> {
     type Item = BasicBlockId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -137,8 +137,8 @@ impl<'a> Iterator for BasicBlockIter<'a> {
     }
 }
 
-impl<'a> Iterator for InstructionIter<'a> {
-    type Item = InstructionId;
+impl<'a, InstData> Iterator for InstructionIter<'a, InstData> {
+    type Item = InstructionId<InstData>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cur = self.cur?;

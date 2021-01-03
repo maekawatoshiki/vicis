@@ -4,13 +4,13 @@ use crate::codegen::{
 };
 use id_arena::Arena;
 
-pub struct Data {
+pub struct Data<InstData> {
     // pub values: Arena<Value>,
-    pub instructions: Arena<Instruction>,
+    pub instructions: Arena<Instruction<InstData>>,
     pub basic_blocks: Arena<BasicBlock>,
 }
 
-impl Data {
+impl<InstData> Data<InstData> {
     pub fn new() -> Self {
         Self {
             // values: Arena::new(),
@@ -23,15 +23,15 @@ impl Data {
         self.basic_blocks.alloc(BasicBlock::new())
     }
 
-    pub fn create_inst(&mut self, mut inst: Instruction) -> InstructionId {
-        // let id = self.instructions.alloc_with_id(|id| {
-        //     inst.id = Some(id);
-        //     inst
-        // });
-        // self.set_inst_users(id);
-        // id
-        todo!()
-    }
+    // pub fn create_inst(&mut self, mut inst: Instruction) -> InstructionId {
+    //     // let id = self.instructions.alloc_with_id(|id| {
+    //     //     inst.id = Some(id);
+    //     //     inst
+    //     // });
+    //     // self.set_inst_users(id);
+    //     // id
+    //     todo!()
+    // }
 
     pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
         &self.basic_blocks[id]
@@ -42,11 +42,11 @@ impl Data {
         &mut self.basic_blocks[id]
     }
 
-    pub fn inst_ref(&self, id: InstructionId) -> &Instruction {
+    pub fn inst_ref(&self, id: InstructionId<InstData>) -> &Instruction<InstData> {
         &self.instructions[id]
     }
 
-    pub fn inst_ref_mut(&mut self, id: InstructionId) -> &mut Instruction {
+    pub fn inst_ref_mut(&mut self, id: InstructionId<InstData>) -> &mut Instruction<InstData> {
         &mut self.instructions[id]
     }
 }

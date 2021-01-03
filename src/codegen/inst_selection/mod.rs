@@ -1,12 +1,13 @@
 use super::{
     function::{data::Data, layout::Layout, Function as MachFunction},
     module::Module as MachModule,
+    target::Target,
 };
 use crate::ir::{function::Function as IrFunction, module::Module as IrModule};
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
-pub fn convert_module(module: IrModule) -> MachModule {
+pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
     MachModule {
         name: module.name,
         source_filename: module.source_filename,
@@ -18,7 +19,7 @@ pub fn convert_module(module: IrModule) -> MachModule {
     }
 }
 
-pub fn convert_function(function: IrFunction) -> MachFunction {
+pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
     let mut data = Data::new();
     let mut layout = Layout::new();
     let mut block_map = FxHashMap::default();
