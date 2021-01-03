@@ -20,16 +20,16 @@ pub type UnresolvedAttributeId = u32;
 pub type FunctionId = Id<Function>;
 
 pub struct Function {
-    name: String,
-    is_var_arg: bool,
-    result_ty: TypeId,
-    params: Vec<Parameter>,
-    preemption_specifier: PreemptionSpecifier,
-    attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
+    pub(crate) name: String,
+    pub(crate) is_var_arg: bool,
+    pub(crate) result_ty: TypeId,
+    pub(crate) params: Vec<Parameter>,
+    pub(crate) preemption_specifier: PreemptionSpecifier,
+    pub(crate) attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
     pub data: Data,
     pub layout: Layout,
     pub types: Types,
-    is_prototype: bool,
+    pub(crate) is_prototype: bool,
 }
 
 #[derive(Debug, Clone)]
