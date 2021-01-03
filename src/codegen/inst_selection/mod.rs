@@ -4,6 +4,7 @@ use super::{
 };
 use crate::ir::{function::Function as IrFunction, module::Module as IrModule};
 use id_arena::Arena;
+use rustc_hash::FxHashMap;
 
 pub fn convert_module(module: IrModule) -> MachModule {
     MachModule {
@@ -20,9 +21,17 @@ pub fn convert_module(module: IrModule) -> MachModule {
 pub fn convert_function(function: IrFunction) -> MachFunction {
     let mut data = Data::new();
     let mut layout = Layout::new();
+    let mut block_map = FxHashMap::default();
+
+    // Create machine basic blocks
+    for block_id in function.layout.block_iter() {
+        let new_block_id = data.create_block();
+        layout.append_block(new_block_id);
+        block_map.insert(block_id, new_block_id);
+    }
 
     for block_id in function.layout.block_iter() {
-        // for inst_id in function.layout.inst_iter(block_id) {}
+        for inst_id in function.layout.inst_iter(block_id).rev() {}
     }
 
     MachFunction {
@@ -32,8 +41,8 @@ pub fn convert_function(function: IrFunction) -> MachFunction {
         params: function.params,
         preemption_specifier: function.preemption_specifier,
         attributes: function.attributes,
-        data: Data::new(),
-        layout: Layout::new(),
+        data,
+        layout,
         types: function.types,
         is_prototype: function.is_prototype,
     }

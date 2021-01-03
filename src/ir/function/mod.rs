@@ -73,7 +73,8 @@ pub struct BasicBlockIter<'a> {
 pub struct InstructionIter<'a> {
     layout: &'a Layout,
     block: BasicBlockId,
-    cur: Option<InstructionId>,
+    head: Option<InstructionId>,
+    tail: Option<InstructionId>,
 }
 
 impl Data {
@@ -177,7 +178,8 @@ impl Layout {
         InstructionIter {
             layout: self,
             block,
-            cur: self.basic_blocks[&block].first_inst,
+            head: self.basic_blocks[&block].first_inst,
+            tail: self.basic_blocks[&block].last_inst,
         }
     }
 
@@ -265,11 +267,24 @@ impl<'a> Iterator for InstructionIter<'a> {
     type Item = InstructionId;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cur = self.cur?;
+        let cur = self.head?;
         if Some(cur) == self.layout.basic_blocks[&self.block].last_inst {
-            self.cur = None;
+            self.head = None;
         } else {
-            self.cur = self.layout.instructions[&cur].next;
+            self.head = self.layout.instructions[&cur].next;
+        }
+        Some(cur)
+    }
+}
+
+impl<'a> DoubleEndedIterator for InstructionIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let cur = self.tail?;
+        if self.head == self.tail {
+            self.head = None;
+            self.tail = None;
+        } else {
+            self.tail = self.layout.instructions[&cur].prev;
         }
         Some(cur)
     }
