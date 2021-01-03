@@ -1,5 +1,6 @@
 pub mod data;
 pub mod layout;
+pub mod slot;
 
 use super::target::Target;
 use crate::ir::{
@@ -8,6 +9,7 @@ use crate::ir::{
     types::{TypeId, Types},
 };
 use either::Either;
+use std::marker::PhantomData;
 
 pub struct Function<T: Target> {
     pub name: String,
@@ -20,4 +22,5 @@ pub struct Function<T: Target> {
     pub layout: layout::Layout<T::InstData>,
     pub types: Types,
     pub is_prototype: bool,
+    pub phantom: PhantomData<T>,
 }

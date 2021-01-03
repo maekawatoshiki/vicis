@@ -1,13 +1,24 @@
 pub mod pattern;
 
 use super::{
-    function::{data::Data, layout::Layout, Function as MachFunction},
+    function::{data::Data, layout::Layout, slot::Slots, Function as MachFunction},
     module::Module as MachModule,
     target::Target,
 };
-use crate::ir::{function::Function as IrFunction, module::Module as IrModule};
+use crate::ir::{
+    function::{Data as IrData, Function as IrFunction},
+    instruction::{Instruction as IrInstruction, Opcode},
+    module::Module as IrModule,
+};
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
+use std::marker::PhantomData;
+
+pub struct Context<'a, InstData> {
+    pub ir_data: &'a IrData,
+    pub inst: &'a IrInstruction,
+    pub mach_data: &'a mut Data<InstData>,
+}
 
 pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
     let mut functions = Arena::new();
@@ -24,10 +35,12 @@ pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
         attributes: module.attributes,
         global_variables: module.global_variables,
         types: module.types,
+        phantom: PhantomData,
     }
 }
 
 pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
+    let mut slots: Slots<T> = Slots::new();
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
@@ -42,9 +55,20 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
     for block_id in function.layout.block_iter() {
         let mut mach_insts = vec![];
         for inst_id in function.layout.inst_iter(block_id).rev() {
-            let pats = T::select_patterns();
-            for pat in pats {
-                if let Some(is) = pat(&function.data, &function.data.inst_ref(inst_id)) {
+            let inst = function.data.inst_ref(inst_id);
+
+            // Special case
+            if inst.opcode == Opcode::Alloca {
+                continue;
+            }
+
+            // Select instruction
+            for pat in T::select_patterns() {
+                if let Some(is) = pat(Context {
+                    ir_data: &function.data,
+                    inst: inst,
+                    mach_data: &mut data,
+                }) {
                     mach_insts.extend(is.into_iter())
                 }
             }
@@ -66,6 +90,7 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
         layout,
         types: function.types,
         is_prototype: function.is_prototype,
+        phantom: PhantomData,
     }
 }
 

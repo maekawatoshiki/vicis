@@ -7,6 +7,7 @@ use crate::ir::{
 };
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
+use std::marker::PhantomData;
 
 pub struct Module<T: Target> {
     pub name: String,
@@ -17,4 +18,5 @@ pub struct Module<T: Target> {
     pub global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
     // TODO: Metadata
+    pub phantom: PhantomData<T>,
 }
