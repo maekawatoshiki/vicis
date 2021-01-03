@@ -1,7 +1,11 @@
 pub mod x86_64;
 
-pub trait Target {
-    type InstData;
+use crate::codegen::instruction::Instruction as MachInstruction;
+use crate::ir::{function::Data, instruction::Instruction};
 
-    fn select_patterns() -> Vec<()>;
+pub trait Target {
+    type InstData: ::std::fmt::Debug;
+
+    fn select_patterns(
+    ) -> Vec<fn(&Data, &Instruction) -> Option<Vec<MachInstruction<Self::InstData>>>>;
 }

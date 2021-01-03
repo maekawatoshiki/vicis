@@ -23,15 +23,13 @@ impl<InstData> Data<InstData> {
         self.basic_blocks.alloc(BasicBlock::new())
     }
 
-    // pub fn create_inst(&mut self, mut inst: Instruction) -> InstructionId {
-    //     // let id = self.instructions.alloc_with_id(|id| {
-    //     //     inst.id = Some(id);
-    //     //     inst
-    //     // });
-    //     // self.set_inst_users(id);
-    //     // id
-    //     todo!()
-    // }
+    pub fn create_inst(&mut self, mut inst: Instruction<InstData>) -> InstructionId<InstData> {
+        let id = self.instructions.alloc_with_id(|id| {
+            inst.id = Some(id);
+            inst
+        });
+        id
+    }
 
     pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
         &self.basic_blocks[id]

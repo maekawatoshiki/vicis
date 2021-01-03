@@ -28,8 +28,8 @@ pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
 }
 
 pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
-    let mut data = Data::new();
-    let mut layout = Layout::new();
+    let mut data: Data<T::InstData> = Data::new();
+    let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
 
     // Create machine basic blocks
@@ -40,11 +40,19 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
     }
 
     for block_id in function.layout.block_iter() {
+        let mut mach_insts = vec![];
         for inst_id in function.layout.inst_iter(block_id).rev() {
-            use super::inst_selection::pattern::ir;
-            let a = ir::ret(ir::any_i32())(&function.data, function.data.inst_ref(inst_id));
-            assert!(a.is_some());
-            // let pats = T::select_patterns();
+            let pats = T::select_patterns();
+            for pat in pats {
+                if let Some(is) = pat(&function.data, &function.data.inst_ref(inst_id)) {
+                    mach_insts.extend(is.into_iter())
+                }
+            }
+        }
+        for mach_inst in mach_insts {
+            println!("{:?}", mach_inst);
+            let mach_inst = data.create_inst(mach_inst);
+            layout.append_inst(mach_inst, block_map[&block_id])
         }
     }
 
