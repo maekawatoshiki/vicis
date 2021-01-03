@@ -9,12 +9,12 @@ use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
 pub struct Module<T: Target> {
-    pub(super) name: String,
-    pub(super) source_filename: String,
-    pub(super) target: ModuleTarget,
-    pub(super) functions: Arena<Function<T>>,
-    pub(super) attributes: FxHashMap<u32, Vec<Attribute>>,
-    pub(super) global_variables: FxHashMap<Name, GlobalVariable>,
+    pub name: String,
+    pub source_filename: String,
+    pub target: ModuleTarget,
+    pub functions: Arena<Function<T>>,
+    pub attributes: FxHashMap<u32, Vec<Attribute>>,
+    pub global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
     // TODO: Metadata
 }

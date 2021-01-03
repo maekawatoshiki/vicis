@@ -1,3 +1,5 @@
+pub mod pattern;
+
 use super::{
     function::{data::Data, layout::Layout, Function as MachFunction},
     module::Module as MachModule,
@@ -8,11 +10,17 @@ use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
 pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
+    let mut functions = Arena::new();
+
+    for (_, function) in module.functions {
+        functions.alloc(convert_function::<T>(function));
+    }
+
     MachModule {
         name: module.name,
         source_filename: module.source_filename,
         target: module.target,
-        functions: Arena::new(),
+        functions,
         attributes: module.attributes,
         global_variables: module.global_variables,
         types: module.types,
@@ -32,7 +40,12 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
     }
 
     for block_id in function.layout.block_iter() {
-        for inst_id in function.layout.inst_iter(block_id).rev() {}
+        for inst_id in function.layout.inst_iter(block_id).rev() {
+            use super::inst_selection::pattern::ir;
+            let a = ir::ret(ir::any_i32())(&function.data, function.data.inst_ref(inst_id));
+            assert!(a.is_some());
+            // let pats = T::select_patterns();
+        }
     }
 
     MachFunction {
