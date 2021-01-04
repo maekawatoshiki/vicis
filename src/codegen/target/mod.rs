@@ -1,12 +1,10 @@
 pub mod x86_64;
 
-use crate::codegen::{inst_selection, instruction::Instruction as MachInstruction};
-use crate::ir::{function::Data, instruction::Instruction};
+use crate::codegen::lower;
 
-pub trait Target {
+pub trait Target: Copy {
     type InstData: ::std::fmt::Debug;
+    type Lower: lower::pattern::Lower<Self::InstData>;
 
-    fn select_patterns() -> Vec<
-        fn(inst_selection::Context<Self::InstData>) -> Option<Vec<MachInstruction<Self::InstData>>>,
-    >;
+    fn lower(&self) -> &Self::Lower;
 }

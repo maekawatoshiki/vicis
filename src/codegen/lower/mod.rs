@@ -11,8 +11,8 @@ use crate::ir::{
     module::Module as IrModule,
 };
 use id_arena::Arena;
+use pattern::{Lower, LoweringContext};
 use rustc_hash::FxHashMap;
-use std::marker::PhantomData;
 
 pub struct Context<'a, InstData> {
     pub ir_data: &'a IrData,
@@ -20,11 +20,11 @@ pub struct Context<'a, InstData> {
     pub mach_data: &'a mut Data<InstData>,
 }
 
-pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
+pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
     let mut functions = Arena::new();
 
     for (_, function) in module.functions {
-        functions.alloc(convert_function::<T>(function));
+        functions.alloc(convert_function(target, function));
     }
 
     MachModule {
@@ -35,12 +35,12 @@ pub fn convert_module<T: Target>(module: IrModule) -> MachModule<T> {
         attributes: module.attributes,
         global_variables: module.global_variables,
         types: module.types,
-        phantom: PhantomData,
+        arch: target,
     }
 }
 
-pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
-    let mut slots: Slots<T> = Slots::new();
+pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunction<T> {
+    let mut _slots: Slots<T> = Slots::new();
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
@@ -62,16 +62,15 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
                 continue;
             }
 
-            // Select instruction
-            for pat in T::select_patterns() {
-                if let Some(is) = pat(Context {
+            let iseq = target.lower().lower(
+                &mut LoweringContext {
                     ir_data: &function.data,
-                    inst: inst,
                     mach_data: &mut data,
-                }) {
-                    mach_insts.extend(is.into_iter())
-                }
-            }
+                },
+                inst,
+            );
+
+            mach_insts.extend(iseq.into_iter());
         }
         for mach_inst in mach_insts {
             let mach_inst = data.create_inst(mach_inst);
@@ -90,7 +89,7 @@ pub fn convert_function<T: Target>(function: IrFunction) -> MachFunction<T> {
         layout,
         types: function.types,
         is_prototype: function.is_prototype,
-        phantom: PhantomData,
+        target,
     }
 }
 
