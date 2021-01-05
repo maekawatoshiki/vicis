@@ -30,7 +30,8 @@ impl Target for X86_64 {
 
     fn module_pass(&self) -> Vec<fn(&mut Module<Self>)> {
         vec![
-            pass::pro_epi_inserter::run_on_module, // pass::pro_epi_inserter::run_on_module(
+            pass::eliminate_slot::run_on_module,
+            pass::pro_epi_inserter::run_on_module,
         ]
     }
 }

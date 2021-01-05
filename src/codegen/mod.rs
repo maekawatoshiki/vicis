@@ -3,4 +3,5 @@ pub mod function;
 pub mod instruction;
 pub mod lower;
 pub mod module;
+pub mod register;
 pub mod target;

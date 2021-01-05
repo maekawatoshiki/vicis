@@ -11,10 +11,10 @@ pub struct Slots<T: Target> {
 
 #[derive(Debug, Clone)]
 pub struct Slot {
-    size: u32,
-    ty: TypeId,
-    num_elements: u32,
-    align: u32,
+    pub(crate) size: u32,
+    pub(crate) ty: TypeId,
+    pub(crate) num_elements: u32,
+    pub(crate) align: u32,
 }
 
 impl<T: Target> Slots<T> {
@@ -27,7 +27,7 @@ impl<T: Target> Slots<T> {
 
     pub fn add_slot(&mut self, ty: TypeId) -> SlotId {
         self.arena.alloc(Slot {
-            size: 1,
+            size: 4,
             ty,
             num_elements: 0,
             align: 0,

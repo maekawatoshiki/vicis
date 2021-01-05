@@ -1,6 +1,7 @@
 use crate::codegen::{
     function::Function,
     module::Module,
+    register::Reg,
     target::x86_64::{
         instruction::{InstructionData, MemoryOperand},
         X86_64,
@@ -30,14 +31,19 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
             match &inst.data {
                 InstructionData::PUSH64 { r: Either::Left(r) } => writeln!(f, "  push {:?}", r)?,
                 InstructionData::POP64 { r: Either::Left(r) } => writeln!(f, "  pop {:?}", r)?,
+                InstructionData::ADDr64i32 {
+                    r: Either::Left(r),
+                    imm,
+                } => writeln!(f, "  add {:?}, {}", r, imm)?,
+                InstructionData::SUBr64i32 {
+                    r: Either::Left(r),
+                    imm,
+                } => writeln!(f, "  sub {:?}, {}", r, imm)?,
                 InstructionData::MOVri32 {
                     dst: Either::Left(dst),
                     src,
                 } => writeln!(f, "  mov {:?}, {}", dst, src)?,
-                InstructionData::MOVmi32 {
-                    dst: MemoryOperand::Slot(slot),
-                    src,
-                } => writeln!(f, "  mov {:?}, {}", slot, src)?,
+                InstructionData::MOVmi32 { dst, src } => writeln!(f, "  mov {}, {}", dst, src)?,
                 InstructionData::RET => writeln!(f, "  ret")?,
                 _ => todo!(),
             }
@@ -47,8 +53,33 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
     Ok(())
 }
 
+impl fmt::Display for MemoryOperand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ImmReg(imm, reg) => {
+                write!(
+                    f,
+                    "[{}{}{}]",
+                    reg_to_str(reg),
+                    if *imm < 0 { "" } else { "+" },
+                    *imm
+                )
+            }
+            Self::Slot(_) => panic!(),
+        }
+    }
+}
+
 impl fmt::Display for Module<X86_64> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print(f, self)
+    }
+}
+
+fn reg_to_str(r: &Reg) -> &'static str {
+    match r.0 {
+        0 => "eax",
+        16 => "rbp",
+        _ => todo!(),
     }
 }
