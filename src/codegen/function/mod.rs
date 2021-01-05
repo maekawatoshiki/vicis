@@ -19,6 +19,7 @@ pub struct Function<T: Target> {
     pub attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
     pub data: data::Data<T::InstData>,
     pub layout: layout::Layout<T::InstData>,
+    pub slots: slot::Slots<T>,
     pub types: Types,
     pub is_prototype: bool,
     pub target: T,

@@ -7,7 +7,7 @@ use super::{
 };
 use crate::ir::{
     function::{Data as IrData, Function as IrFunction},
-    instruction::{Instruction as IrInstruction, Opcode},
+    instruction::Instruction as IrInstruction,
     module::Module as IrModule,
 };
 use id_arena::Arena;
@@ -40,7 +40,7 @@ pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
 }
 
 pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunction<T> {
-    let mut _slots: Slots<T> = Slots::new();
+    let mut slots: Slots<T> = Slots::new(target);
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
@@ -58,14 +58,16 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
             let inst = function.data.inst_ref(inst_id);
 
             // Special case
-            if inst.opcode == Opcode::Alloca {
-                continue;
-            }
+            // if inst.opcode == Opcode::Alloca {
+            //     continue;
+            // }
 
             let iseq = target.lower().lower(
                 &mut LoweringContext {
                     ir_data: &function.data,
                     mach_data: &mut data,
+                    slots: &mut slots,
+                    inst_id_to_slot_id: FxHashMap::default(),
                 },
                 inst,
             );
@@ -87,6 +89,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         attributes: function.attributes,
         data,
         layout,
+        slots,
         types: function.types,
         is_prototype: function.is_prototype,
         target,

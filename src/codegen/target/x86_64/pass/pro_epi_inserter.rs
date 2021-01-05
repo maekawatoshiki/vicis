@@ -13,6 +13,8 @@ pub fn run_on_module(module: &mut Module<X86_64>) {
 }
 
 pub fn run_on_function(function: &mut Function<X86_64>) {
+    debug!(function.slots.unaligned_size());
+
     // insert prologue
     if let Some(entry) = function.layout.first_block {
         let push64 = function.data.create_inst(Instruction {
