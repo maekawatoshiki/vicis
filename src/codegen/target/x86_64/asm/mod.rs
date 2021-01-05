@@ -1,7 +1,10 @@
 use crate::codegen::{
     function::Function,
     module::Module,
-    target::x86_64::{instruction::InstructionData, X86_64},
+    target::x86_64::{
+        instruction::{InstructionData, MemoryOperand},
+        X86_64,
+    },
 };
 use either::Either;
 use std::fmt;
@@ -31,6 +34,10 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
                     dst: Either::Left(dst),
                     src,
                 } => writeln!(f, "  mov {:?}, {}", dst, src)?,
+                InstructionData::MOVmi32 {
+                    dst: MemoryOperand::Slot(slot),
+                    src,
+                } => writeln!(f, "  mov {:?}, {}", slot, src)?,
                 InstructionData::RET => writeln!(f, "  ret")?,
                 _ => todo!(),
             }

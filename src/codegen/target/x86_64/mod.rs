@@ -5,7 +5,7 @@ pub mod pass;
 pub mod register;
 
 use super::Target;
-use crate::codegen::target::x86_64;
+use crate::codegen::{module::Module, target::x86_64};
 
 #[derive(Copy, Clone)]
 pub struct X86_64 {
@@ -26,5 +26,11 @@ impl Target for X86_64 {
 
     fn lower(&self) -> &Self::Lower {
         &self.lower
+    }
+
+    fn module_pass(&self) -> Vec<fn(&mut Module<Self>)> {
+        vec![
+            pass::pro_epi_inserter::run_on_module, // pass::pro_epi_inserter::run_on_module(
+        ]
     }
 }

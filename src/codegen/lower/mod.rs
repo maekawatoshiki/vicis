@@ -27,7 +27,7 @@ pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
         functions.alloc(convert_function(target, function));
     }
 
-    MachModule {
+    let mut mach_module = MachModule {
         name: module.name,
         source_filename: module.source_filename,
         target: module.target,
@@ -36,7 +36,13 @@ pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
         global_variables: module.global_variables,
         types: module.types,
         arch: target,
+    };
+
+    for pass in target.module_pass() {
+        pass(&mut mach_module)
     }
+
+    mach_module
 }
 
 pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunction<T> {
@@ -52,22 +58,19 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         block_map.insert(block_id, new_block_id);
     }
 
+    let mut inst_id_to_slot_id = FxHashMap::default();
+
     for block_id in function.layout.block_iter() {
         let mut mach_insts = vec![];
-        for inst_id in function.layout.inst_iter(block_id).rev() {
+        for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
-
-            // Special case
-            // if inst.opcode == Opcode::Alloca {
-            //     continue;
-            // }
 
             let iseq = target.lower().lower(
                 &mut LoweringContext {
                     ir_data: &function.data,
                     mach_data: &mut data,
                     slots: &mut slots,
-                    inst_id_to_slot_id: FxHashMap::default(),
+                    inst_id_to_slot_id: &mut inst_id_to_slot_id,
                 },
                 inst,
             );
@@ -95,11 +98,3 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         target,
     }
 }
-
-// IrInstruction -> MachInstruction (vreg)? Either?
-// enum InstructionData {
-//     MOVri32 {
-//         dst: Either<GR32, Vreg32>,
-//         src: Imm32,
-//     },
-// }

@@ -34,6 +34,10 @@ impl<T: Target> Slots<T> {
         })
     }
 
+    pub fn get(&self, id: SlotId) -> &Slot {
+        &self.arena[id]
+    }
+
     pub fn unaligned_size(&self) -> u32 {
         let mut total = 0;
         for (_, slot) in &self.arena {
