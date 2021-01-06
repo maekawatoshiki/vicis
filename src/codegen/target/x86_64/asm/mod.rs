@@ -39,11 +39,25 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
                     r: Either::Left(r),
                     imm,
                 } => writeln!(f, "  sub {:?}, {}", r, imm)?,
+                InstructionData::MOVrr32 {
+                    dst: Either::Left(dst),
+                    src: Either::Right(src),
+                } => writeln!(f, "  mov {:?}, {}", dst, src.0)?,
                 InstructionData::MOVri32 {
                     dst: Either::Left(dst),
                     src,
                 } => writeln!(f, "  mov {:?}, {}", dst, src)?,
-                InstructionData::MOVmi32 { dst, src } => writeln!(f, "  mov {}, {}", dst, src)?,
+                InstructionData::MOVmi32 { dst, src } => {
+                    writeln!(f, "  mov dword ptr {}, {}", dst, src)?
+                }
+                InstructionData::MOVrm32 {
+                    dst: Either::Left(dst),
+                    src,
+                } => writeln!(f, "  mov {}, {}", dst, src)?,
+                InstructionData::MOVrm32 {
+                    dst: Either::Right(dst),
+                    src,
+                } => writeln!(f, "  mov {}, {}", dst.0, src)?,
                 InstructionData::RET => writeln!(f, "  ret")?,
                 _ => todo!(),
             }

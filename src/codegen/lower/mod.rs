@@ -3,6 +3,7 @@ pub mod pattern;
 use super::{
     function::{data::Data, layout::Layout, slot::Slots, Function as MachFunction},
     module::Module as MachModule,
+    register::VRegs,
     target::Target,
 };
 use crate::ir::{
@@ -59,25 +60,33 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
     }
 
     let mut inst_id_to_slot_id = FxHashMap::default();
+    let mut inst_id_to_vreg = FxHashMap::default();
+    let mut vregs = VRegs::new();
 
     for block_id in function.layout.block_iter() {
-        let mut mach_insts = vec![];
+        let mut inst_seq = vec![];
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
-            let iseq = target.lower().lower(
+            // `inst` is used once in current block
+            // `inst` is used many times in current block
+            // inst.users.
+
+            target.lower().lower(
                 &mut LoweringContext {
                     ir_data: &function.data,
                     mach_data: &mut data,
                     slots: &mut slots,
                     inst_id_to_slot_id: &mut inst_id_to_slot_id,
+                    inst_seq: &mut inst_seq,
+                    types: &function.types,
+                    vregs: &mut vregs,
+                    inst_id_to_vreg: &mut inst_id_to_vreg,
                 },
                 inst,
             );
-
-            mach_insts.extend(iseq.into_iter());
         }
-        for mach_inst in mach_insts {
+        for mach_inst in inst_seq {
             let mach_inst = data.create_inst(mach_inst);
             layout.append_inst(mach_inst, block_map[&block_id])
         }

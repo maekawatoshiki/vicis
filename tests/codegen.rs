@@ -29,7 +29,8 @@ target triple = "x86_64-pc-linux-gnu"
 define dso_local i32 @main() #0 {                                                                
   %a = alloca i32, align 4
   store i32 42, i32* %a
-  ret i32 0
+  %b = load i32, i32* %a
+  ret i32 %b
 }                                                                                                
 
 attributes #0 = { noinline nounwind optnone uwtable }
