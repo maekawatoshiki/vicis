@@ -3,6 +3,7 @@ use crate::codegen::{
     module::Module,
     target::x86_64::{instruction::MemoryOperand, register::GR64, X86_64},
 };
+use rustc_hash::FxHashMap;
 
 pub fn run_on_module(module: &mut Module<X86_64>) {
     for (_, func) in &mut module.functions {
@@ -23,14 +24,20 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     }
 
     let mut offset = 0;
+    let mut offset_map = FxHashMap::default();
 
     while let Some(inst_id) = worklist.pop() {
         let inst = function.data.inst_ref_mut(inst_id);
         for mem_op in inst.data.mem_ops_mut() {
             match mem_op {
                 MemoryOperand::Slot(id) => {
-                    offset += function.slots.get(*id).size;
-                    *mem_op = MemoryOperand::ImmReg(-(offset as i32), GR64::RBP.into());
+                    if let Some(offset) = offset_map.get(id) {
+                        *mem_op = MemoryOperand::ImmReg(-(*offset as i32), GR64::RBP.into());
+                    } else {
+                        offset += function.slots.get(*id).size;
+                        offset_map.insert(*id, offset);
+                        *mem_op = MemoryOperand::ImmReg(-(offset as i32), GR64::RBP.into());
+                    }
                 }
                 _ => {}
             }
