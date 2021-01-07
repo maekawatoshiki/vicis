@@ -2,7 +2,7 @@ pub mod data;
 pub mod layout;
 pub mod slot;
 
-use super::{register::VRegs, target::Target};
+use super::{instruction::InstructionId, register::VRegs, target::Target};
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
@@ -24,4 +24,10 @@ pub struct Function<T: Target> {
     pub types: Types,
     pub is_prototype: bool,
     pub target: T,
+}
+
+impl<T: Target> Function<T> {
+    pub fn remove_inst(&mut self, inst: InstructionId<T::InstData>) -> Option<()> {
+        self.layout.remove_inst(inst)
+    }
 }

@@ -4,7 +4,6 @@ use super::{
     function::{data::Data, layout::Layout, slot::Slots, Function as MachFunction},
     instruction::InstructionData,
     module::Module as MachModule,
-    pass,
     register::VRegs,
     target::Target,
 };
@@ -107,7 +106,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         }
     }
 
-    let mut func = MachFunction {
+    MachFunction {
         name: function.name,
         is_var_arg: function.is_var_arg,
         result_ty: function.result_ty,
@@ -121,9 +120,5 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         types: function.types,
         is_prototype: function.is_prototype,
         target,
-    };
-
-    pass::regalloc::run_on_function(&mut func);
-
-    func
+    }
 }

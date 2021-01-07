@@ -7,6 +7,7 @@ pub mod register;
 use super::Target;
 use crate::codegen::{
     module::Module,
+    pass::regalloc,
     register::{Reg, RegUnit},
     target::x86_64,
 };
@@ -34,6 +35,8 @@ impl Target for X86_64 {
 
     fn module_pass(&self) -> Vec<fn(&mut Module<Self>)> {
         vec![
+            regalloc::run_on_module,
+            pass::simple_reg_coalescing::run_on_module,
             pass::eliminate_slot::run_on_module,
             pass::pro_epi_inserter::run_on_module,
         ]

@@ -157,28 +157,28 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
-    // fn remove_inst(&mut self, inst: InstructionId) -> Option<()> {
-    //     let block = self.instructions[&inst].block?;
-    //     let prev;
-    //     let next;
-    //     {
-    //         let inst_node = &mut self.instructions.get_mut(&inst)?;
-    //         prev = inst_node.prev;
-    //         next = inst_node.next;
-    //         inst_node.block = None;
-    //         inst_node.prev = None;
-    //         inst_node.next = None;
-    //     }
-    //     match prev {
-    //         Some(prev) => self.instructions.get_mut(&prev)?.next = next,
-    //         None => self.basic_blocks.get_mut(&block)?.first_inst = next,
-    //     }
-    //     match next {
-    //         Some(next) => self.instructions.get_mut(&next)?.prev = prev,
-    //         None => self.basic_blocks.get_mut(&block)?.last_inst = prev,
-    //     }
-    //     Some(())
-    // }
+    pub fn remove_inst(&mut self, inst: InstructionId<InstData>) -> Option<()> {
+        let block = self.instructions[&inst].block?;
+        let prev;
+        let next;
+        {
+            let inst_node = &mut self.instructions.get_mut(&inst)?;
+            prev = inst_node.prev;
+            next = inst_node.next;
+            inst_node.block = None;
+            inst_node.prev = None;
+            inst_node.next = None;
+        }
+        match prev {
+            Some(prev) => self.instructions.get_mut(&prev)?.next = next,
+            None => self.basic_blocks.get_mut(&block)?.first_inst = next,
+        }
+        match next {
+            Some(next) => self.instructions.get_mut(&next)?.prev = prev,
+            None => self.basic_blocks.get_mut(&block)?.last_inst = prev,
+        }
+        Some(())
+    }
 }
 
 impl<'a, InstData: InstructionData> Iterator for BasicBlockIter<'a, InstData> {
