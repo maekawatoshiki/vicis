@@ -1,38 +1,41 @@
-use crate::codegen::{basic_block::BasicBlockId, instruction::InstructionId};
+use crate::codegen::{
+    basic_block::BasicBlockId,
+    instruction::{InstructionData, InstructionId},
+};
 use rustc_hash::FxHashMap;
 
-pub struct Layout<InstData> {
+pub struct Layout<InstData: InstructionData> {
     basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode<InstData>>,
     instructions: FxHashMap<InstructionId<InstData>, InstructionNode<InstData>>,
     pub first_block: Option<BasicBlockId>,
     pub last_block: Option<BasicBlockId>,
 }
 
-pub struct BasicBlockNode<InstData> {
+pub struct BasicBlockNode<InstData: InstructionData> {
     prev: Option<BasicBlockId>,
     next: Option<BasicBlockId>,
     first_inst: Option<InstructionId<InstData>>,
     last_inst: Option<InstructionId<InstData>>,
 }
 
-pub struct InstructionNode<InstData> {
+pub struct InstructionNode<InstData: InstructionData> {
     block: Option<BasicBlockId>,
     prev: Option<InstructionId<InstData>>,
     next: Option<InstructionId<InstData>>,
 }
 
-pub struct BasicBlockIter<'a, InstData> {
+pub struct BasicBlockIter<'a, InstData: InstructionData> {
     layout: &'a Layout<InstData>,
     cur: Option<BasicBlockId>,
 }
 
-pub struct InstructionIter<'a, InstData> {
+pub struct InstructionIter<'a, InstData: InstructionData> {
     layout: &'a Layout<InstData>,
     block: BasicBlockId,
     cur: Option<InstructionId<InstData>>,
 }
 
-impl<InstData> Layout<InstData> {
+impl<InstData: InstructionData> Layout<InstData> {
     pub fn new() -> Self {
         Self {
             basic_blocks: FxHashMap::default(),
@@ -178,7 +181,7 @@ impl<InstData> Layout<InstData> {
     // }
 }
 
-impl<'a, InstData> Iterator for BasicBlockIter<'a, InstData> {
+impl<'a, InstData: InstructionData> Iterator for BasicBlockIter<'a, InstData> {
     type Item = BasicBlockId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -188,7 +191,7 @@ impl<'a, InstData> Iterator for BasicBlockIter<'a, InstData> {
     }
 }
 
-impl<'a, InstData> Iterator for InstructionIter<'a, InstData> {
+impl<'a, InstData: InstructionData> Iterator for InstructionIter<'a, InstData> {
     type Item = InstructionId<InstData>;
 
     fn next(&mut self) -> Option<Self::Item> {

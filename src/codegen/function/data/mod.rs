@@ -1,16 +1,16 @@
 use crate::codegen::{
     basic_block::{BasicBlock, BasicBlockId},
-    instruction::{Instruction, InstructionId},
+    instruction::{Instruction, InstructionData, InstructionId},
 };
 use id_arena::Arena;
 
-pub struct Data<InstData> {
+pub struct Data<InstData: InstructionData> {
     // pub values: Arena<Value>,
     pub instructions: Arena<Instruction<InstData>>,
     pub basic_blocks: Arena<BasicBlock>,
 }
 
-impl<InstData> Data<InstData> {
+impl<InstData: InstructionData> Data<InstData> {
     pub fn new() -> Self {
         Self {
             // values: Arena::new(),

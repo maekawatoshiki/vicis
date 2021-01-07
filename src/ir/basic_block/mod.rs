@@ -6,8 +6,8 @@ pub type BasicBlockId = Id<BasicBlock>;
 
 pub struct BasicBlock {
     pub name: Option<Name>,
-    preds: FxHashSet<BasicBlockId>,
-    succs: FxHashSet<BasicBlockId>,
+    pub preds: FxHashSet<BasicBlockId>,
+    pub succs: FxHashSet<BasicBlockId>,
 }
 
 impl BasicBlock {

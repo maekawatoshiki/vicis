@@ -1,5 +1,6 @@
 use crate::codegen::{
     function::slot::SlotId,
+    instruction::InstructionData as ID,
     register::{Reg, VReg},
 };
 // use crate::ir::instruction::InstructionId;
@@ -64,6 +65,78 @@ impl InstructionData {
             Self::MOVmi32 { dst, .. } => ::std::slice::from_mut(dst),
             Self::MOVrm32 { src, .. } => ::std::slice::from_mut(src),
             _ => &mut [],
+        }
+    }
+}
+
+impl MemoryOperand {
+    pub fn vregs(&self) -> Vec<VReg> {
+        match self {
+            Self::Slot(_) => vec![],
+            Self::ImmReg(_, _) => vec![],
+        }
+    }
+}
+
+impl ID for InstructionData {
+    fn input_vregs(&self) -> Vec<VReg> {
+        match self {
+            Self::PUSH64 {
+                r: Either::Right(r),
+            } => vec![*r],
+            Self::POP64 {
+                r: Either::Right(r),
+            } => vec![*r],
+            Self::ADDr64i32 {
+                r: Either::Right(r),
+                ..
+            } => vec![*r],
+            Self::SUBr64i32 {
+                r: Either::Right(r),
+                ..
+            } => vec![*r],
+            Self::MOVrr32 {
+                src: Either::Right(src),
+                ..
+            } => vec![*src],
+            Self::MOVrr64 {
+                src: Either::Right(src),
+                ..
+            } => vec![*src],
+            Self::MOVrm32 { src, .. } => src.vregs(),
+            Self::MOVmi32 { .. } => {
+                vec![]
+            }
+            _ => vec![],
+        }
+    }
+
+    fn output_vregs(&self) -> Vec<VReg> {
+        match self {
+            Self::ADDr64i32 {
+                r: Either::Right(r),
+                ..
+            } => vec![*r],
+            Self::SUBr64i32 {
+                r: Either::Right(r),
+                ..
+            } => vec![*r],
+            Self::MOVrr32 {
+                dst: Either::Right(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVrr64 {
+                dst: Either::Right(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVrm32 {
+                dst: Either::Right(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVmi32 { .. } => {
+                vec![]
+            }
+            _ => vec![],
         }
     }
 }

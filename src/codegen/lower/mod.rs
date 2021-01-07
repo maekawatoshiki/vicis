@@ -2,7 +2,9 @@ pub mod pattern;
 
 use super::{
     function::{data::Data, layout::Layout, slot::Slots, Function as MachFunction},
+    instruction::InstructionData,
     module::Module as MachModule,
+    pass,
     register::VRegs,
     target::Target,
 };
@@ -15,7 +17,7 @@ use id_arena::Arena;
 use pattern::{Lower, LoweringContext};
 use rustc_hash::FxHashMap;
 
-pub struct Context<'a, InstData> {
+pub struct Context<'a, InstData: InstructionData> {
     pub ir_data: &'a IrData,
     pub inst: &'a IrInstruction,
     pub mach_data: &'a mut Data<InstData>,
@@ -59,6 +61,19 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         block_map.insert(block_id, new_block_id);
     }
 
+    // Insert preds and succs
+    for block_id in function.layout.block_iter() {
+        let new_block_id = block_map[&block_id];
+        let block = &function.data.basic_blocks[block_id];
+        let new_block = data.basic_blocks.get_mut(new_block_id).unwrap();
+        for pred in &block.preds {
+            new_block.preds.insert(block_map[pred]);
+        }
+        for succ in &block.succs {
+            new_block.succs.insert(block_map[succ]);
+        }
+    }
+
     let mut inst_id_to_slot_id = FxHashMap::default();
     let mut inst_id_to_vreg = FxHashMap::default();
     let mut vregs = VRegs::new();
@@ -92,7 +107,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         }
     }
 
-    MachFunction {
+    let mut func = MachFunction {
         name: function.name,
         is_var_arg: function.is_var_arg,
         result_ty: function.result_ty,
@@ -102,8 +117,13 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         data,
         layout,
         slots,
+        vregs,
         types: function.types,
         is_prototype: function.is_prototype,
         target,
-    }
+    };
+
+    pass::regalloc::run_on_function(&mut func);
+
+    func
 }
