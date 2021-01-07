@@ -2,8 +2,8 @@ use crate::codegen::{
     basic_block::BasicBlockId,
     function::Function,
     instruction::{Instruction, InstructionData},
-    module::Module,
-    register::{Reg, VReg},
+    // module::Module,
+    register::{RegUnit, VReg},
     target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -12,14 +12,13 @@ use std::cmp::Ordering;
 pub struct Liveness {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
     pub vreg_lrs_map: FxHashMap<VReg, LiveRanges>,
-    pub reg_lrs_map: FxHashMap<Reg, LiveRanges>,
-    // pp_arena: Arena<ProgramPoint>,
+    pub reg_lrs_map: FxHashMap<RegUnit, LiveRanges>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LiveRanges(pub Vec<LiveRange>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LiveRange {
     pub start: ProgramPoint,
     pub end: ProgramPoint,
@@ -27,9 +26,12 @@ pub struct LiveRange {
 
 #[derive(Debug)]
 pub struct BlockData {
-    def: FxHashSet<VReg>,
-    live_in: FxHashSet<VReg>,
-    live_out: FxHashSet<VReg>,
+    vreg_def: FxHashSet<VReg>,
+    vreg_live_in: FxHashSet<VReg>,
+    vreg_live_out: FxHashSet<VReg>,
+    reg_def: FxHashSet<RegUnit>,
+    reg_live_in: FxHashSet<RegUnit>,
+    reg_live_out: FxHashSet<RegUnit>,
 }
 
 // pub type ProgramPointId = Id<ProgramPoint>;
@@ -113,11 +115,21 @@ impl Liveness {
         for block_id in func.layout.block_iter() {
             const STEP: u32 = 16;
             let mut inst_num = 0u32;
-            let mut local_lr_map = FxHashMap::default();
+            let mut local_vreg_lr_map = FxHashMap::default();
+            let mut local_reg_lr_map = FxHashMap::default();
 
             // live-in
-            for &live_in in &self.block_data[&block_id].live_in {
-                local_lr_map.insert(
+            for &live_in in &self.block_data[&block_id].vreg_live_in {
+                local_vreg_lr_map.insert(
+                    live_in,
+                    LiveRange {
+                        start: ProgramPoint(block_num, 0),
+                        end: ProgramPoint(block_num, 0),
+                    },
+                );
+            }
+            for &live_in in &self.block_data[&block_id].reg_live_in {
+                local_reg_lr_map.insert(
                     live_in,
                     LiveRange {
                         start: ProgramPoint(block_num, 0),
@@ -133,13 +145,29 @@ impl Liveness {
 
                 // inputs
                 for input in inst.data.input_vregs() {
-                    local_lr_map.get_mut(&input).unwrap().end = ProgramPoint(block_num, inst_num);
+                    local_vreg_lr_map.get_mut(&input).unwrap().end =
+                        ProgramPoint(block_num, inst_num);
+                }
+                for input in inst.data.input_regs() {
+                    local_reg_lr_map
+                        .get_mut(&func.target.to_reg_unit(input))
+                        .unwrap()
+                        .end = ProgramPoint(block_num, inst_num);
                 }
 
                 // outputs
                 for output in inst.data.output_vregs() {
-                    local_lr_map
+                    local_vreg_lr_map
                         .entry(output)
+                        .or_insert(LiveRange {
+                            start: ProgramPoint(block_num, inst_num),
+                            end: ProgramPoint(block_num, inst_num),
+                        })
+                        .end = ProgramPoint(block_num, inst_num);
+                }
+                for output in inst.data.output_regs() {
+                    local_reg_lr_map
+                        .entry(func.target.to_reg_unit(output))
                         .or_insert(LiveRange {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
@@ -151,14 +179,25 @@ impl Liveness {
             }
 
             // live-out
-            for live_out in &self.block_data[&block_id].live_out {
-                local_lr_map.get_mut(live_out).unwrap().end = ProgramPoint(block_num, inst_num);
+            for live_out in &self.block_data[&block_id].vreg_live_out {
+                local_vreg_lr_map.get_mut(live_out).unwrap().end =
+                    ProgramPoint(block_num, inst_num);
+            }
+            for live_out in &self.block_data[&block_id].reg_live_out {
+                local_reg_lr_map.get_mut(live_out).unwrap().end = ProgramPoint(block_num, inst_num);
             }
 
-            // merge local_lr_map into lrs_map
-            for (vreg, local_lr) in local_lr_map {
+            // merge local lr_map into lrs_map
+            for (vreg, local_lr) in local_vreg_lr_map {
                 self.vreg_lrs_map
                     .entry(vreg)
+                    .or_insert(LiveRanges(vec![]))
+                    .0
+                    .push(local_lr)
+            }
+            for (reg, local_lr) in local_reg_lr_map {
+                self.reg_lrs_map
+                    .entry(reg)
                     .or_insert(LiveRanges(vec![]))
                     .0
                     .push(local_lr)
@@ -180,29 +219,30 @@ impl Liveness {
         for block_id in func.layout.block_iter() {
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
-                self.set_def_on_inst(inst, block_id);
+                self.set_def_on_inst(func, inst, block_id);
             }
         }
     }
 
-    fn set_def_on_inst<InstData: InstructionData>(
+    fn set_def_on_inst<T: Target>(
         &mut self,
-        inst: &Instruction<InstData>,
+        func: &Function<T>,
+        inst: &Instruction<T::InstData>,
         block_id: BasicBlockId,
     ) {
-        let add_def = |block_data: &mut FxHashMap<BasicBlockId, BlockData>, r: VReg| {
-            block_data
-                .entry(block_id)
-                .or_insert_with(|| BlockData {
-                    def: FxHashSet::default(),
-                    live_in: FxHashSet::default(),
-                    live_out: FxHashSet::default(),
-                })
-                .def
-                .insert(r);
-        };
         for output in inst.data.output_vregs() {
-            add_def(&mut self.block_data, output);
+            self.block_data
+                .entry(block_id)
+                .or_insert_with(|| BlockData::new())
+                .vreg_def
+                .insert(output);
+        }
+        for output in inst.data.output_regs() {
+            self.block_data
+                .entry(block_id)
+                .or_insert_with(|| BlockData::new())
+                .reg_def
+                .insert(func.target.to_reg_unit(output));
         }
     }
 
@@ -222,19 +262,27 @@ impl Liveness {
         block_id: BasicBlockId,
     ) {
         for input in inst.data.input_vregs() {
-            self.propagate(func, input, block_id);
+            self.propagate_vreg(func, input, block_id);
+        }
+        for input in inst.data.input_regs() {
+            self.propagate_reg(func, func.target.to_reg_unit(input), block_id);
         }
     }
 
-    fn propagate<T: Target>(&mut self, func: &Function<T>, input: VReg, block_id: BasicBlockId) {
+    fn propagate_vreg<T: Target>(
+        &mut self,
+        func: &Function<T>,
+        input: VReg,
+        block_id: BasicBlockId,
+    ) {
         {
             let data = self.block_data.get_mut(&block_id).unwrap();
 
-            if data.def.contains(&input) {
+            if data.vreg_def.contains(&input) {
                 return;
             }
 
-            if !data.live_in.insert(input) {
+            if !data.vreg_live_in.insert(input) {
                 return;
             }
         }
@@ -244,19 +292,86 @@ impl Liveness {
                 .block_data
                 .get_mut(pred_id)
                 .unwrap()
-                .live_out
+                .vreg_live_out
                 .insert(input)
             {
-                self.propagate(func, input, *pred_id);
+                self.propagate_vreg(func, input, *pred_id);
             }
         }
     }
 
-    pub fn interfere_live_ranges(&self, x: &LiveRanges, y: &LiveRanges) -> bool {
-        // let x_start_pp = self.pp_arena[x.start];
-        // let x_end_pp = self.pp_arena[x.end];
-        // let y_start_pp = self.pp_arena[y.start];
-        // let y_end_pp = self.pp_arena[y.end];
+    fn propagate_reg<T: Target>(
+        &mut self,
+        func: &Function<T>,
+        input: RegUnit,
+        block_id: BasicBlockId,
+    ) {
+        {
+            let data = self.block_data.get_mut(&block_id).unwrap();
+
+            if data.reg_def.contains(&input) {
+                return;
+            }
+
+            if !data.reg_live_in.insert(input) {
+                return;
+            }
+        }
+
+        for pred_id in &func.data.basic_blocks[block_id].preds {
+            if self
+                .block_data
+                .get_mut(pred_id)
+                .unwrap()
+                .reg_live_out
+                .insert(input)
+            {
+                self.propagate_reg(func, input, *pred_id);
+            }
+        }
+    }
+}
+
+impl LiveRanges {
+    pub fn interfere(&self, other: &Self) -> bool {
+        for x in &self.0 {
+            for y in &other.0 {
+                if x.interfere(y) {
+                    return true;
+                }
+            }
+        }
         false
+    }
+
+    pub fn merge(&mut self, other: &Self) {
+        for x in &mut self.0 {
+            for y in &other.0 {
+                if !x.interfere(y) {
+                    continue;
+                }
+                x.start = ::std::cmp::min(x.start, y.start);
+                x.end = ::std::cmp::max(x.end, y.end);
+            }
+        }
+    }
+}
+
+impl LiveRange {
+    pub fn interfere(&self, other: &Self) -> bool {
+        self.start < other.end && self.end > other.start
+    }
+}
+
+impl BlockData {
+    pub fn new() -> Self {
+        BlockData {
+            vreg_def: FxHashSet::default(),
+            reg_def: FxHashSet::default(),
+            vreg_live_in: FxHashSet::default(),
+            vreg_live_out: FxHashSet::default(),
+            reg_live_in: FxHashSet::default(),
+            reg_live_out: FxHashSet::default(),
+        }
     }
 }

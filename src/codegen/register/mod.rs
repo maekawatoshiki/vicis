@@ -4,6 +4,9 @@ use rustc_hash::FxHashMap;
 #[derive(Debug, Clone, Copy)]
 pub struct Reg(pub u16, pub u16);
 
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+pub struct RegUnit(pub u16, pub u16); // TODO: This is not actually register unit
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VReg(pub u32);
 

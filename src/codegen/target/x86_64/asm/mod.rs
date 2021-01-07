@@ -45,8 +45,8 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
                 } => writeln!(f, "  sub {}, {}", reg_to_str(r), imm)?,
                 InstructionData::MOVrr32 {
                     dst: Either::Left(dst),
-                    src: Either::Right(src),
-                } => writeln!(f, "  mov {}, %{}", reg_to_str(dst), src.0)?,
+                    src: Either::Left(src),
+                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), reg_to_str(src))?,
                 InstructionData::MOVrr64 {
                     dst: Either::Left(dst),
                     src: Either::Left(src),
@@ -62,10 +62,6 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
                     dst: Either::Left(dst),
                     src,
                 } => writeln!(f, "  mov {}, dword ptr {}", reg_to_str(dst), src)?,
-                InstructionData::MOVrm32 {
-                    dst: Either::Right(dst),
-                    src,
-                } => writeln!(f, "  mov %{}, dword ptr {}", dst.0, src)?,
                 InstructionData::RET => writeln!(f, "  ret")?,
                 _ => todo!(),
             }
@@ -99,10 +95,17 @@ impl fmt::Display for Module<X86_64> {
 }
 
 fn reg_to_str(r: &Reg) -> &'static str {
+    let gr32 = [
+        "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8", "r9d", "r10d", "r11d",
+        "r12d", "r13d", "r14d", "r15d",
+    ];
+    let gr64 = [
+        "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12",
+        "r13", "r14", "r15",
+    ];
     match r {
-        Reg(0, 0) => "eax",
-        Reg(1, 0) => "rbp",
-        Reg(1, 1) => "rsp",
+        Reg(0, i) => gr32[*i as usize],
+        Reg(1, i) => gr64[*i as usize],
         e => todo!("{:?}", e),
     }
 }

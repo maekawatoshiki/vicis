@@ -1,8 +1,12 @@
 use crate::codegen::{
-    function::Function, instruction::InstructionData, module::Module, pass::liveness,
-    register::VReg, target::Target,
+    function::Function,
+    instruction::InstructionData,
+    module::Module,
+    pass::liveness,
+    register::{Reg, VReg},
+    target::Target,
 };
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
 
 pub fn run_on_module<T: Target>(module: &mut Module<T>) {
@@ -15,8 +19,6 @@ pub fn run_on_module<T: Target>(module: &mut Module<T>) {
 pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut liveness = liveness::Liveness::new();
     liveness.analyze_function(function);
-
-    // let candidates
 
     let mut all_vregs = FxHashSet::default();
 
@@ -42,8 +44,39 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     });
     let mut worklist: VecDeque<VReg> = worklist.into_iter().collect();
 
-    while let Some(vreg) = worklist.pop_front() {}
+    let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
+
+    while let Some(vreg) = worklist.pop_front() {
+        let mut availables = vec![Reg(0, 0)]; // TODO
+        while let Some(reg) = availables.pop() {
+            let reg_unit = function.target.to_reg_unit(reg);
+            let lrs1 = &liveness.vreg_lrs_map[&vreg];
+            let lrs2 = liveness.reg_lrs_map.get_mut(&reg_unit).unwrap();
+            if !lrs1.interfere(lrs2) {
+                // assign reg for vreg
+                assigned_regs.insert(vreg, reg);
+                lrs2.merge(lrs1);
+            }
+        }
+    }
+
+    for block_id in function.layout.block_iter() {
+        for inst_id in function.layout.inst_iter(block_id) {
+            let inst = function.data.inst_ref_mut(inst_id);
+            for vreg in inst
+                .data
+                .input_vregs()
+                .into_iter()
+                .chain(inst.data.output_vregs().into_iter())
+            {
+                if let Some(reg) = assigned_regs.get(&vreg) {
+                    inst.data.rewrite(vreg, *reg);
+                }
+            }
+        }
+    }
 
     println!("{:?}", liveness.block_data);
     println!("{:?}", liveness.vreg_lrs_map);
+    println!("{:?}", liveness.reg_lrs_map);
 }

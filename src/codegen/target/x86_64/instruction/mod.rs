@@ -76,6 +76,13 @@ impl MemoryOperand {
             Self::ImmReg(_, _) => vec![],
         }
     }
+
+    pub fn regs(&self) -> Vec<Reg> {
+        match self {
+            Self::Slot(_) => vec![],
+            Self::ImmReg(_, r) => vec![*r],
+        }
+    }
 }
 
 impl ID for InstructionData {
@@ -137,6 +144,88 @@ impl ID for InstructionData {
                 vec![]
             }
             _ => vec![],
+        }
+    }
+
+    fn input_regs(&self) -> Vec<Reg> {
+        match self {
+            Self::PUSH64 { r: Either::Left(r) } => vec![*r],
+            Self::POP64 { r: Either::Left(r) } => vec![*r],
+            Self::ADDr64i32 {
+                r: Either::Left(r), ..
+            } => vec![*r],
+            Self::SUBr64i32 {
+                r: Either::Left(r), ..
+            } => vec![*r],
+            Self::MOVrr32 {
+                src: Either::Left(src),
+                ..
+            } => vec![*src],
+            Self::MOVrr64 {
+                src: Either::Left(src),
+                ..
+            } => vec![*src],
+            Self::MOVrm32 { src, .. } => src.regs(),
+            Self::MOVmi32 { .. } => vec![],
+            _ => vec![],
+        }
+    }
+
+    fn output_regs(&self) -> Vec<Reg> {
+        match self {
+            Self::ADDr64i32 {
+                r: Either::Left(r), ..
+            } => vec![*r],
+            Self::SUBr64i32 {
+                r: Either::Left(r), ..
+            } => vec![*r],
+            Self::MOVrr32 {
+                dst: Either::Left(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVrr64 {
+                dst: Either::Left(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVrm32 {
+                dst: Either::Left(dst),
+                ..
+            } => vec![*dst],
+            Self::MOVmi32 { .. } => vec![],
+            _ => vec![],
+        }
+    }
+
+    fn rewrite(&mut self, vreg: VReg, reg: Reg) {
+        match self {
+            Self::PUSH64 { r } if matches!(r, Either::Right(ref x) if vreg == *x) => {
+                *r = Either::Left(reg)
+            }
+            Self::POP64 { r } if matches!(r, Either::Right(ref x) if vreg == *x) => {
+                *r = Either::Left(reg)
+            }
+            Self::ADDr64i32 { r, .. } if matches!(r, Either::Right(ref x) if vreg == *x) => {
+                *r = Either::Left(reg)
+            }
+            Self::SUBr64i32 { r, .. } if matches!(r, Either::Right(ref x) if vreg == *x) => {
+                *r = Either::Left(reg)
+            }
+            Self::MOVrr32 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
+                *dst = Either::Left(reg)
+            }
+            Self::MOVrr32 { src, .. } if matches!(src, Either::Right(ref x) if vreg == *x) => {
+                *src = Either::Left(reg)
+            }
+            Self::MOVrr64 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
+                *dst = Either::Left(reg)
+            }
+            Self::MOVrr64 { src, .. } if matches!(src, Either::Right(ref x) if vreg == *x) => {
+                *src = Either::Left(reg)
+            }
+            Self::MOVrm32 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
+                *dst = Either::Left(reg)
+            }
+            _ => {}
         }
     }
 }
