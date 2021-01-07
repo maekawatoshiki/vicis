@@ -29,35 +29,43 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
         for inst in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst);
             match &inst.data {
-                InstructionData::PUSH64 { r: Either::Left(r) } => writeln!(f, "  push {:?}", r)?,
-                InstructionData::POP64 { r: Either::Left(r) } => writeln!(f, "  pop {:?}", r)?,
+                InstructionData::PUSH64 { r: Either::Left(r) } => {
+                    writeln!(f, "  push {}", reg_to_str(r))?
+                }
+                InstructionData::POP64 { r: Either::Left(r) } => {
+                    writeln!(f, "  pop {}", reg_to_str(r))?
+                }
                 InstructionData::ADDr64i32 {
                     r: Either::Left(r),
                     imm,
-                } => writeln!(f, "  add {:?}, {}", r, imm)?,
+                } => writeln!(f, "  add {}, {}", reg_to_str(r), imm)?,
                 InstructionData::SUBr64i32 {
                     r: Either::Left(r),
                     imm,
-                } => writeln!(f, "  sub {:?}, {}", r, imm)?,
+                } => writeln!(f, "  sub {}, {}", reg_to_str(r), imm)?,
                 InstructionData::MOVrr32 {
                     dst: Either::Left(dst),
                     src: Either::Right(src),
-                } => writeln!(f, "  mov {:?}, {}", dst, src.0)?,
+                } => writeln!(f, "  mov {}, %{}", reg_to_str(dst), src.0)?,
+                InstructionData::MOVrr64 {
+                    dst: Either::Left(dst),
+                    src: Either::Left(src),
+                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), reg_to_str(src))?,
                 InstructionData::MOVri32 {
                     dst: Either::Left(dst),
                     src,
-                } => writeln!(f, "  mov {:?}, {}", dst, src)?,
+                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), src)?,
                 InstructionData::MOVmi32 { dst, src } => {
                     writeln!(f, "  mov dword ptr {}, {}", dst, src)?
                 }
                 InstructionData::MOVrm32 {
                     dst: Either::Left(dst),
                     src,
-                } => writeln!(f, "  mov {}, {}", dst, src)?,
+                } => writeln!(f, "  mov {}, dword ptr {}", reg_to_str(dst), src)?,
                 InstructionData::MOVrm32 {
                     dst: Either::Right(dst),
                     src,
-                } => writeln!(f, "  mov {}, {}", dst.0, src)?,
+                } => writeln!(f, "  mov %{}, dword ptr {}", dst.0, src)?,
                 InstructionData::RET => writeln!(f, "  ret")?,
                 _ => todo!(),
             }
@@ -91,9 +99,10 @@ impl fmt::Display for Module<X86_64> {
 }
 
 fn reg_to_str(r: &Reg) -> &'static str {
-    match r.0 {
-        0 => "eax",
-        16 => "rbp",
-        _ => todo!(),
+    match r {
+        Reg(0, 0) => "eax",
+        Reg(1, 0) => "rbp",
+        Reg(1, 1) => "rsp",
+        e => todo!("{:?}", e),
     }
 }

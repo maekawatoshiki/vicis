@@ -138,38 +138,28 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) 
     let value = ctx.ir_data.value_ref(value);
     match value {
         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
-            ctx.inst_seq.append(&mut vec![
-                MachInstruction {
-                    id: None,
-                    data: InstructionData::MOVri32 {
-                        dst: Either::Left(GR32::EAX),
-                        src: *i,
-                    },
+            ctx.inst_seq.push(MachInstruction {
+                id: None,
+                data: InstructionData::MOVri32 {
+                    dst: Either::Left(GR32::EAX.into()),
+                    src: *i,
                 },
-                MachInstruction {
-                    id: None,
-                    data: InstructionData::RET,
-                },
-            ]);
-            return;
+            });
         }
         Value::Instruction(id) => {
             let vreg = ctx.inst_id_to_vreg[id];
-            ctx.inst_seq.append(&mut vec![
-                MachInstruction {
-                    id: None,
-                    data: InstructionData::MOVrr32 {
-                        dst: Either::Left(GR32::EAX),
-                        src: Either::Right(vreg),
-                    },
+            ctx.inst_seq.push(MachInstruction {
+                id: None,
+                data: InstructionData::MOVrr32 {
+                    dst: Either::Left(GR32::EAX.into()),
+                    src: Either::Right(vreg),
                 },
-                MachInstruction {
-                    id: None,
-                    data: InstructionData::RET,
-                },
-            ]);
-            return;
+            });
         }
         _ => todo!(),
     }
+    ctx.inst_seq.push(MachInstruction {
+        id: None,
+        data: InstructionData::RET,
+    });
 }

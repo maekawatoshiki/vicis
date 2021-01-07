@@ -26,15 +26,23 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         let sub = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData::SUBr64i32 {
-                r: Either::Left(GR64::RSP),
+                r: Either::Left(GR64::RSP.into()),
                 imm: adj,
             },
         });
         function.layout.insert_inst_at_start(sub, entry);
+        let mov = function.data.create_inst(Instruction {
+            id: None,
+            data: InstructionData::MOVrr64 {
+                dst: Either::Left(GR64::RBP.into()),
+                src: Either::Left(GR64::RSP.into()),
+            },
+        });
+        function.layout.insert_inst_at_start(mov, entry);
         let push64 = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData::PUSH64 {
-                r: Either::Left(GR64::RBP),
+                r: Either::Left(GR64::RBP.into()),
             },
         });
         function.layout.insert_inst_at_start(push64, entry);
@@ -55,7 +63,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         let add = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData::ADDr64i32 {
-                r: Either::Left(GR64::RSP),
+                r: Either::Left(GR64::RSP.into()),
                 imm: adj,
             },
         });
@@ -63,7 +71,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         let pop64 = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData::POP64 {
-                r: Either::Left(GR64::RBP),
+                r: Either::Left(GR64::RBP.into()),
             },
         });
         function.layout.insert_inst_before(ret_id, pop64, block);

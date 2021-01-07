@@ -1,8 +1,8 @@
-use crate::ir::{instruction::InstructionId, types::TypeId};
+use crate::ir::types::TypeId;
 use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Reg(pub u32);
+pub struct Reg(pub u16, pub u16);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VReg(pub u32);

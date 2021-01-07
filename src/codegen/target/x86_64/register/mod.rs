@@ -12,13 +12,13 @@ pub enum GR64 {
 
 impl Into<Reg> for GR32 {
     fn into(self) -> Reg {
-        Reg(self as u32)
+        Reg(0, self as u16)
     }
 }
 
 impl Into<Reg> for GR64 {
     fn into(self) -> Reg {
-        Reg(self as u32 + 16 /*=num of GR32 regs*/)
+        Reg(1, self as u16)
     }
 }
 

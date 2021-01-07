@@ -1,4 +1,3 @@
-use super::register::{GR32, GR64};
 use crate::codegen::{
     function::slot::SlotId,
     register::{Reg, VReg},
@@ -9,29 +8,33 @@ use either::Either;
 #[derive(Debug)]
 pub enum InstructionData {
     PUSH64 {
-        r: Either<GR64, VReg>,
+        r: Either<Reg, VReg>,
     },
     POP64 {
-        r: Either<GR64, VReg>,
+        r: Either<Reg, VReg>,
     },
     ADDr64i32 {
-        r: Either<GR64, VReg>,
+        r: Either<Reg, VReg>,
         imm: i32,
     },
     SUBr64i32 {
-        r: Either<GR64, VReg>,
+        r: Either<Reg, VReg>,
         imm: i32,
     },
     MOVrr32 {
-        dst: Either<GR32, VReg>,
-        src: Either<GR32, VReg>,
+        dst: Either<Reg, VReg>,
+        src: Either<Reg, VReg>,
+    },
+    MOVrr64 {
+        dst: Either<Reg, VReg>,
+        src: Either<Reg, VReg>,
     },
     MOVri32 {
-        dst: Either<GR32, VReg>,
+        dst: Either<Reg, VReg>,
         src: i32,
     },
     MOVrm32 {
-        dst: Either<GR32, VReg>,
+        dst: Either<Reg, VReg>,
         src: MemoryOperand,
     },
     MOVmi32 {
