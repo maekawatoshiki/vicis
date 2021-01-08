@@ -55,6 +55,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
                 .reg_lrs_map
                 .entry(reg_unit)
                 .or_insert(liveness::LiveRanges(vec![]));
+            // println!("{:?}", vreg);
             if !lrs1.interfere(lrs2) {
                 // assign reg for vreg
                 assigned_regs.insert(vreg, reg);
@@ -75,13 +76,14 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
                 .chain(inst.data.output_vregs().into_iter())
             {
                 if let Some(reg) = assigned_regs.get(&vreg) {
+                    // println!("{:?} => {:?}", vreg, reg);
                     inst.data.rewrite(vreg, *reg);
                 }
             }
         }
     }
 
-    println!("{:#?}", liveness.block_data);
-    println!("{:#?}", liveness.vreg_lrs_map);
-    println!("{:#?}", liveness.reg_lrs_map);
+    debug!(liveness.block_data);
+    debug!(liveness.vreg_lrs_map);
+    debug!(liveness.reg_lrs_map);
 }

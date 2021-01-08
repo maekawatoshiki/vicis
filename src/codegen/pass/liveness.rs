@@ -358,33 +358,66 @@ impl LiveRanges {
             return;
         }
 
+        let mut new = vec![];
+
         let mut z = vec![];
         let mut yi = 0;
-        for x in &mut self.0 {
-            loop {
+        for x in &self.0 {
+            while yi < other.0.len() {
                 let y = &other.0[yi];
                 if x.start.0 < y.start.0 {
+                    new.push(y.clone());
                     break;
                 }
                 if x.start.0 == y.start.0 {
-                    x.start = ::std::cmp::min(x.start, y.start);
-                    x.end = ::std::cmp::max(x.end, y.end);
+                    if x.interfere(y) {
+                        new.push(LiveRange {
+                            start: ::std::cmp::min(x.start, y.start),
+                            end: ::std::cmp::max(x.end, y.end),
+                        });
+                    } else {
+                        if x.start.1 < y.start.1 {
+                            if x.end.1 == y.start.1 {
+                                new.push(LiveRange {
+                                    start: x.start,
+                                    end: y.end,
+                                });
+                            } else {
+                                new.push(x.clone());
+                                new.push(y.clone())
+                            }
+                        } else {
+                            if y.end.1 == x.start.1 {
+                                new.push(LiveRange {
+                                    start: y.start,
+                                    end: x.end,
+                                });
+                            } else {
+                                new.push(y.clone());
+                                new.push(x.clone());
+                            }
+                        }
+                    }
                     yi += 1;
                     break;
                 }
                 if x.start.0 > y.start.0 {
+                    new.push(x.clone());
                     z.push(y.clone());
                     yi += 1;
                     continue;
                 }
             }
         }
+
         for (i, z) in z.into_iter().enumerate() {
-            self.0.insert(i, z)
+            new.insert(i, z)
         }
         if yi < other.0.len() - 1 {
-            self.0.append(&mut other.0[yi..].to_vec())
+            new.append(&mut other.0[yi..].to_vec())
         }
+
+        self.0 = new;
     }
 }
 
