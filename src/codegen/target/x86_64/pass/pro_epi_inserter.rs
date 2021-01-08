@@ -2,9 +2,12 @@ use crate::codegen::{
     function::Function,
     instruction::Instruction,
     module::Module,
-    target::x86_64::{instruction::InstructionData, register::GR64, X86_64},
+    target::x86_64::{
+        instruction::{InstructionData, Opcode, Operand, OperandData},
+        register::GR64,
+        X86_64,
+    },
 };
-use either::Either;
 
 pub fn run_on_module(module: &mut Module<X86_64>) {
     for (_, func) in &mut module.functions {
@@ -25,24 +28,31 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     if let Some(entry) = function.layout.first_block {
         let sub = function.data.create_inst(Instruction {
             id: None,
-            data: InstructionData::SUBr64i32 {
-                r: Either::Left(GR64::RSP.into()),
-                imm: adj,
+            data: InstructionData {
+                opcode: Opcode::SUBr64i32,
+                operands: vec![
+                    Operand::input_output(OperandData::Reg(GR64::RSP.into())),
+                    Operand::input(OperandData::Int32(adj)),
+                ],
             },
         });
         function.layout.insert_inst_at_start(sub, entry);
         let mov = function.data.create_inst(Instruction {
             id: None,
-            data: InstructionData::MOVrr64 {
-                dst: Either::Left(GR64::RBP.into()),
-                src: Either::Left(GR64::RSP.into()),
+            data: InstructionData {
+                opcode: Opcode::MOVrr64,
+                operands: vec![
+                    Operand::output(OperandData::Reg(GR64::RBP.into())),
+                    Operand::input(OperandData::Reg(GR64::RSP.into())),
+                ],
             },
         });
         function.layout.insert_inst_at_start(mov, entry);
         let push64 = function.data.create_inst(Instruction {
             id: None,
-            data: InstructionData::PUSH64 {
-                r: Either::Left(GR64::RBP.into()),
+            data: InstructionData {
+                opcode: Opcode::PUSH64,
+                operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
             },
         });
         function.layout.insert_inst_at_start(push64, entry);
@@ -53,7 +63,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     for block in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst_id);
-            if !matches!(inst.data, InstructionData::RET) {
+            if !matches!(inst.data.opcode, Opcode::RET) {
                 continue;
             }
             epilogues.push((block, inst_id));
@@ -62,16 +72,20 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     for (block, ret_id) in epilogues {
         let add = function.data.create_inst(Instruction {
             id: None,
-            data: InstructionData::ADDr64i32 {
-                r: Either::Left(GR64::RSP.into()),
-                imm: adj,
+            data: InstructionData {
+                opcode: Opcode::ADDr64i32,
+                operands: vec![
+                    Operand::output(OperandData::Reg(GR64::RSP.into())),
+                    Operand::input(OperandData::Int32(adj)),
+                ],
             },
         });
         function.layout.insert_inst_before(ret_id, add, block);
         let pop64 = function.data.create_inst(Instruction {
             id: None,
-            data: InstructionData::POP64 {
-                r: Either::Left(GR64::RBP.into()),
+            data: InstructionData {
+                opcode: Opcode::POP64,
+                operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
             },
         });
         function.layout.insert_inst_before(ret_id, pop64, block);

@@ -4,45 +4,40 @@ use crate::codegen::{
     register::{Reg, VReg},
 };
 // use crate::ir::instruction::InstructionId;
-use either::Either;
 
 #[derive(Debug)]
-pub enum InstructionData {
-    PUSH64 {
-        r: Either<Reg, VReg>,
-    },
-    POP64 {
-        r: Either<Reg, VReg>,
-    },
-    ADDr64i32 {
-        r: Either<Reg, VReg>,
-        imm: i32,
-    },
-    SUBr64i32 {
-        r: Either<Reg, VReg>,
-        imm: i32,
-    },
-    MOVrr32 {
-        dst: Either<Reg, VReg>,
-        src: Either<Reg, VReg>,
-    },
-    MOVrr64 {
-        dst: Either<Reg, VReg>,
-        src: Either<Reg, VReg>,
-    },
-    MOVri32 {
-        dst: Either<Reg, VReg>,
-        src: i32,
-    },
-    MOVrm32 {
-        dst: Either<Reg, VReg>,
-        src: MemoryOperand,
-    },
-    MOVmi32 {
-        dst: MemoryOperand,
-        src: i32,
-    },
+pub struct InstructionData {
+    pub opcode: Opcode,
+    pub operands: Vec<Operand>,
+}
+
+#[derive(Debug)]
+pub enum Opcode {
+    PUSH64,
+    POP64,
+    ADDr64i32,
+    SUBr64i32,
+    MOVrr32,
+    MOVrr64,
+    MOVri32,
+    MOVrm32,
+    MOVmi32,
     RET,
+}
+
+#[derive(Debug)]
+pub struct Operand {
+    pub data: OperandData,
+    input: bool,
+    output: bool,
+}
+
+#[derive(Debug)]
+pub enum OperandData {
+    Reg(Reg),
+    VReg(VReg),
+    Int32(i32),
+    Mem(MemoryOperand),
 }
 
 #[derive(Debug)]
@@ -53,19 +48,29 @@ pub enum MemoryOperand {
 
 impl InstructionData {
     pub fn mem_ops(&self) -> &[MemoryOperand] {
-        match self {
-            Self::MOVmi32 { dst, .. } => ::std::slice::from_ref(dst),
-            Self::MOVrm32 { src, .. } => ::std::slice::from_ref(src),
-            _ => &mut [],
+        for operand in &self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::Mem(mem),
+                    ..
+                } => return ::std::slice::from_ref(mem),
+                _ => {}
+            }
         }
+        &[]
     }
 
     pub fn mem_ops_mut(&mut self) -> &mut [MemoryOperand] {
-        match self {
-            Self::MOVmi32 { dst, .. } => ::std::slice::from_mut(dst),
-            Self::MOVrm32 { src, .. } => ::std::slice::from_mut(src),
-            _ => &mut [],
+        for operand in &mut self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::Mem(mem),
+                    ..
+                } => return ::std::slice::from_mut(mem),
+                _ => {}
+            }
         }
+        &mut []
     }
 }
 
@@ -87,145 +92,114 @@ impl MemoryOperand {
 
 impl ID for InstructionData {
     fn input_vregs(&self) -> Vec<VReg> {
-        match self {
-            Self::PUSH64 {
-                r: Either::Right(r),
-            } => vec![*r],
-            Self::POP64 {
-                r: Either::Right(r),
-            } => vec![*r],
-            Self::ADDr64i32 {
-                r: Either::Right(r),
-                ..
-            } => vec![*r],
-            Self::SUBr64i32 {
-                r: Either::Right(r),
-                ..
-            } => vec![*r],
-            Self::MOVrr32 {
-                src: Either::Right(src),
-                ..
-            } => vec![*src],
-            Self::MOVrr64 {
-                src: Either::Right(src),
-                ..
-            } => vec![*src],
-            Self::MOVrm32 { src, .. } => src.vregs(),
-            Self::MOVmi32 { .. } => {
-                vec![]
+        let mut vrs = vec![];
+        for operand in &self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::VReg(vr),
+                    input: true,
+                    ..
+                } => vrs.push(*vr),
+                _ => {}
             }
-            _ => vec![],
         }
+        vrs
     }
 
     fn output_vregs(&self) -> Vec<VReg> {
-        match self {
-            Self::ADDr64i32 {
-                r: Either::Right(r),
-                ..
-            } => vec![*r],
-            Self::SUBr64i32 {
-                r: Either::Right(r),
-                ..
-            } => vec![*r],
-            Self::MOVrr32 {
-                dst: Either::Right(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVrr64 {
-                dst: Either::Right(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVrm32 {
-                dst: Either::Right(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVmi32 { .. } => {
-                vec![]
+        let mut vrs = vec![];
+        for operand in &self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::VReg(vr),
+                    output: true,
+                    ..
+                } => vrs.push(*vr),
+                _ => {}
             }
-            _ => vec![],
         }
+        vrs
     }
 
     fn input_regs(&self) -> Vec<Reg> {
-        match self {
-            Self::PUSH64 { r: Either::Left(r) } => vec![*r],
-            Self::POP64 { r: Either::Left(r) } => vec![*r],
-            Self::ADDr64i32 {
-                r: Either::Left(r), ..
-            } => vec![*r],
-            Self::SUBr64i32 {
-                r: Either::Left(r), ..
-            } => vec![*r],
-            Self::MOVrr32 {
-                src: Either::Left(src),
-                ..
-            } => vec![*src],
-            Self::MOVrr64 {
-                src: Either::Left(src),
-                ..
-            } => vec![*src],
-            Self::MOVrm32 { src, .. } => src.regs(),
-            Self::MOVmi32 { .. } => vec![],
-            _ => vec![],
+        let mut rs = vec![];
+        for operand in &self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::Reg(r),
+                    input: true,
+                    ..
+                } => rs.push(*r),
+                _ => {}
+            }
         }
+        rs
     }
 
     fn output_regs(&self) -> Vec<Reg> {
-        match self {
-            Self::ADDr64i32 {
-                r: Either::Left(r), ..
-            } => vec![*r],
-            Self::SUBr64i32 {
-                r: Either::Left(r), ..
-            } => vec![*r],
-            Self::MOVrr32 {
-                dst: Either::Left(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVrr64 {
-                dst: Either::Left(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVrm32 {
-                dst: Either::Left(dst),
-                ..
-            } => vec![*dst],
-            Self::MOVmi32 { .. } => vec![],
-            _ => vec![],
+        let mut rs = vec![];
+        for operand in &self.operands {
+            match operand {
+                Operand {
+                    data: OperandData::Reg(r),
+                    output: true,
+                    ..
+                } => rs.push(*r),
+                _ => {}
+            }
         }
+        rs
     }
 
     fn rewrite(&mut self, vreg: VReg, reg: Reg) {
+        for operand in &mut self.operands {
+            match operand.data {
+                OperandData::VReg(vr) if vr == vreg => operand.data = OperandData::Reg(reg),
+                _ => {}
+            }
+        }
+    }
+}
+
+impl Operand {
+    pub fn new(data: OperandData) -> Self {
+        Self {
+            data,
+            input: false,
+            output: false,
+        }
+    }
+
+    pub fn input(data: OperandData) -> Self {
+        Self {
+            data,
+            input: true,
+            output: false,
+        }
+    }
+
+    pub fn output(data: OperandData) -> Self {
+        Self {
+            data,
+            input: false,
+            output: true,
+        }
+    }
+
+    pub fn input_output(data: OperandData) -> Self {
+        Self {
+            data,
+            input: true,
+            output: true,
+        }
+    }
+}
+
+impl OperandData {
+    pub fn as_reg(&self) -> &Reg {
         match self {
-            Self::PUSH64 { r } if matches!(r, Either::Right(ref x) if vreg == *x) => {
-                *r = Either::Left(reg)
-            }
-            Self::POP64 { r } if matches!(r, Either::Right(ref x) if vreg == *x) => {
-                *r = Either::Left(reg)
-            }
-            Self::ADDr64i32 { r, .. } if matches!(r, Either::Right(ref x) if vreg == *x) => {
-                *r = Either::Left(reg)
-            }
-            Self::SUBr64i32 { r, .. } if matches!(r, Either::Right(ref x) if vreg == *x) => {
-                *r = Either::Left(reg)
-            }
-            Self::MOVrr32 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
-                *dst = Either::Left(reg)
-            }
-            Self::MOVrr32 { src, .. } if matches!(src, Either::Right(ref x) if vreg == *x) => {
-                *src = Either::Left(reg)
-            }
-            Self::MOVrr64 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
-                *dst = Either::Left(reg)
-            }
-            Self::MOVrr64 { src, .. } if matches!(src, Either::Right(ref x) if vreg == *x) => {
-                *src = Either::Left(reg)
-            }
-            Self::MOVrm32 { dst, .. } if matches!(dst, Either::Right(ref x) if vreg == *x) => {
-                *dst = Either::Left(reg)
-            }
-            _ => {}
+            Self::Reg(r) => r,
+            _ => todo!(),
         }
     }
 }

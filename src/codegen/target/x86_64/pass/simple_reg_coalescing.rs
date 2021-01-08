@@ -2,11 +2,10 @@ use crate::codegen::{
     function::Function,
     module::Module,
     target::{
-        x86_64::{instruction::InstructionData, X86_64},
+        x86_64::{instruction::Opcode, X86_64},
         Target,
     },
 };
-use either::Either;
 
 pub fn run_on_module(module: &mut Module<X86_64>) {
     for (_, func) in &mut module.functions {
@@ -20,17 +19,15 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
-            match inst.data {
-                InstructionData::MOVrr32 {
-                    dst: Either::Left(dst),
-                    src: Either::Left(src),
-                } if function.target.to_reg_unit(dst) == function.target.to_reg_unit(src) => {
-                    worklist.push(inst_id)
-                }
-                InstructionData::MOVrr64 {
-                    dst: Either::Left(dst),
-                    src: Either::Left(src),
-                } if function.target.to_reg_unit(dst) == function.target.to_reg_unit(src) => {
+            match inst.data.opcode {
+                Opcode::MOVrr32 | Opcode::MOVrr64
+                    if function
+                        .target
+                        .to_reg_unit(*inst.data.operands[0].data.as_reg())
+                        == function
+                            .target
+                            .to_reg_unit(*inst.data.operands[1].data.as_reg()) =>
+                {
                     worklist.push(inst_id)
                 }
                 _ => {}

@@ -1,9 +1,8 @@
 use crate::codegen::{
     instruction::Instruction as MachInstruction,
     lower::pattern::{Lower as LowerTrait, LoweringContext},
-    // register::VRegData,
     target::x86_64::{
-        instruction::{InstructionData, MemoryOperand},
+        instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},
         register::GR32,
         X86_64,
     },
@@ -13,7 +12,6 @@ use crate::ir::{
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
-use either::Either;
 
 #[derive(Clone, Copy)]
 pub struct Lower {}
@@ -88,9 +86,12 @@ fn lower_load(
             ctx.inst_id_to_vreg.insert(id, vreg);
             ctx.inst_seq.push(MachInstruction {
                 id: None,
-                data: InstructionData::MOVrm32 {
-                    dst: Either::Right(vreg),
-                    src: MemoryOperand::Slot(*slot),
+                data: InstructionData {
+                    opcode: Opcode::MOVrm32,
+                    operands: vec![
+                        MOperand::output(OperandData::VReg(vreg)),
+                        MOperand::input(OperandData::Mem(MemoryOperand::Slot(*slot))),
+                    ],
                 },
             });
             return;
@@ -123,9 +124,12 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, _tys: &[TypeId], args: &[Value
         (Some(slot), Some(ConstantInt::Int32(imm))) => {
             ctx.inst_seq.append(&mut vec![MachInstruction {
                 id: None,
-                data: InstructionData::MOVmi32 {
-                    dst: MemoryOperand::Slot(*slot),
-                    src: imm,
+                data: InstructionData {
+                    opcode: Opcode::MOVmi32,
+                    operands: vec![
+                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(*slot))),
+                        MOperand::input(OperandData::Int32(imm)),
+                    ],
                 },
             }]);
             return;
@@ -140,9 +144,12 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) 
         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
             ctx.inst_seq.push(MachInstruction {
                 id: None,
-                data: InstructionData::MOVri32 {
-                    dst: Either::Left(GR32::EAX.into()),
-                    src: *i,
+                data: InstructionData {
+                    opcode: Opcode::MOVri32,
+                    operands: vec![
+                        MOperand::output(OperandData::Reg(GR32::EAX.into())),
+                        MOperand::input(OperandData::Int32(*i)),
+                    ],
                 },
             });
         }
@@ -150,9 +157,12 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) 
             let vreg = ctx.inst_id_to_vreg[id];
             ctx.inst_seq.push(MachInstruction {
                 id: None,
-                data: InstructionData::MOVrr32 {
-                    dst: Either::Left(GR32::EAX.into()),
-                    src: Either::Right(vreg),
+                data: InstructionData {
+                    opcode: Opcode::MOVrr32,
+                    operands: vec![
+                        MOperand::output(OperandData::Reg(GR32::EAX.into())),
+                        MOperand::input(OperandData::VReg(vreg)),
+                    ],
                 },
             });
         }
@@ -160,6 +170,9 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) 
     }
     ctx.inst_seq.push(MachInstruction {
         id: None,
-        data: InstructionData::RET,
+        data: InstructionData {
+            opcode: Opcode::RET,
+            operands: vec![],
+        },
     });
 }

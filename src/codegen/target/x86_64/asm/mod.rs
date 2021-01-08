@@ -3,11 +3,10 @@ use crate::codegen::{
     module::Module,
     register::Reg,
     target::x86_64::{
-        instruction::{InstructionData, MemoryOperand},
+        instruction::{MemoryOperand, Opcode, OperandData},
         X86_64,
     },
 };
-use either::Either;
 use std::fmt;
 
 pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result {
@@ -28,43 +27,26 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
     for block in function.layout.block_iter() {
         for inst in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst);
-            match &inst.data {
-                InstructionData::PUSH64 { r: Either::Left(r) } => {
-                    writeln!(f, "  push {}", reg_to_str(r))?
+            write!(f, "  {} ", inst.data.opcode)?;
+            for (i, operand) in inst.data.operands.iter().enumerate() {
+                match &operand.data {
+                    // TODO: Refactoring
+                    OperandData::Mem(mem) => write!(
+                        f,
+                        "{} ptr {}",
+                        match inst.data.opcode {
+                            Opcode::MOVrm32 | Opcode::MOVmi32 => "dword",
+                            _ => todo!(),
+                        },
+                        mem
+                    )?,
+                    e => write!(f, "{}", e)?,
                 }
-                InstructionData::POP64 { r: Either::Left(r) } => {
-                    writeln!(f, "  pop {}", reg_to_str(r))?
+                if i < inst.data.operands.len() - 1 {
+                    write!(f, ", ")?
                 }
-                InstructionData::ADDr64i32 {
-                    r: Either::Left(r),
-                    imm,
-                } => writeln!(f, "  add {}, {}", reg_to_str(r), imm)?,
-                InstructionData::SUBr64i32 {
-                    r: Either::Left(r),
-                    imm,
-                } => writeln!(f, "  sub {}, {}", reg_to_str(r), imm)?,
-                InstructionData::MOVrr32 {
-                    dst: Either::Left(dst),
-                    src: Either::Left(src),
-                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), reg_to_str(src))?,
-                InstructionData::MOVrr64 {
-                    dst: Either::Left(dst),
-                    src: Either::Left(src),
-                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), reg_to_str(src))?,
-                InstructionData::MOVri32 {
-                    dst: Either::Left(dst),
-                    src,
-                } => writeln!(f, "  mov {}, {}", reg_to_str(dst), src)?,
-                InstructionData::MOVmi32 { dst, src } => {
-                    writeln!(f, "  mov dword ptr {}, {}", dst, src)?
-                }
-                InstructionData::MOVrm32 {
-                    dst: Either::Left(dst),
-                    src,
-                } => writeln!(f, "  mov {}, dword ptr {}", reg_to_str(dst), src)?,
-                InstructionData::RET => writeln!(f, "  ret")?,
-                _ => todo!(),
             }
+            writeln!(f)?;
         }
     }
 
@@ -91,6 +73,38 @@ impl fmt::Display for MemoryOperand {
 impl fmt::Display for Module<X86_64> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print(f, self)
+    }
+}
+
+impl fmt::Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::PUSH64 => "push",
+                Self::POP64 => "pop",
+                Self::ADDr64i32 => "add",
+                Self::SUBr64i32 => "sub",
+                Self::MOVrr32 => "mov",
+                Self::MOVrr64 => "mov",
+                Self::MOVri32 => "mov",
+                Self::MOVrm32 => "mov",
+                Self::MOVmi32 => "mov",
+                Self::RET => "ret",
+            }
+        )
+    }
+}
+
+impl fmt::Display for OperandData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
+            Self::VReg(r) => write!(f, "%{}", r.0),
+            Self::Mem(mem) => write!(f, "{}", mem),
+            Self::Int32(i) => write!(f, "{}", i),
+        }
     }
 }
 
