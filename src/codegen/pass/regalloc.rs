@@ -47,19 +47,24 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let mut availables = vec![Reg(0, 0)]; // TODO
+        let mut availables = vec![Reg(0, 6), Reg(0, 2), Reg(0, 1), Reg(0, 0)]; // TODO
         while let Some(reg) = availables.pop() {
             let reg_unit = function.target.to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
-            let lrs2 = liveness.reg_lrs_map.get_mut(&reg_unit).unwrap();
+            let lrs2 = liveness
+                .reg_lrs_map
+                .entry(reg_unit)
+                .or_insert(liveness::LiveRanges(vec![]));
             if !lrs1.interfere(lrs2) {
                 // assign reg for vreg
                 assigned_regs.insert(vreg, reg);
                 lrs2.merge(lrs1);
+                break;
             }
         }
     }
 
+    // Rewrite vreg for reg
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref_mut(inst_id);
@@ -76,7 +81,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
         }
     }
 
-    println!("{:?}", liveness.block_data);
-    println!("{:?}", liveness.vreg_lrs_map);
-    println!("{:?}", liveness.reg_lrs_map);
+    println!("{:#?}", liveness.block_data);
+    println!("{:#?}", liveness.vreg_lrs_map);
+    println!("{:#?}", liveness.reg_lrs_map);
 }

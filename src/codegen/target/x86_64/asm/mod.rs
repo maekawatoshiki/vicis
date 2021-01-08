@@ -85,6 +85,8 @@ impl fmt::Display for Opcode {
                 Self::PUSH64 => "push",
                 Self::POP64 => "pop",
                 Self::ADDr64i32 => "add",
+                Self::ADDri32 => "add",
+                Self::ADDrr32 => "add",
                 Self::SUBr64i32 => "sub",
                 Self::MOVrr32 => "mov",
                 Self::MOVrr64 => "mov",

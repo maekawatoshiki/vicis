@@ -16,6 +16,8 @@ pub enum Opcode {
     PUSH64,
     POP64,
     ADDr64i32,
+    ADDri32,
+    ADDrr32,
     SUBr64i32,
     MOVrr32,
     MOVrr64,

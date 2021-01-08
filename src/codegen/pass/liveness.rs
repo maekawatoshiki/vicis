@@ -41,21 +41,25 @@ pub struct ProgramPoint(pub u32, pub u32);
 
 impl PartialOrd for ProgramPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.0 < other.1 {
+        if self.0 < other.0 {
             return Some(Ordering::Less);
         }
 
-        assert_eq!(self.0, other.1);
+        if self.0 > other.0 {
+            return Some(Ordering::Greater);
+        }
 
-        if self.0 < other.1 {
+        assert_eq!(self.0, other.0);
+
+        if self.1 < other.1 {
             return Some(Ordering::Less);
         }
 
-        if self.0 < other.1 {
+        if self.1 == other.1 {
             return Some(Ordering::Equal);
         }
 
-        assert!(self.0 > other.1);
+        assert!(self.1 > other.1);
 
         Some(Ordering::Greater)
     }
@@ -345,14 +349,41 @@ impl LiveRanges {
     }
 
     pub fn merge(&mut self, other: &Self) {
+        if other.0.len() == 0 {
+            return;
+        }
+
+        if self.0.len() == 0 {
+            *self = other.clone();
+            return;
+        }
+
+        let mut z = vec![];
+        let mut yi = 0;
         for x in &mut self.0 {
-            for y in &other.0 {
-                if !x.interfere(y) {
+            loop {
+                let y = &other.0[yi];
+                if x.start.0 < y.start.0 {
+                    break;
+                }
+                if x.start.0 == y.start.0 {
+                    x.start = ::std::cmp::min(x.start, y.start);
+                    x.end = ::std::cmp::max(x.end, y.end);
+                    yi += 1;
+                    break;
+                }
+                if x.start.0 > y.start.0 {
+                    z.push(y.clone());
+                    yi += 1;
                     continue;
                 }
-                x.start = ::std::cmp::min(x.start, y.start);
-                x.end = ::std::cmp::max(x.end, y.end);
             }
+        }
+        for (i, z) in z.into_iter().enumerate() {
+            self.0.insert(i, z)
+        }
+        if yi < other.0.len() - 1 {
+            self.0.append(&mut other.0[yi..].to_vec())
         }
     }
 }

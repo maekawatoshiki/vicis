@@ -9,7 +9,7 @@ use super::{
 };
 use crate::ir::{
     function::{Data as IrData, Function as IrFunction},
-    instruction::Instruction as IrInstruction,
+    instruction::{Instruction as IrInstruction, Opcode},
     module::Module as IrModule,
 };
 use id_arena::Arena;
@@ -85,6 +85,16 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
             // `inst` is used once in current block
             // `inst` is used many times in current block
             // inst.users.
+            if matches!(inst.opcode, Opcode::Add)
+                && inst.users.len() == 1
+                && function
+                    .data
+                    .inst_ref(*inst.users.iter().next().unwrap())
+                    .parent
+                    == inst.parent
+            {
+                continue;
+            }
 
             target.lower().lower(
                 &mut LoweringContext {
