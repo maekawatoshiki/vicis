@@ -1,6 +1,5 @@
 use crate::codegen::{
-    function::slot::SlotId,
-    instruction::InstructionData as ID,
+    function::{instruction::InstructionData as ID, slot::SlotId},
     register::{Reg, VReg},
 };
 // use crate::ir::instruction::InstructionId;

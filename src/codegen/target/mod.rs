@@ -2,7 +2,7 @@ pub mod x86_64;
 
 use crate::codegen::{
     calling_conv,
-    instruction::InstructionData,
+    function::instruction::InstructionData,
     lower,
     module::Module,
     register::{Reg, RegUnit},

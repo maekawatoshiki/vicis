@@ -1,6 +1,5 @@
 use crate::codegen::{
-    function::Function,
-    instruction::InstructionData,
+    function::{instruction::InstructionData, Function},
     module::Module,
     pass::liveness,
     register::{Reg, VReg},

@@ -1,7 +1,5 @@
 use super::super::{
-    basic_block::BasicBlockId,
-    function::{Data, Function, Layout, Parameter},
-    instruction,
+    function::{basic_block::BasicBlockId, instruction, Data, Function, Layout, Parameter},
     module::{attributes, name, preemption_specifier},
     types,
     types::Types,

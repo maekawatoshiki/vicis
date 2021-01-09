@@ -1,7 +1,6 @@
-use super::{
-    super::{function::parser::ParserContext, module::name, types, util::spaces, value},
-    ICmpCond, InstructionId, Opcode, Operand,
-};
+use super::{ICmpCond, InstructionId, Opcode, Operand};
+use crate::ir::function::parser::ParserContext;
+use crate::ir::{module::name, types, util::spaces, value};
 use nom::{
     branch::alt,
     bytes::complete::tag,

@@ -1,14 +1,17 @@
+pub mod basic_block;
 pub mod data;
+pub mod instruction;
 pub mod layout;
 pub mod slot;
 
-use super::{instruction::InstructionId, register::VRegs, target::Target};
+use super::{register::VRegs, target::Target};
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
 };
 use either::Either;
+use instruction::InstructionId;
 
 pub struct Function<T: Target> {
     pub name: String,

@@ -1,7 +1,6 @@
 use crate::codegen::{
     calling_conv::CallingConv,
-    function::Function,
-    instruction::Instruction,
+    function::{instruction::Instruction, Function},
     module::Module,
     target::x86_64::{
         instruction::{InstructionData, Opcode, Operand, OperandData},

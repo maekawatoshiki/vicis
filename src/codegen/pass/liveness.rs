@@ -1,7 +1,9 @@
 use crate::codegen::{
-    basic_block::BasicBlockId,
-    function::Function,
-    instruction::{Instruction, InstructionData},
+    function::{
+        basic_block::BasicBlockId,
+        instruction::{Instruction, InstructionData},
+        Function,
+    },
     // module::Module,
     register::{RegUnit, VReg},
     target::Target,

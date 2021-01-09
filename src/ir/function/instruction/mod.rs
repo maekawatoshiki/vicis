@@ -2,9 +2,8 @@ pub mod parser;
 
 pub use parser::parse;
 
-use super::{
-    basic_block::BasicBlockId,
-    function::Data,
+use crate::ir::{
+    function::{basic_block::BasicBlockId, Data},
     module::name::Name,
     types::TypeId,
     types::Types,

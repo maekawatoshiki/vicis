@@ -1,6 +1,6 @@
 use crate::codegen::{
     calling_conv::CallingConv,
-    instruction::Instruction as MachInstruction,
+    function::instruction::Instruction as MachInstruction,
     lower::pattern::{Lower as LowerTrait, LoweringContext},
     register::VReg,
     target::x86_64::{
@@ -10,7 +10,7 @@ use crate::codegen::{
     },
 };
 use crate::ir::{
-    instruction::{Instruction as IrInstruction, InstructionId, Operand},
+    function::instruction::{Instruction as IrInstruction, InstructionId, Operand},
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };

@@ -1,4 +1,4 @@
-use super::module::name::Name;
+use crate::ir::module::name::Name;
 use id_arena::Id;
 use rustc_hash::FxHashSet;
 

@@ -1,4 +1,4 @@
-use super::register::{Reg, VReg};
+use crate::codegen::register::{Reg, VReg};
 use id_arena::Id;
 
 pub type InstructionId<Data> = Id<Instruction<Data>>;

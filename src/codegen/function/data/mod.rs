@@ -1,4 +1,4 @@
-use crate::codegen::{
+use crate::codegen::function::{
     basic_block::{BasicBlock, BasicBlockId},
     instruction::{Instruction, InstructionData, InstructionId},
 };

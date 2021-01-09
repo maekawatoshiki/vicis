@@ -1,15 +1,19 @@
 pub mod pattern;
 
 use super::{
-    function::{data::Data, layout::Layout, slot::Slots, Function as MachFunction},
-    instruction::InstructionData,
+    function::{
+        data::Data, instruction::InstructionData, layout::Layout, slot::Slots,
+        Function as MachFunction,
+    },
     module::Module as MachModule,
     register::VRegs,
     target::Target,
 };
 use crate::ir::{
-    function::{Data as IrData, Function as IrFunction},
-    instruction::{Instruction as IrInstruction, Opcode},
+    function::{
+        instruction::{Instruction as IrInstruction, Opcode},
+        Data as IrData, Function as IrFunction,
+    },
     module::Module as IrModule,
 };
 use id_arena::Arena;

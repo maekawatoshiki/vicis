@@ -1,7 +1,9 @@
 use super::generic_value::GenericValue;
 use crate::ir::{
-    function::{Data, FunctionId},
-    instruction::{ICmpCond, InstructionId, Opcode, Operand},
+    function::{
+        instruction::{ICmpCond, InstructionId, Opcode, Operand},
+        Data, FunctionId,
+    },
     module::Module,
     types::{Type, TypeId, Types},
     value::{ConstantData, ConstantInt, Value, ValueId},

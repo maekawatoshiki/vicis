@@ -3,8 +3,7 @@ pub mod parser;
 pub use parser::parse;
 
 use super::{
-    function::Data,
-    instruction::InstructionId,
+    function::{instruction::InstructionId, Data},
     module::name::Name,
     types::{TypeId, Types},
 };

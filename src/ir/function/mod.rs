@@ -1,16 +1,18 @@
+pub mod basic_block;
+pub mod instruction;
 pub mod parser;
 
 pub use parser::parse;
 
 use super::{
-    basic_block::{BasicBlock, BasicBlockId},
-    instruction::{Instruction, InstructionId},
     module::{attributes::Attribute, name::Name, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
     value::{Value, ValueId},
 };
+use basic_block::{BasicBlock, BasicBlockId};
 use either::Either;
 use id_arena::{Arena, Id};
+use instruction::{Instruction, InstructionId};
 use rustc_hash::FxHashMap;
 use std::fmt;
 

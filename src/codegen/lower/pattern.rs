@@ -1,15 +1,17 @@
 use crate::codegen::{
     function::{
         data::Data as MachData,
+        instruction::Instruction as MachInstruction,
         slot::{SlotId, Slots},
     },
-    instruction::Instruction as MachInstruction,
     register::{VReg, VRegs},
     target::Target,
 };
 use crate::ir::{
-    function::Data as IrData,
-    instruction::{Instruction, InstructionId},
+    function::{
+        instruction::{Instruction, InstructionId},
+        Data as IrData,
+    },
     types::Types,
 };
 use rustc_hash::FxHashMap;
