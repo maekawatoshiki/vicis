@@ -3,18 +3,18 @@ use crate::codegen::{
     function::Function,
     module::Module,
     target::{
-        x86_64::{instruction::Opcode, X86_64},
+        x86_64::{instruction::Opcode, register::RegClass, X86_64},
         Target,
     },
 };
 
-pub fn run_on_module<CC: CallingConv>(module: &mut Module<X86_64<CC>>) {
+pub fn run_on_module<CC: CallingConv<RegClass>>(module: &mut Module<X86_64<CC>>) {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
 }
 
-pub fn run_on_function<CC: CallingConv>(function: &mut Function<X86_64<CC>>) {
+pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64<CC>>) {
     let mut worklist = vec![];
 
     for block_id in function.layout.block_iter() {

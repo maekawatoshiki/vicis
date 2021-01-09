@@ -1,4 +1,4 @@
-use crate::ir::types::TypeId;
+use crate::ir::types::{TypeId, Types};
 use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Copy)]
@@ -21,6 +21,10 @@ pub struct VRegData {
     // ...
 }
 
+pub trait RegisterClass {
+    fn for_type(types: &Types, id: TypeId) -> Self;
+}
+
 impl VRegs {
     pub fn new() -> Self {
         Self {
@@ -34,5 +38,9 @@ impl VRegs {
         self.map.insert(key, VRegData { vreg: key, ty });
         self.cur += 1;
         key
+    }
+
+    pub fn type_for(&self, vreg: VReg) -> TypeId {
+        self.map[&vreg].ty
     }
 }

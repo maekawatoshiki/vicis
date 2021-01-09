@@ -1,4 +1,7 @@
-use crate::codegen::register::{Reg, RegUnit};
+use crate::{
+    codegen::register::{Reg, RegUnit, RegisterClass},
+    ir::types::{Type, TypeId, Types},
+};
 use std::fmt;
 
 pub enum GR32 {
@@ -39,6 +42,11 @@ pub enum GR64 {
     R15,
 }
 
+pub enum RegClass {
+    GR32,
+    GR64,
+}
+
 impl Into<Reg> for GR32 {
     fn into(self) -> Reg {
         Reg(0, self as u16)
@@ -48,6 +56,16 @@ impl Into<Reg> for GR32 {
 impl Into<Reg> for GR64 {
     fn into(self) -> Reg {
         Reg(1, self as u16)
+    }
+}
+
+impl RegisterClass for RegClass {
+    fn for_type(types: &Types, id: TypeId) -> Self {
+        match &*types.get(id) {
+            Type::Int(32) => Self::GR32,
+            Type::Int(64) => Self::GR64,
+            _ => todo!(),
+        }
     }
 }
 

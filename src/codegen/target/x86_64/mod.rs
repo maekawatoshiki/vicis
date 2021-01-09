@@ -15,12 +15,12 @@ use crate::codegen::{
 };
 
 #[derive(Copy, Clone)]
-pub struct X86_64<CC: CallingConv> {
+pub struct X86_64<CC: CallingConv<register::RegClass>> {
     lower: x86_64::lower::Lower,
     calling_conv: CC,
 }
 
-impl<CC: CallingConv> X86_64<CC> {
+impl<CC: CallingConv<register::RegClass>> X86_64<CC> {
     pub fn new(calling_conv: CC) -> Self {
         Self {
             lower: x86_64::lower::Lower::new(),
@@ -29,9 +29,10 @@ impl<CC: CallingConv> X86_64<CC> {
     }
 }
 
-impl<CC: CallingConv> Target for X86_64<CC> {
+impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
     type InstData = instruction::InstructionData;
     type Lower = x86_64::lower::Lower;
+    type RegClass = register::RegClass;
     type CallingConv = CC;
 
     fn lower(&self) -> &Self::Lower {

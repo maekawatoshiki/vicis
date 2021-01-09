@@ -1,8 +1,9 @@
 use crate::codegen::{
+    calling_conv::CallingConv,
     function::{instruction::InstructionData, Function},
     module::Module,
     pass::liveness,
-    register::{Reg, VReg},
+    register::{Reg, RegisterClass, VReg},
     target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -46,8 +47,12 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let mut availables = vec![Reg(0, 6), Reg(0, 2), Reg(0, 1), Reg(0, 0)]; // TODO
-        while let Some(reg) = availables.pop() {
+        let mut availables: VecDeque<_> = T::CallingConv::gpr_list_for_rc(&T::RegClass::for_type(
+            &function.types,
+            function.vregs.type_for(vreg),
+        ))
+        .into();
+        while let Some(reg) = availables.pop_front() {
             let reg_unit = function.target.to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
             let lrs2 = liveness

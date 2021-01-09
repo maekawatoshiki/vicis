@@ -5,13 +5,14 @@ use crate::codegen::{
     function::instruction::InstructionData,
     lower,
     module::Module,
-    register::{Reg, RegUnit},
+    register::{Reg, RegUnit, RegisterClass},
 };
 
 pub trait Target: Copy {
     type InstData: ::std::fmt::Debug + InstructionData;
+    type RegClass: RegisterClass;
     type Lower: lower::pattern::Lower<Self>;
-    type CallingConv: calling_conv::CallingConv;
+    type CallingConv: calling_conv::CallingConv<Self::RegClass>;
 
     fn lower(&self) -> &Self::Lower;
     fn calling_conv(&self) -> &Self::CallingConv;

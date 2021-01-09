@@ -5,12 +5,13 @@ use crate::codegen::{
     register::Reg,
     target::x86_64::{
         instruction::{MemoryOperand, Opcode, OperandData},
+        register::RegClass,
         X86_64,
     },
 };
 use std::fmt;
 
-pub fn print<CC: CallingConv>(
+pub fn print<CC: CallingConv<RegClass>>(
     f: &mut fmt::Formatter<'_>,
     module: &Module<X86_64<CC>>,
 ) -> fmt::Result {
@@ -24,7 +25,7 @@ pub fn print<CC: CallingConv>(
     Ok(())
 }
 
-pub fn print_function<CC: CallingConv>(
+pub fn print_function<CC: CallingConv<RegClass>>(
     f: &mut fmt::Formatter<'_>,
     function: &Function<X86_64<CC>>,
 ) -> fmt::Result {
@@ -77,7 +78,7 @@ impl fmt::Display for MemoryOperand {
     }
 }
 
-impl<CC: CallingConv> fmt::Display for Module<X86_64<CC>> {
+impl<CC: CallingConv<RegClass>> fmt::Display for Module<X86_64<CC>> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print(f, self)
     }
