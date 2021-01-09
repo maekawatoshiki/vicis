@@ -1,4 +1,5 @@
 use crate::codegen::{
+    calling_conv::CallingConv,
     instruction::Instruction as MachInstruction,
     lower::pattern::{Lower as LowerTrait, LoweringContext},
     register::VReg,
@@ -23,13 +24,13 @@ impl Lower {
     }
 }
 
-impl LowerTrait<X86_64> for Lower {
-    fn lower(&self, ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
+impl<CC: CallingConv> LowerTrait<X86_64<CC>> for Lower {
+    fn lower(&self, ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
         lower(ctx, inst)
     }
 }
 
-fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
+fn lower<CC: CallingConv>(ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
     match inst.operand {
         Operand::Alloca {
             ref tys,
@@ -53,8 +54,8 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
     }
 }
 
-fn lower_alloca(
-    ctx: &mut LoweringContext<X86_64>,
+fn lower_alloca<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
     id: InstructionId,
     tys: &[TypeId],
     _num_elements: &ConstantData,
@@ -64,8 +65,8 @@ fn lower_alloca(
     ctx.inst_id_to_slot_id.insert(id, slot_id);
 }
 
-fn lower_load(
-    ctx: &mut LoweringContext<X86_64>,
+fn lower_load<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
     id: InstructionId,
     tys: &[TypeId],
     addr: ValueId,
@@ -103,7 +104,12 @@ fn lower_load(
     todo!()
 }
 
-fn lower_store(ctx: &mut LoweringContext<X86_64>, _tys: &[TypeId], args: &[ValueId], _align: u32) {
+fn lower_store<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    _tys: &[TypeId],
+    args: &[ValueId],
+    _align: u32,
+) {
     let mut slot = None;
 
     match ctx.ir_data.value_ref(args[1]) {
@@ -140,7 +146,12 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, _tys: &[TypeId], args: &[Value
     }
 }
 
-fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, args: &[ValueId]) {
+fn lower_add<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    id: InstructionId,
+    ty: TypeId,
+    args: &[ValueId],
+) {
     let lhs;
     let rhs = ctx.ir_data.value_ref(args[1]);
     let new;
@@ -153,7 +164,7 @@ fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, a
         panic!();
     };
 
-    let insert_move = |ctx: &mut LoweringContext<X86_64>| {
+    let insert_move = |ctx: &mut LoweringContext<X86_64<CC>>| {
         ctx.inst_seq.push(MachInstruction {
             id: None,
             data: InstructionData {
@@ -200,7 +211,11 @@ fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, a
     todo!()
 }
 
-fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) {
+fn lower_return<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    _ty: TypeId,
+    value: ValueId,
+) {
     let value = ctx.ir_data.value_ref(value);
     match value {
         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
@@ -239,7 +254,10 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, _ty: TypeId, value: ValueId) 
     });
 }
 
-fn get_inst_output(ctx: &mut LoweringContext<X86_64>, id: InstructionId) -> VReg {
+fn get_inst_output<CC: CallingConv>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    id: InstructionId,
+) -> VReg {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
         return *vreg;
     }

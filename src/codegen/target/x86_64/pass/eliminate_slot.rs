@@ -1,17 +1,18 @@
 use crate::codegen::{
+    calling_conv::CallingConv,
     function::Function,
     module::Module,
     target::x86_64::{instruction::MemoryOperand, register::GR64, X86_64},
 };
 use rustc_hash::FxHashMap;
 
-pub fn run_on_module(module: &mut Module<X86_64>) {
+pub fn run_on_module<CC: CallingConv>(module: &mut Module<X86_64<CC>>) {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
 }
 
-pub fn run_on_function(function: &mut Function<X86_64>) {
+pub fn run_on_function<CC: CallingConv>(function: &mut Function<X86_64<CC>>) {
     let mut worklist = vec![];
 
     for block in function.layout.block_iter() {

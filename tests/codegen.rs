@@ -1,5 +1,8 @@
 use vicis::{
-    codegen::{lower::convert_module, target::x86_64::X86_64},
+    codegen::{
+        lower::convert_module,
+        target::x86_64::{calling_conv::SystemV, X86_64},
+    },
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::module,
 };
@@ -28,16 +31,19 @@ target triple = "x86_64-pc-linux-gnu"
 ; Function Attrs: noinline nounwind optnone uwtable                                              
 define dso_local i32 @main() #0 {                                                                
   %a = alloca i32, align 4
-  store i32 42, i32* %a
+  store i32 2, i32* %a
   %b = load i32, i32* %a
-  ret i32 %b
+  %c = add i32 %b, 1 ; 3
+  %d = add i32 %b, 2 ; 4
+  %e = add i32 %c, %d ; 7
+  ret i32 %e
 }                                                                                                
 
 attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(), module);
+    let mach_module = convert_module(X86_64::new(SystemV), module);
     println!("{}", mach_module);
     // let mut interpreter = Interpreter::new(&module);
     // assert_eq!(
