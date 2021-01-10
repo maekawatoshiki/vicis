@@ -36,6 +36,7 @@ attributes #0 = { noinline nounwind optnone uwtable }
   .intel_syntax noprefix
   .globl main
 main:
+.LBL0:
   push rbp
   mov rbp, rsp
   sub rsp, 16
@@ -76,26 +77,24 @@ attributes #0 = { noinline nounwind optnone uwtable }
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
     let mach_module = convert_module(X86_64::new(SystemV), module);
-    //     assert_eq!(
-    //         format!("{}", mach_module),
-    //         "  .text
-    //   .intel_syntax noprefix
-    //   .globl main
-    // main:
-    //   push rbp
-    //   mov rbp, rsp
-    //   sub rsp, 16
-    //   mov dword ptr [rbp-4], 2
-    //   mov eax, dword ptr [rbp-4]
-    //   mov ecx, eax
-    //   add ecx, 1
-    //   add eax, 2
-    //   add ecx, eax
-    //   mov eax, ecx
-    //   add rsp, 16
-    //   pop rbp
-    //   ret
-    // "
-    //     );
+    assert_eq!(
+        format!("{}", mach_module),
+        "  .text
+  .intel_syntax noprefix
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-4], 2
+  jmp .LBL1
+.LBL1:
+  mov eax, dword ptr [rbp-4]
+  add rsp, 16
+  pop rbp
+  ret 
+"
+    );
     println!("{}", mach_module);
 }
