@@ -1,5 +1,5 @@
 use crate::codegen::{
-    function::{instruction::InstructionData as ID, slot::SlotId},
+    function::{basic_block::BasicBlockId, instruction::InstructionData as ID, slot::SlotId},
     register::{Reg, VReg},
 };
 // use crate::ir::instruction::InstructionId;
@@ -23,6 +23,7 @@ pub enum Opcode {
     MOVri32,
     MOVrm32,
     MOVmi32,
+    JMP,
     RET,
 }
 
@@ -39,6 +40,7 @@ pub enum OperandData {
     VReg(VReg),
     Int32(i32),
     Mem(MemoryOperand),
+    Block(BasicBlockId),
 }
 
 #[derive(Debug)]

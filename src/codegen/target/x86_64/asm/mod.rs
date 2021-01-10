@@ -33,23 +33,15 @@ pub fn print_function<CC: CallingConv<RegClass>>(
     writeln!(f, "{}:", function.name)?;
 
     for block in function.layout.block_iter() {
+        writeln!(f, ".LBL{}:", block.index())?;
         for inst in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst);
             write!(f, "  {} ", inst.data.opcode)?;
             for (i, operand) in inst.data.operands.iter().enumerate() {
-                match &operand.data {
-                    // TODO: Refactoring
-                    OperandData::Mem(mem) => write!(
-                        f,
-                        "{} ptr {}",
-                        match inst.data.opcode {
-                            Opcode::MOVrm32 | Opcode::MOVmi32 => "dword",
-                            _ => todo!(),
-                        },
-                        mem
-                    )?,
-                    e => write!(f, "{}", e)?,
+                if let OperandData::Mem(_) = &operand.data {
+                    write!(f, "{} ptr ", mem_size(&inst.data.opcode))?
                 }
+                write!(f, "{}", operand.data)?;
                 if i < inst.data.operands.len() - 1 {
                     write!(f, ", ")?
                 }
@@ -101,6 +93,7 @@ impl fmt::Display for Opcode {
                 Self::MOVri32 => "mov",
                 Self::MOVrm32 => "mov",
                 Self::MOVmi32 => "mov",
+                Self::JMP => "jmp",
                 Self::RET => "ret",
             }
         )
@@ -114,6 +107,7 @@ impl fmt::Display for OperandData {
             Self::VReg(r) => write!(f, "%{}", r.0),
             Self::Mem(mem) => write!(f, "{}", mem),
             Self::Int32(i) => write!(f, "{}", i),
+            Self::Block(block) => write!(f, ".LBL{}", block.index()),
         }
     }
 }
@@ -131,5 +125,12 @@ fn reg_to_str(r: &Reg) -> &'static str {
         Reg(0, i) => gr32[*i as usize],
         Reg(1, i) => gr64[*i as usize],
         e => todo!("{:?}", e),
+    }
+}
+
+fn mem_size(opcode: &Opcode) -> &'static str {
+    match opcode {
+        Opcode::MOVrm32 | Opcode::MOVmi32 => "dword",
+        _ => todo!(),
     }
 }

@@ -223,6 +223,7 @@ impl Liveness {
 
     fn set_def<T: Target>(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
+            self.block_data.entry(block_id).or_insert(BlockData::new());
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
                 self.set_def_on_inst(func, inst, block_id);

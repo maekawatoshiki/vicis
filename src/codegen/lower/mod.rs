@@ -110,6 +110,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
                     types: &function.types,
                     vregs: &mut vregs,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
+                    block_map: &block_map,
                 },
                 inst,
             );

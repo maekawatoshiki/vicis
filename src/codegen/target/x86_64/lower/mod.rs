@@ -10,7 +10,10 @@ use crate::codegen::{
     },
 };
 use crate::ir::{
-    function::instruction::{Instruction as IrInstruction, InstructionId, Operand},
+    function::{
+        basic_block::BasicBlockId,
+        instruction::{Instruction as IrInstruction, InstructionId, Operand},
+    },
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
@@ -48,6 +51,7 @@ fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst:
             align,
         } => lower_store(ctx, tys, args, align),
         Operand::IntBinary { ty, ref args, .. } => lower_add(ctx, inst.id.unwrap(), ty, args),
+        Operand::Br { block } => lower_br(ctx, block),
         Operand::Ret { val: None, .. } => todo!(),
         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
         _ => todo!(),
@@ -209,6 +213,16 @@ fn lower_add<CC: CallingConv<RegClass>>(
     }
 
     todo!()
+}
+
+fn lower_br<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, block: BasicBlockId) {
+    ctx.inst_seq.push(MachInstruction {
+        id: None,
+        data: InstructionData {
+            opcode: Opcode::JMP,
+            operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&block]))],
+        },
+    })
 }
 
 fn lower_return<CC: CallingConv<RegClass>>(

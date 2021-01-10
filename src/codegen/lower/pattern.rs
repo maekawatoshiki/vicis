@@ -1,5 +1,6 @@
 use crate::codegen::{
     function::{
+        basic_block::BasicBlockId as MachBasicBlockId,
         data::Data as MachData,
         instruction::Instruction as MachInstruction,
         slot::{SlotId, Slots},
@@ -9,6 +10,7 @@ use crate::codegen::{
 };
 use crate::ir::{
     function::{
+        basic_block::BasicBlockId as IrBasicBlockId,
         instruction::{Instruction, InstructionId},
         Data as IrData,
     },
@@ -29,4 +31,5 @@ pub struct LoweringContext<'a, T: Target> {
     pub types: &'a Types,
     pub vregs: &'a mut VRegs,
     pub inst_id_to_vreg: &'a mut FxHashMap<InstructionId, VReg>,
+    pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
 }
