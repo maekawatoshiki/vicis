@@ -12,7 +12,7 @@ use crate::codegen::{
 use crate::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction as IrInstruction, InstructionId, Operand},
+        instruction::{ICmpCond, Instruction as IrInstruction, InstructionId, Operand},
     },
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
@@ -52,6 +52,7 @@ fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst:
         } => lower_store(ctx, tys, args, align),
         Operand::IntBinary { ty, ref args, .. } => lower_add(ctx, inst.id.unwrap(), ty, args),
         Operand::Br { block } => lower_br(ctx, block),
+        Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
         Operand::Ret { val: None, .. } => todo!(),
         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
         _ => todo!(),
@@ -223,6 +224,70 @@ fn lower_br<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, bl
             operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&block]))],
         },
     })
+}
+
+fn lower_condbr<CC: CallingConv<RegClass>>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    arg: ValueId,
+    blocks: [BasicBlockId; 2],
+) {
+    // TODO: Refactoring
+    let arg = ctx.ir_data.value_ref(arg);
+    match arg {
+        Value::Instruction(id) => {
+            let inst = ctx.ir_data.inst_ref(*id);
+            match &inst.operand {
+                Operand::ICmp { ty: _, args, cond } => {
+                    let lhs = ctx.ir_data.value_ref(args[0]);
+                    let rhs = ctx.ir_data.value_ref(args[1]);
+                    match (lhs, rhs) {
+                        (
+                            Value::Instruction(lhs),
+                            Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))),
+                        ) => {
+                            let lhs = get_inst_output(ctx, *lhs);
+                            ctx.inst_seq.push(MachInstruction {
+                                id: None,
+                                data: InstructionData {
+                                    opcode: Opcode::CMPri32,
+                                    operands: vec![
+                                        MOperand::input(OperandData::VReg(lhs)),
+                                        MOperand::new(OperandData::Int32(*rhs)),
+                                    ],
+                                },
+                            });
+                        }
+                        _ => {}
+                    }
+                    match cond {
+                        ICmpCond::Eq => {
+                            ctx.inst_seq.push(MachInstruction {
+                                id: None,
+                                data: InstructionData {
+                                    opcode: Opcode::JE,
+                                    operands: vec![MOperand::new(OperandData::Block(
+                                        ctx.block_map[&blocks[0]],
+                                    ))],
+                                },
+                            });
+                            ctx.inst_seq.push(MachInstruction {
+                                id: None,
+                                data: InstructionData {
+                                    opcode: Opcode::JMP,
+                                    operands: vec![MOperand::new(OperandData::Block(
+                                        ctx.block_map[&blocks[1]],
+                                    ))],
+                                },
+                            });
+                        }
+                        _ => todo!(),
+                    }
+                }
+                _ => {}
+            }
+        }
+        _ => todo!(),
+    }
 }
 
 fn lower_return<CC: CallingConv<RegClass>>(

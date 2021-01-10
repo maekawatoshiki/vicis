@@ -23,7 +23,9 @@ pub enum Opcode {
     MOVri32,
     MOVrm32,
     MOVmi32,
+    CMPri32,
     JMP,
+    JE,
     RET,
 }
 
