@@ -47,12 +47,11 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let mut availables: VecDeque<_> = T::CallingConv::gpr_list_for_rc(&T::RegClass::for_type(
+        let availables = T::CallingConv::gpr_list_for_rc(&T::RegClass::for_type(
             &function.types,
             function.vregs.type_for(vreg),
-        ))
-        .into();
-        while let Some(reg) = availables.pop_front() {
+        ));
+        for reg in availables {
             let reg_unit = function.target.to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
             let lrs2 = liveness
