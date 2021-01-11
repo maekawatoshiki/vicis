@@ -28,6 +28,7 @@ pub struct Instruction {
 #[derive(Clone, Copy, PartialEq)]
 pub enum Opcode {
     Alloca,
+    Phi,
     Load,
     Store,
     Add,
@@ -63,6 +64,11 @@ pub enum Operand {
         tys: [TypeId; 2],
         num_elements: ConstantData,
         align: u32,
+    },
+    Phi {
+        ty: TypeId,
+        args: Vec<ValueId>,
+        blocks: Vec<BasicBlockId>,
     },
     Load {
         tys: [TypeId; 2],
@@ -139,6 +145,24 @@ impl Instruction {
                     types.to_string(tys[1]),
                     num_elements.to_string(types),
                     align
+                )
+            }
+            Operand::Phi { ty, args, blocks } => {
+                format!(
+                    "%I{} = phi {} {}",
+                    self.id.unwrap().index(),
+                    types.to_string(*ty),
+                    args.iter()
+                        .zip(blocks.iter())
+                        .fold("".to_string(), |acc, (arg, block)| {
+                            format!(
+                                "{}[{}, %B{}], ",
+                                acc,
+                                data.value_ref(*arg).to_string(data, types),
+                                block.index()
+                            )
+                        })
+                        .trim_end_matches(", ")
                 )
             }
             Operand::Load { tys, addr, align } => {
@@ -283,6 +307,7 @@ impl Operand {
     pub fn args(&self) -> &[ValueId] {
         match self {
             Self::Alloca { .. } => &[],
+            Self::Phi { args, .. } => args.as_slice(),
             Self::Ret { val, .. } if val.is_none() => &[],
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
             Self::Load { addr, .. } => slice::from_ref(addr),
@@ -301,6 +326,7 @@ impl Operand {
     pub fn types(&self) -> &[TypeId] {
         match self {
             Self::Alloca { tys, .. } => tys,
+            Self::Phi { ty, .. } => slice::from_ref(ty),
             Self::Ret { ty, .. } => slice::from_ref(ty),
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
@@ -317,6 +343,7 @@ impl Operand {
 
     pub fn blocks(&self) -> &[BasicBlockId] {
         match self {
+            Self::Phi { blocks, .. } => blocks,
             Self::Br { block } => slice::from_ref(block),
             Self::CondBr { blocks, .. } => blocks,
             _ => &[],
@@ -331,6 +358,7 @@ impl fmt::Debug for Opcode {
             "{}",
             match self {
                 Opcode::Alloca => "alloca",
+                Opcode::Phi => "phi",
                 Opcode::Load => "load",
                 Opcode::Store => "store",
                 Opcode::Add => "add",

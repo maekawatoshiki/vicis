@@ -41,6 +41,36 @@ pub fn parse_alloca<'a, 'b>(
     Ok((source, inst_id))
 }
 
+pub fn parse_phi<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("phi"))(source)?;
+    let (mut source, ty) = types::parse(source, ctx.types)?;
+    let mut args = vec![];
+    let mut blocks = vec![];
+    loop {
+        let (source_, _) = preceded(spaces, char('['))(source)?;
+        let (source_, arg) = value::parse(source_, ctx, ty)?;
+        args.push(arg);
+        let (source_, _) = preceded(spaces, char(','))(source_)?;
+        let (source_, name) = preceded(spaces, preceded(char('%'), name::parse))(source_)?;
+        let block = ctx.get_or_create_named_block(name);
+        blocks.push(block);
+        let (source_, _) = preceded(spaces, char(']'))(source_)?;
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        let inst_id = ctx.data.create_inst(
+            Opcode::Phi
+                .with_block(ctx.cur_block)
+                .with_operand(Operand::Phi { ty, args, blocks }),
+        );
+        return Ok((source_, inst_id));
+    }
+}
+
 pub fn parse_load<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -353,6 +383,7 @@ pub fn parse<'a, 'b>(
     let mut res = Err(Error(VerboseError { errors: vec![] }));
     for f in [
         parse_alloca,
+        parse_phi,
         parse_load,
         parse_store,
         parse_add_sub_mul,
