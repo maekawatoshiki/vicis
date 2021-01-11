@@ -121,16 +121,34 @@ fn lower_store<CC: CallingConv<RegClass>>(
     match ctx.ir_data.value_ref(args[1]) {
         Value::Instruction(id) => {
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
-                slot = Some(slot_id);
+                slot = Some(*slot_id);
             }
         }
         _ => todo!(),
     }
 
     let mut const_int = None;
+    let mut inst = None;
 
     match ctx.ir_data.value_ref(args[0]) {
         Value::Constant(ConstantData::Int(int)) => const_int = Some(*int),
+        Value::Instruction(id) => inst = Some(*id),
+        _ => {}
+    }
+
+    match (slot, inst) {
+        (Some(slot), Some(id)) => {
+            let inst = get_inst_output(ctx, id);
+            ctx.inst_seq
+                .append(&mut vec![MachInstruction::new(InstructionData {
+                    opcode: Opcode::MOVmi32,
+                    operands: vec![
+                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
+                        MOperand::input(OperandData::VReg(inst)),
+                    ],
+                })]);
+            return;
+        }
         _ => {}
     }
 
@@ -141,7 +159,7 @@ fn lower_store<CC: CallingConv<RegClass>>(
                 data: InstructionData {
                     opcode: Opcode::MOVmi32,
                     operands: vec![
-                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(*slot))),
+                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
                         MOperand::input(OperandData::Int32(imm)),
                     ],
                 },
