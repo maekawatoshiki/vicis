@@ -26,6 +26,11 @@ pub enum Opcode {
     CMPri32,
     JMP,
     JE,
+    JNE,
+    JLE,
+    JL,
+    JGE,
+    JG,
     RET,
 }
 

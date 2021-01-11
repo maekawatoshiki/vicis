@@ -13,6 +13,7 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId,
         instruction::{ICmpCond, Instruction as IrInstruction, InstructionId, Operand},
+        Data as IrData,
     },
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
@@ -231,63 +232,64 @@ fn lower_condbr<CC: CallingConv<RegClass>>(
     arg: ValueId,
     blocks: [BasicBlockId; 2],
 ) {
-    // TODO: Refactoring
-    let arg = ctx.ir_data.value_ref(arg);
-    match arg {
-        Value::Instruction(id) => {
-            let inst = ctx.ir_data.inst_ref(*id);
-            match &inst.operand {
-                Operand::ICmp { ty: _, args, cond } => {
-                    let lhs = ctx.ir_data.value_ref(args[0]);
-                    let rhs = ctx.ir_data.value_ref(args[1]);
-                    match (lhs, rhs) {
-                        (
-                            Value::Instruction(lhs),
-                            Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))),
-                        ) => {
-                            let lhs = get_inst_output(ctx, *lhs);
-                            ctx.inst_seq.push(MachInstruction {
-                                id: None,
-                                data: InstructionData {
-                                    opcode: Opcode::CMPri32,
-                                    operands: vec![
-                                        MOperand::input(OperandData::VReg(lhs)),
-                                        MOperand::new(OperandData::Int32(*rhs)),
-                                    ],
-                                },
-                            });
-                        }
-                        _ => {}
-                    }
-                    match cond {
-                        ICmpCond::Eq => {
-                            ctx.inst_seq.push(MachInstruction {
-                                id: None,
-                                data: InstructionData {
-                                    opcode: Opcode::JE,
-                                    operands: vec![MOperand::new(OperandData::Block(
-                                        ctx.block_map[&blocks[0]],
-                                    ))],
-                                },
-                            });
-                            ctx.inst_seq.push(MachInstruction {
-                                id: None,
-                                data: InstructionData {
-                                    opcode: Opcode::JMP,
-                                    operands: vec![MOperand::new(OperandData::Block(
-                                        ctx.block_map[&blocks[1]],
-                                    ))],
-                                },
-                            });
-                        }
-                        _ => todo!(),
-                    }
+    fn is_icmp<'a>(
+        data: &'a IrData,
+        val: &Value,
+    ) -> Option<(&'a TypeId, &'a [ValueId; 2], &'a ICmpCond)> {
+        match val {
+            Value::Instruction(id) => {
+                let inst = data.inst_ref(*id);
+                match &inst.operand {
+                    Operand::ICmp { ty, args, cond } => return Some((ty, args, cond)),
+                    _ => return None,
                 }
-                _ => {}
             }
+            _ => return None,
         }
-        _ => todo!(),
     }
+
+    let arg = ctx.ir_data.value_ref(arg);
+
+    if let Some((_ty, args, cond)) = is_icmp(ctx.ir_data, arg) {
+        let lhs = ctx.ir_data.value_ref(args[0]);
+        let rhs = ctx.ir_data.value_ref(args[1]);
+        match (lhs, rhs) {
+            (
+                Value::Instruction(lhs),
+                Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))),
+            ) => {
+                let lhs = get_inst_output(ctx, *lhs);
+                ctx.inst_seq.push(MachInstruction::new(InstructionData {
+                    opcode: Opcode::CMPri32,
+                    operands: vec![
+                        MOperand::input(OperandData::VReg(lhs)),
+                        MOperand::new(OperandData::Int32(*rhs)),
+                    ],
+                }));
+            }
+            _ => {}
+        }
+
+        ctx.inst_seq.push(MachInstruction::new(InstructionData {
+            opcode: match cond {
+                ICmpCond::Eq => Opcode::JE,
+                ICmpCond::Ne => Opcode::JNE,
+                ICmpCond::Sle => Opcode::JLE,
+                ICmpCond::Slt => Opcode::JL,
+                ICmpCond::Sge => Opcode::JGE,
+                ICmpCond::Sgt => Opcode::JG,
+                _ => todo!(),
+            },
+            operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
+        }));
+        ctx.inst_seq.push(MachInstruction::new(InstructionData {
+            opcode: Opcode::JMP,
+            operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[1]]))],
+        }));
+        return;
+    }
+
+    todo!()
 }
 
 fn lower_return<CC: CallingConv<RegClass>>(

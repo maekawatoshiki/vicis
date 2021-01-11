@@ -88,7 +88,6 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
 
             // `inst` is used once in current block
             // `inst` is used many times in current block
-            // inst.users.
             if matches!(inst.opcode, Opcode::Add | Opcode::ICmp)
                 && inst.users.len() == 1
                 && function

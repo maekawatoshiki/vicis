@@ -96,6 +96,11 @@ impl fmt::Display for Opcode {
                 Self::CMPri32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
+                Self::JNE => "jne",
+                Self::JLE => "jle",
+                Self::JL => "jl",
+                Self::JGE => "jge",
+                Self::JG => "jg",
                 Self::RET => "ret",
             }
         )

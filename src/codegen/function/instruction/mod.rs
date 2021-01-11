@@ -16,3 +16,9 @@ pub struct Instruction<Data: InstructionData> {
     pub id: Option<InstructionId<Data>>,
     pub data: Data,
 }
+
+impl<Data: InstructionData> Instruction<Data> {
+    pub fn new(data: Data) -> Self {
+        Self { id: None, data }
+    }
+}
