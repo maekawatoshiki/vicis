@@ -57,7 +57,6 @@ impl Value {
                 format!("%I{}", id.index())
             }
             Self::Argument(n) => format!("%A{}", n),
-            // Self::UnresolvedGlobalName(n) => format!("@{:?}", n),
         }
     }
 }

@@ -137,7 +137,7 @@ pub fn parse_local<'a, 'b>(
     _ty: TypeId,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
-    Ok((source, ctx.name_to_value[&name]))
+    Ok((source, ctx.get_or_create_named_value(name)))
 }
 
 pub fn parse<'a, 'b>(

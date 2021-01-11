@@ -42,6 +42,7 @@ pub enum Opcode {
     Br,
     CondBr,
     Ret,
+    Invalid,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -120,6 +121,14 @@ pub enum Operand {
 }
 
 impl Instruction {
+    pub fn replace(&mut self, other: Self) {
+        assert_eq!(self.opcode, Opcode::Invalid);
+        self.opcode = other.opcode;
+        self.operand = other.operand;
+        self.dest = other.dest;
+        self.parent = other.parent;
+    }
+
     pub fn with_operand(mut self, operand: Operand) -> Self {
         self.operand = operand;
         self
@@ -371,6 +380,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Call => "call",
                 Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
+                Opcode::Invalid => "INVALID",
             }
         )
     }

@@ -54,6 +54,7 @@ pub struct Layout {
     pub last_block: Option<BasicBlockId>,
 }
 
+#[derive(Debug)]
 pub struct BasicBlockNode {
     prev: Option<BasicBlockId>,
     next: Option<BasicBlockId>,
@@ -61,6 +62,7 @@ pub struct BasicBlockNode {
     last_inst: Option<InstructionId>,
 }
 
+#[derive(Debug)]
 pub struct InstructionNode {
     block: Option<BasicBlockId>,
     prev: Option<InstructionId>,
@@ -124,6 +126,10 @@ impl Data {
 
     pub fn value_ref(&self, id: ValueId) -> &Value {
         &self.values[id]
+    }
+
+    pub fn value_ref_mut(&mut self, id: ValueId) -> &mut Value {
+        &mut self.values[id]
     }
 
     // For `Instruction`s

@@ -1,4 +1,4 @@
-use super::{ICmpCond, InstructionId, Opcode, Operand};
+use super::{ICmpCond, Instruction, InstructionId, Opcode, Operand};
 use crate::ir::function::parser::ParserContext;
 use crate::ir::{module::name, types, util::spaces, value};
 use nom::{
@@ -15,7 +15,7 @@ use nom::{
 pub fn parse_alloca<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("alloca"))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, align) = opt(preceded(
@@ -27,24 +27,20 @@ pub fn parse_alloca<'a, 'b>(
     ))(source)?;
     // TODO: Implement parser for num_elements
     let num_elements = value::ConstantData::Int(value::ConstantInt::Int32(1));
-    let inst_id = ctx
-        .data
-        .create_inst(
-            Opcode::Alloca
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Alloca {
-                    tys: [ty, ctx.types.base().i32()],
-                    num_elements,
-                    align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-                }),
-        );
-    Ok((source, inst_id))
+    let inst = Opcode::Alloca
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Alloca {
+            tys: [ty, ctx.types.base().i32()],
+            num_elements,
+            align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+        });
+    Ok((source, inst))
 }
 
 pub fn parse_phi<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("phi"))(source)?;
     let (mut source, ty) = types::parse(source, ctx.types)?;
     let mut args = vec![];
@@ -62,19 +58,17 @@ pub fn parse_phi<'a, 'b>(
             source = source_;
             continue;
         }
-        let inst_id = ctx.data.create_inst(
-            Opcode::Phi
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Phi { ty, args, blocks }),
-        );
-        return Ok((source_, inst_id));
+        let inst = Opcode::Phi
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::Phi { ty, args, blocks });
+        return Ok((source_, inst));
     }
 }
 
 pub fn parse_load<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("load"))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
@@ -87,23 +81,20 @@ pub fn parse_load<'a, 'b>(
             preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
         ),
     ))(source)?;
-    let inst_id =
-        ctx.data.create_inst(
-            Opcode::Load
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Load {
-                    tys: [ty, addr_ty],
-                    addr,
-                    align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-                }),
-        );
-    Ok((source, inst_id))
+    let inst = Opcode::Load
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Load {
+            tys: [ty, addr_ty],
+            addr,
+            align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+        });
+    Ok((source, inst))
 }
 
 pub fn parse_store<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, preceded(tag("store"), spaces))(source)?;
     let (source, src_ty) = types::parse(source, ctx.types)?;
     let (source, src) = value::parse(source, ctx, src_ty)?;
@@ -119,23 +110,20 @@ pub fn parse_store<'a, 'b>(
     ))(source)?;
     Ok((
         source,
-        ctx.data
-            .create_inst(
-                Opcode::Store
-                    .with_block(ctx.cur_block)
-                    .with_operand(Operand::Store {
-                        tys: [src_ty, dst_ty],
-                        args: [src, dst],
-                        align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-                    }),
-            ),
+        Opcode::Store
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::Store {
+                tys: [src_ty, dst_ty],
+                args: [src, dst],
+                align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+            }),
     ))
 }
 
 pub fn parse_add_sub_mul<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, opcode) = preceded(
         spaces,
         alt((
@@ -150,24 +138,21 @@ pub fn parse_add_sub_mul<'a, 'b>(
     let (source, lhs) = value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, rhs) = value::parse(source, ctx, ty)?;
-    let inst_id =
-        ctx.data.create_inst(
-            opcode
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::IntBinary {
-                    ty,
-                    args: [lhs, rhs],
-                    nuw: nuw.map_or(false, |_| true),
-                    nsw: nsw.map_or(false, |_| true),
-                }),
-        );
-    Ok((source, inst_id))
+    let inst = opcode
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::IntBinary {
+            ty,
+            args: [lhs, rhs],
+            nuw: nuw.map_or(false, |_| true),
+            nsw: nsw.map_or(false, |_| true),
+        });
+    Ok((source, inst))
 }
 
 pub fn parse_icmp<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     pub fn icmp_cond<'a, 'b>(source: &'a str) -> IResult<&'a str, ICmpCond, VerboseError<&'a str>> {
         alt((
             map(tag("eq"), |_| ICmpCond::Eq),
@@ -189,23 +174,20 @@ pub fn parse_icmp<'a, 'b>(
     let (source, lhs) = value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, rhs) = value::parse(source, ctx, ty)?;
-    let inst_id =
-        ctx.data.create_inst(
-            Opcode::ICmp
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::ICmp {
-                    ty,
-                    args: [lhs, rhs],
-                    cond,
-                }),
-        );
-    Ok((source, inst_id))
+    let inst = Opcode::ICmp
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::ICmp {
+            ty,
+            args: [lhs, rhs],
+            cond,
+        });
+    Ok((source, inst))
 }
 
 pub fn parse_cast<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, opcode) = preceded(
         spaces,
         alt((
@@ -217,16 +199,13 @@ pub fn parse_cast<'a, 'b>(
     let (source, arg) = value::parse(source, ctx, from)?;
     let (source, _) = preceded(spaces, tag("to"))(source)?;
     let (source, to) = types::parse(source, ctx.types)?;
-    let inst_id =
-        ctx.data.create_inst(
-            opcode
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Cast {
-                    tys: [from, to],
-                    arg,
-                }),
-        );
-    Ok((source, inst_id))
+    let inst = opcode
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Cast {
+            tys: [from, to],
+            arg,
+        });
+    Ok((source, inst))
 }
 
 pub fn parse_call_args<'a, 'b>(
@@ -252,7 +231,7 @@ pub fn parse_call_args<'a, 'b>(
 pub fn parse_getelementptr<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
     let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
@@ -268,23 +247,21 @@ pub fn parse_getelementptr<'a, 'b>(
             source = source_;
             continue;
         }
-        let inst_id = ctx.data.create_inst(
-            Opcode::GetElementPtr
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::GetElementPtr {
-                    inbounds: inbounds.is_some(),
-                    tys,
-                    args,
-                }),
-        );
-        return Ok((source_, inst_id));
+        let inst = Opcode::GetElementPtr
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::GetElementPtr {
+                inbounds: inbounds.is_some(),
+                tys,
+                args,
+            });
+        return Ok((source_, inst));
     }
 }
 
 pub fn parse_call<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("call"))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = value::parse(source, ctx, ty)?;
@@ -295,28 +272,24 @@ pub fn parse_call<'a, 'b>(
         tys.push(t);
         args.push(a);
     }
-    let inst_id = ctx.data.create_inst(
-        Opcode::Call
-            .with_block(ctx.cur_block)
-            .with_operand(Operand::Call { tys, args }),
-    );
-    Ok((source, inst_id))
+    let inst = Opcode::Call
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Call { tys, args });
+    Ok((source, inst))
 }
 
 pub fn parse_br<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("br"))(source)?;
     if let Ok((source, _)) = preceded(spaces, tag("label"))(source) {
         let (source, label) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
         let block = ctx.get_or_create_named_block(label);
-        let inst_id = ctx.data.create_inst(
-            Opcode::Br
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Br { block }),
-        );
-        Ok((source, inst_id))
+        let inst = Opcode::Br
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::Br { block });
+        Ok((source, inst))
     } else {
         let (source, ty) = types::parse(source, ctx.types)?;
         assert_eq!(*ctx.types.get(ty), types::Type::Int(1));
@@ -339,22 +312,20 @@ pub fn parse_br<'a, 'b>(
         )(source)?;
         let iftrue = ctx.get_or_create_named_block(iftrue);
         let iffalse = ctx.get_or_create_named_block(iffalse);
-        let inst_id =
-            ctx.data
-                .create_inst(Opcode::CondBr.with_block(ctx.cur_block).with_operand(
-                    Operand::CondBr {
-                        arg,
-                        blocks: [iftrue, iffalse],
-                    },
-                ));
-        Ok((source, inst_id))
+        let inst = Opcode::CondBr
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::CondBr {
+                arg,
+                blocks: [iftrue, iffalse],
+            });
+        Ok((source, inst))
     }
 }
 
 pub fn parse_ret<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, preceded(tag("ret"), spaces))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, val) = if *ctx.types.get(ty) == types::Type::Void {
@@ -365,11 +336,9 @@ pub fn parse_ret<'a, 'b>(
     };
     Ok((
         source,
-        ctx.data.create_inst(
-            Opcode::Ret
-                .with_block(ctx.cur_block)
-                .with_operand(Operand::Ret { val, ty }),
-        ),
+        Opcode::Ret
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::Ret { val, ty }),
     ))
 }
 
@@ -380,7 +349,6 @@ pub fn parse<'a, 'b>(
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     let (source, name) = opt(tuple((spaces, char('%'), name::parse, spaces, char('='))))(source)?;
     let name = name.map_or(None, |(_, _, name, _, _)| Some(name));
-    let mut res = Err(Error(VerboseError { errors: vec![] }));
     for f in [
         parse_alloca,
         parse_phi,
@@ -396,15 +364,24 @@ pub fn parse<'a, 'b>(
     ]
     .iter()
     {
-        res = f(source, ctx);
-        if let Ok((source, id)) = res {
+        if let Ok((source, mut inst)) = f(source, ctx) {
             if let Some(name) = name {
-                ctx.data.inst_ref_mut(id).dest = Some(name.clone());
+                if let Some(inner) = ctx.name_to_value.get(&name) {
+                    if let value::Value::Instruction(id) = &ctx.data.values[*inner] {
+                        inst.dest = Some(name);
+                        ctx.data.instructions[*id].replace(inst);
+                        return Ok((source, *id));
+                    }
+                }
+
+                let id = ctx.data.create_inst(inst);
                 ctx.name_to_value
                     .insert(name, ctx.data.create_value(value::Value::Instruction(id)));
+                return Ok((source, id));
             }
-            return Ok((source, id));
+
+            return Ok((source, ctx.data.create_inst(inst)));
         }
     }
-    res
+    Err(Error(VerboseError { errors: vec![] }))
 }

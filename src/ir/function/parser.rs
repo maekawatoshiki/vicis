@@ -1,5 +1,8 @@
 use super::super::{
-    function::{basic_block::BasicBlockId, instruction, Data, Function, Layout, Parameter},
+    function::{
+        basic_block::BasicBlockId, instruction, instruction::Opcode, Data, Function, Layout,
+        Parameter,
+    },
     module::{attributes, name, preemption_specifier},
     types,
     types::Types,
@@ -103,6 +106,7 @@ pub fn parse_func_attrs<'a>(
 pub fn parse_body<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
+    num_args: usize,
 ) -> IResult<&'a str, (), VerboseError<&'a str>> {
     let (mut source, _) = tuple((spaces, char('{')))(source)?;
 
@@ -117,20 +121,12 @@ pub fn parse_body<'a, 'b>(
             spaces,
             terminated(name::parse, preceded(spaces, char(':'))),
         ))(source)?;
-        debug!(&label);
+        let label = label.unwrap_or(name::Name::Number(num_args));
 
-        let block = match label {
-            Some(ref label) if ctx.name_to_block.contains_key(label) => ctx.name_to_block[label],
-            _ => ctx.data.create_block(),
-        };
+        let block = ctx.get_or_create_named_block(label);
 
         ctx.layout.append_block(block);
         ctx.cur_block = block;
-
-        // If label is present, set it to block
-        if let Some(label) = label {
-            ctx.data.block_ref_mut(block).name = Some(label);
-        }
 
         while let Ok((source__, inst)) = instruction::parse(source_, ctx) {
             ctx.layout.append_inst(inst, ctx.cur_block);
@@ -181,6 +177,7 @@ pub fn parse<'a>(
                 name_to_block: &mut name_to_block,
                 cur_block: dummy_block,
             },
+            params.len(),
         )?
         .0;
     }
@@ -204,6 +201,18 @@ pub fn parse<'a>(
 }
 
 impl<'a> ParserContext<'a> {
+    pub fn get_or_create_named_value(&mut self, name: name::Name) -> ValueId {
+        if let Some(value) = self.name_to_value.get(&name) {
+            return *value;
+        }
+        let dummy = self
+            .data
+            .create_inst(Opcode::Invalid.with_block(self.cur_block));
+        let id = self.data.create_value(Value::Instruction(dummy));
+        self.name_to_value.insert(name, id);
+        id
+    }
+
     pub fn get_or_create_named_block(&mut self, name: name::Name) -> BasicBlockId {
         if let Some(block) = self.name_to_block.get(&name) {
             return *block;
