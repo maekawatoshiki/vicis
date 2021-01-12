@@ -60,6 +60,10 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
+    pub fn last_inst_of(&self, block: BasicBlockId) -> Option<InstructionId<InstData>> {
+        self.basic_blocks[&block].last_inst
+    }
+
     pub fn next_block_of(&self, block: BasicBlockId) -> Option<BasicBlockId> {
         self.basic_blocks[&block].next
     }

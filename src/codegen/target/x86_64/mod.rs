@@ -45,6 +45,7 @@ impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
 
     fn module_pass(&self) -> Vec<fn(&mut Module<Self>)> {
         vec![
+            pass::phi_elimination::run_on_module, // TODO: should be target independent
             regalloc::run_on_module,
             pass::simple_reg_coalescing::run_on_module,
             pass::eliminate_slot::run_on_module,

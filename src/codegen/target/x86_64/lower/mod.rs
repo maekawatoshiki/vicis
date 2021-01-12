@@ -41,6 +41,11 @@ fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst:
             ref num_elements,
             align,
         } => lower_alloca(ctx, inst.id.unwrap(), tys, num_elements, align),
+        Operand::Phi {
+            ty,
+            ref args,
+            ref blocks,
+        } => lower_phi(ctx, inst.id.unwrap(), ty, args, blocks),
         Operand::Load {
             ref tys,
             addr,
@@ -69,6 +74,32 @@ fn lower_alloca<CC: CallingConv<RegClass>>(
 ) {
     let slot_id = ctx.slots.add_slot(tys[0]);
     ctx.inst_id_to_slot_id.insert(id, slot_id);
+}
+
+fn lower_phi<CC: CallingConv<RegClass>>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    id: InstructionId,
+    ty: TypeId,
+    args: &[ValueId],
+    blocks: &[BasicBlockId],
+) {
+    let output = ctx.vregs.add_vreg_data(ty);
+    let mut operands = vec![MOperand::output(OperandData::VReg(output))];
+    for (arg, block) in args.iter().zip(blocks.iter()) {
+        operands.push(match ctx.ir_data.value_ref(*arg) {
+            Value::Instruction(id) => MOperand::input(OperandData::VReg(get_inst_output(ctx, *id))),
+            Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
+                MOperand::new(OperandData::Int32(*i))
+            }
+            _ => todo!(),
+        });
+        operands.push(MOperand::new(OperandData::Block(ctx.block_map[block])))
+    }
+    ctx.inst_seq.push(MachInstruction::new(InstructionData {
+        opcode: Opcode::Phi,
+        operands,
+    }));
+    ctx.inst_id_to_vreg.insert(id, output);
 }
 
 fn lower_load<CC: CallingConv<RegClass>>(
@@ -285,7 +316,7 @@ fn lower_condbr<CC: CallingConv<RegClass>>(
                     ],
                 }));
             }
-            _ => {}
+            _ => todo!(),
         }
 
         ctx.inst_seq.push(MachInstruction::new(InstructionData {
@@ -361,6 +392,7 @@ fn get_inst_output<CC: CallingConv<RegClass>>(
         return *vreg;
     }
 
+    // println!("!!");
     lower(ctx, ctx.ir_data.inst_ref(id));
     get_inst_output(ctx, id)
 }

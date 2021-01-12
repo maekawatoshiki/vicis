@@ -102,6 +102,7 @@ impl fmt::Display for Opcode {
                 Self::JGE => "jge",
                 Self::JG => "jg",
                 Self::RET => "ret",
+                Self::Phi => "PHI",
             }
         )
     }

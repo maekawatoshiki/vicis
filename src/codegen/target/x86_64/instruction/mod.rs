@@ -32,6 +32,9 @@ pub enum Opcode {
     JGE,
     JG,
     RET,
+
+    // TODO
+    Phi,
 }
 
 #[derive(Debug)]
@@ -41,7 +44,7 @@ pub struct Operand {
     output: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OperandData {
     Reg(Reg),
     VReg(VReg),
@@ -50,7 +53,7 @@ pub enum OperandData {
     Block(BasicBlockId),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MemoryOperand {
     Slot(SlotId),
     ImmReg(i32, Reg),
@@ -209,6 +212,20 @@ impl OperandData {
     pub fn as_reg(&self) -> &Reg {
         match self {
             Self::Reg(r) => r,
+            _ => todo!(),
+        }
+    }
+
+    pub fn as_vreg(&self) -> &VReg {
+        match self {
+            Self::VReg(r) => r,
+            _ => todo!(),
+        }
+    }
+
+    pub fn as_block(&self) -> &BasicBlockId {
+        match self {
+            Self::Block(b) => b,
             _ => todo!(),
         }
     }
