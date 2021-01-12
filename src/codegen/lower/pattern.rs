@@ -32,4 +32,5 @@ pub struct LoweringContext<'a, T: Target> {
     pub vregs: &'a mut VRegs,
     pub inst_id_to_vreg: &'a mut FxHashMap<InstructionId, VReg>,
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
+    pub cur_block: IrBasicBlockId,
 }

@@ -40,14 +40,24 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
     for (output, args) in map {
         for (arg, block) in args {
             let maybe_term = function.layout.last_inst_of(block).unwrap();
-            assert!(matches!(arg, OperandData::Int32(_)));
-            let copy = Instruction::new(InstructionData {
-                opcode: Opcode::MOVri32,
-                operands: vec![
-                    Operand::output(OperandData::VReg(output)),
-                    Operand::new(arg),
-                ],
-            });
+            // assert!(matches!(arg, OperandData::Int32(_)));
+            let copy = match arg {
+                OperandData::Int32(_) => Instruction::new(InstructionData {
+                    opcode: Opcode::MOVri32,
+                    operands: vec![
+                        Operand::output(OperandData::VReg(output)),
+                        Operand::new(arg),
+                    ],
+                }),
+                OperandData::VReg(_) => Instruction::new(InstructionData {
+                    opcode: Opcode::MOVrr32,
+                    operands: vec![
+                        Operand::output(OperandData::VReg(output)),
+                        Operand::input(arg),
+                    ],
+                }),
+                _ => todo!(),
+            };
             let copy = function.data.create_inst(copy);
             function.layout.insert_inst_before(maybe_term, copy, block);
         }

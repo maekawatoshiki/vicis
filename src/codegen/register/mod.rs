@@ -43,4 +43,8 @@ impl VRegs {
     pub fn type_for(&self, vreg: VReg) -> TypeId {
         self.map[&vreg].ty
     }
+
+    pub fn change_ty(&mut self, vreg: VReg, ty: TypeId) {
+        self.map.get_mut(&vreg).unwrap().ty = ty
+    }
 }

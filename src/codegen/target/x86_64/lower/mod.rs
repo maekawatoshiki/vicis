@@ -83,7 +83,7 @@ fn lower_phi<CC: CallingConv<RegClass>>(
     args: &[ValueId],
     blocks: &[BasicBlockId],
 ) {
-    let output = ctx.vregs.add_vreg_data(ty);
+    let output = newv(ctx, ty, id);
     let mut operands = vec![MOperand::output(OperandData::VReg(output))];
     for (arg, block) in args.iter().zip(blocks.iter()) {
         operands.push(match ctx.ir_data.value_ref(*arg) {
@@ -99,7 +99,21 @@ fn lower_phi<CC: CallingConv<RegClass>>(
         opcode: Opcode::Phi,
         operands,
     }));
-    ctx.inst_id_to_vreg.insert(id, output);
+    // ctx.inst_id_to_vreg.insert(id, output);
+}
+
+fn newv<CC: CallingConv<RegClass>>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    ty: TypeId,
+    id: InstructionId,
+) -> VReg {
+    if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
+        ctx.vregs.change_ty(*vreg, ty);
+        return *vreg;
+    }
+    let vreg = ctx.vregs.add_vreg_data(ty);
+    ctx.inst_id_to_vreg.insert(id, vreg);
+    vreg
 }
 
 fn lower_load<CC: CallingConv<RegClass>>(
@@ -114,7 +128,7 @@ fn lower_load<CC: CallingConv<RegClass>>(
     match ctx.ir_data.value_ref(addr) {
         Value::Instruction(id) => {
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
-                slot = Some(slot_id);
+                slot = Some(*slot_id);
             }
         }
         _ => todo!(),
@@ -122,7 +136,7 @@ fn lower_load<CC: CallingConv<RegClass>>(
 
     if let Some(slot) = slot {
         if matches!(&*ctx.types.get(tys[0]), Type::Int(32)) {
-            let vreg = ctx.vregs.add_vreg_data(tys[0]);
+            let vreg = newv(ctx, tys[0], id);
             ctx.inst_id_to_vreg.insert(id, vreg);
             ctx.inst_seq.push(MachInstruction {
                 id: None,
@@ -130,7 +144,7 @@ fn lower_load<CC: CallingConv<RegClass>>(
                     opcode: Opcode::MOVrm32,
                     operands: vec![
                         MOperand::output(OperandData::VReg(vreg)),
-                        MOperand::input(OperandData::Mem(MemoryOperand::Slot(*slot))),
+                        MOperand::input(OperandData::Mem(MemoryOperand::Slot(slot))),
                     ],
                 },
             });
@@ -213,7 +227,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
 
     if let Value::Instruction(l) = ctx.ir_data.value_ref(args[0]) {
         lhs = get_inst_output(ctx, *l);
-        new = ctx.vregs.add_vreg_data(ty);
+        new = newv(ctx, ty, id);
         ctx.inst_id_to_vreg.insert(id, new);
     } else {
         panic!();
@@ -241,7 +255,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
                 opcode: Opcode::ADDrr32,
                 operands: vec![
                     MOperand::input_output(OperandData::VReg(new)),
-                    MOperand::output(OperandData::VReg(rhs)),
+                    MOperand::input(OperandData::VReg(rhs)),
                 ],
             },
         });
@@ -256,7 +270,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
                 opcode: Opcode::ADDrr32,
                 operands: vec![
                     MOperand::input_output(OperandData::VReg(new)),
-                    MOperand::output(OperandData::Int32(*rhs)),
+                    MOperand::new(OperandData::Int32(*rhs)),
                 ],
             },
         });
@@ -390,6 +404,12 @@ fn get_inst_output<CC: CallingConv<RegClass>>(
 ) -> VReg {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
         return *vreg;
+    }
+
+    if ctx.ir_data.inst_ref(id).parent != ctx.cur_block {
+        let v = ctx.vregs.add_vreg_data(ctx.types.base().i32());
+        ctx.inst_id_to_vreg.insert(id, v);
+        return v;
     }
 
     // println!("!!");

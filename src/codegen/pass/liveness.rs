@@ -110,6 +110,8 @@ impl Liveness {
         self.set_def(func);
         self.visit(func);
 
+        println!("{:#?}", self.block_data);
+
         // Compute program points
         self.compute_program_points(func);
     }
@@ -151,6 +153,14 @@ impl Liveness {
 
                 // inputs
                 for input in inst.data.input_vregs() {
+                    println!("{:?} {:?}", inst.data, input);
+                    local_vreg_lr_map
+                        .entry(input)
+                        .or_insert(LiveRange {
+                            start: ProgramPoint(block_num, 0),
+                            end: ProgramPoint(block_num, 0),
+                        })
+                        .end = ProgramPoint(block_num, inst_num);
                     local_vreg_lr_map.get_mut(&input).unwrap().end =
                         ProgramPoint(block_num, inst_num);
                 }
