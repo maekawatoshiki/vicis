@@ -35,15 +35,7 @@ impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
     type RegClass = register::RegClass;
     type CallingConv = CC;
 
-    fn lower(&self) -> &Self::Lower {
-        &self.lower
-    }
-
-    fn calling_conv(&self) -> &Self::CallingConv {
-        &self.calling_conv
-    }
-
-    fn module_pass(&self) -> Vec<fn(&mut Module<Self>)> {
+    fn module_pass() -> Vec<fn(&mut Module<Self>)> {
         vec![
             pass::phi_elimination::run_on_module, // TODO: should be target independent
             regalloc::run_on_module,
@@ -53,7 +45,7 @@ impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
         ]
     }
 
-    fn to_reg_unit(&self, r: Reg) -> RegUnit {
+    fn to_reg_unit(r: Reg) -> RegUnit {
         register::to_reg_unit(r)
     }
 }

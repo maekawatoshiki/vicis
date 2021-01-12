@@ -52,7 +52,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
             function.vregs.type_for(vreg),
         ));
         for reg in availables {
-            let reg_unit = function.target.to_reg_unit(reg);
+            let reg_unit = T::to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
             let lrs2 = liveness
                 .reg_lrs_map

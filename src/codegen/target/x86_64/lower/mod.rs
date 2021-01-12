@@ -29,7 +29,7 @@ impl Lower {
 }
 
 impl<CC: CallingConv<RegClass>> LowerTrait<X86_64<CC>> for Lower {
-    fn lower(&self, ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
+    fn lower(ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
         lower(ctx, inst)
     }
 }
@@ -83,11 +83,13 @@ fn lower_phi<CC: CallingConv<RegClass>>(
     args: &[ValueId],
     blocks: &[BasicBlockId],
 ) {
-    let output = newv(ctx, ty, id);
+    let output = new_empty_inst_output(ctx, ty, id);
     let mut operands = vec![MOperand::output(OperandData::VReg(output))];
     for (arg, block) in args.iter().zip(blocks.iter()) {
         operands.push(match ctx.ir_data.value_ref(*arg) {
-            Value::Instruction(id) => MOperand::input(OperandData::VReg(get_inst_output(ctx, *id))),
+            Value::Instruction(id) => {
+                MOperand::input(OperandData::VReg(get_or_generate_inst_output(ctx, *id)))
+            }
             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
                 MOperand::new(OperandData::Int32(*i))
             }
@@ -99,21 +101,6 @@ fn lower_phi<CC: CallingConv<RegClass>>(
         opcode: Opcode::Phi,
         operands,
     }));
-    // ctx.inst_id_to_vreg.insert(id, output);
-}
-
-fn newv<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    ty: TypeId,
-    id: InstructionId,
-) -> VReg {
-    if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
-        ctx.vregs.change_ty(*vreg, ty);
-        return *vreg;
-    }
-    let vreg = ctx.vregs.add_vreg_data(ty);
-    ctx.inst_id_to_vreg.insert(id, vreg);
-    vreg
 }
 
 fn lower_load<CC: CallingConv<RegClass>>(
@@ -136,18 +123,14 @@ fn lower_load<CC: CallingConv<RegClass>>(
 
     if let Some(slot) = slot {
         if matches!(&*ctx.types.get(tys[0]), Type::Int(32)) {
-            let vreg = newv(ctx, tys[0], id);
-            ctx.inst_id_to_vreg.insert(id, vreg);
-            ctx.inst_seq.push(MachInstruction {
-                id: None,
-                data: InstructionData {
-                    opcode: Opcode::MOVrm32,
-                    operands: vec![
-                        MOperand::output(OperandData::VReg(vreg)),
-                        MOperand::input(OperandData::Mem(MemoryOperand::Slot(slot))),
-                    ],
-                },
-            });
+            let vreg = new_empty_inst_output(ctx, tys[0], id);
+            ctx.inst_seq.push(MachInstruction::new(InstructionData {
+                opcode: Opcode::MOVrm32,
+                operands: vec![
+                    MOperand::output(OperandData::VReg(vreg)),
+                    MOperand::input(OperandData::Mem(MemoryOperand::Slot(slot))),
+                ],
+            }));
             return;
         }
     }
@@ -183,7 +166,7 @@ fn lower_store<CC: CallingConv<RegClass>>(
 
     match (slot, inst) {
         (Some(slot), Some(id)) => {
-            let inst = get_inst_output(ctx, id);
+            let inst = get_or_generate_inst_output(ctx, id);
             ctx.inst_seq
                 .append(&mut vec![MachInstruction::new(InstructionData {
                     opcode: Opcode::MOVmi32,
@@ -223,12 +206,11 @@ fn lower_add<CC: CallingConv<RegClass>>(
 ) {
     let lhs;
     let rhs = ctx.ir_data.value_ref(args[1]);
-    let new;
+    let output;
 
     if let Value::Instruction(l) = ctx.ir_data.value_ref(args[0]) {
-        lhs = get_inst_output(ctx, *l);
-        new = newv(ctx, ty, id);
-        ctx.inst_id_to_vreg.insert(id, new);
+        lhs = get_or_generate_inst_output(ctx, *l);
+        output = new_empty_inst_output(ctx, ty, id);
     } else {
         panic!();
     };
@@ -239,7 +221,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
             data: InstructionData {
                 opcode: Opcode::MOVrr32,
                 operands: vec![
-                    MOperand::output(OperandData::VReg(new)),
+                    MOperand::output(OperandData::VReg(output)),
                     MOperand::input(OperandData::VReg(lhs)),
                 ],
             },
@@ -247,14 +229,14 @@ fn lower_add<CC: CallingConv<RegClass>>(
     };
 
     if let Value::Instruction(rhs) = rhs {
-        let rhs = get_inst_output(ctx, *rhs);
+        let rhs = get_or_generate_inst_output(ctx, *rhs);
         insert_move(ctx);
         ctx.inst_seq.push(MachInstruction {
             id: None,
             data: InstructionData {
                 opcode: Opcode::ADDrr32,
                 operands: vec![
-                    MOperand::input_output(OperandData::VReg(new)),
+                    MOperand::input_output(OperandData::VReg(output)),
                     MOperand::input(OperandData::VReg(rhs)),
                 ],
             },
@@ -269,7 +251,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
             data: InstructionData {
                 opcode: Opcode::ADDrr32,
                 operands: vec![
-                    MOperand::input_output(OperandData::VReg(new)),
+                    MOperand::input_output(OperandData::VReg(output)),
                     MOperand::new(OperandData::Int32(*rhs)),
                 ],
             },
@@ -321,7 +303,7 @@ fn lower_condbr<CC: CallingConv<RegClass>>(
                 Value::Instruction(lhs),
                 Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))),
             ) => {
-                let lhs = get_inst_output(ctx, *lhs);
+                let lhs = get_or_generate_inst_output(ctx, *lhs);
                 ctx.inst_seq.push(MachInstruction::new(InstructionData {
                     opcode: Opcode::CMPri32,
                     operands: vec![
@@ -375,7 +357,7 @@ fn lower_return<CC: CallingConv<RegClass>>(
             });
         }
         Value::Instruction(id) => {
-            let vreg = get_inst_output(ctx, *id);
+            let vreg = get_or_generate_inst_output(ctx, *id);
             ctx.inst_seq.push(MachInstruction {
                 id: None,
                 data: InstructionData {
@@ -398,7 +380,7 @@ fn lower_return<CC: CallingConv<RegClass>>(
     });
 }
 
-fn get_inst_output<CC: CallingConv<RegClass>>(
+fn get_or_generate_inst_output<CC: CallingConv<RegClass>>(
     ctx: &mut LoweringContext<X86_64<CC>>,
     id: InstructionId,
 ) -> VReg {
@@ -407,12 +389,27 @@ fn get_inst_output<CC: CallingConv<RegClass>>(
     }
 
     if ctx.ir_data.inst_ref(id).parent != ctx.cur_block {
-        let v = ctx.vregs.add_vreg_data(ctx.types.base().i32());
+        // The instruction indexed as `id` must be placed in another basic block
+        let v = ctx.vregs.add_vreg_data(ctx.types.base().void());
         ctx.inst_id_to_vreg.insert(id, v);
         return v;
     }
 
-    // println!("!!");
+    // What about instruction scheduling?
     lower(ctx, ctx.ir_data.inst_ref(id));
-    get_inst_output(ctx, id)
+    get_or_generate_inst_output(ctx, id)
+}
+
+fn new_empty_inst_output<CC: CallingConv<RegClass>>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    ty: TypeId,
+    id: InstructionId,
+) -> VReg {
+    if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
+        ctx.vregs.change_ty(*vreg, ty);
+        return *vreg;
+    }
+    let vreg = ctx.vregs.add_vreg_data(ty);
+    ctx.inst_id_to_vreg.insert(id, vreg);
+    vreg
 }

@@ -22,12 +22,8 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
             let inst = function.data.inst_ref(inst_id);
             match inst.data.opcode {
                 Opcode::MOVrr32 | Opcode::MOVrr64
-                    if function
-                        .target
-                        .to_reg_unit(*inst.data.operands[0].data.as_reg())
-                        == function
-                            .target
-                            .to_reg_unit(*inst.data.operands[1].data.as_reg()) =>
+                    if X86_64::<CC>::to_reg_unit(*inst.data.operands[0].data.as_reg())
+                        == X86_64::<CC>::to_reg_unit(*inst.data.operands[1].data.as_reg()) =>
                 {
                     worklist.push(inst_id)
                 }

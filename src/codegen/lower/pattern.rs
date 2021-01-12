@@ -19,7 +19,7 @@ use crate::ir::{
 use rustc_hash::FxHashMap;
 
 pub trait Lower<T: Target> {
-    fn lower(&self, ctx: &mut LoweringContext<T>, inst: &Instruction);
+    fn lower(ctx: &mut LoweringContext<T>, inst: &Instruction);
 }
 
 pub struct LoweringContext<'a, T: Target> {

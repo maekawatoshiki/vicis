@@ -44,7 +44,7 @@ pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
         arch: target,
     };
 
-    for pass in target.module_pass() {
+    for pass in T::module_pass() {
         pass(&mut mach_module)
     }
 
@@ -99,7 +99,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
                 continue;
             }
 
-            target.lower().lower(
+            T::Lower::lower(
                 &mut LoweringContext {
                     ir_data: &function.data,
                     mach_data: &mut data,

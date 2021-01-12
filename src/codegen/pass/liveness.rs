@@ -153,7 +153,6 @@ impl Liveness {
 
                 // inputs
                 for input in inst.data.input_vregs() {
-                    println!("{:?} {:?}", inst.data, input);
                     local_vreg_lr_map
                         .entry(input)
                         .or_insert(LiveRange {
@@ -166,7 +165,7 @@ impl Liveness {
                 }
                 for input in inst.data.input_regs() {
                     local_reg_lr_map
-                        .get_mut(&func.target.to_reg_unit(input))
+                        .get_mut(&T::to_reg_unit(input))
                         .unwrap()
                         .end = ProgramPoint(block_num, inst_num);
                 }
@@ -183,7 +182,7 @@ impl Liveness {
                 }
                 for output in inst.data.output_regs() {
                     local_reg_lr_map
-                        .entry(func.target.to_reg_unit(output))
+                        .entry(T::to_reg_unit(output))
                         .or_insert(LiveRange {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
@@ -236,14 +235,13 @@ impl Liveness {
             self.block_data.entry(block_id).or_insert(BlockData::new());
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
-                self.set_def_on_inst(func, inst, block_id);
+                self.set_def_on_inst::<T>(inst, block_id);
             }
         }
     }
 
     fn set_def_on_inst<T: Target>(
         &mut self,
-        func: &Function<T>,
         inst: &Instruction<T::InstData>,
         block_id: BasicBlockId,
     ) {
@@ -259,7 +257,7 @@ impl Liveness {
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
                 .reg_def
-                .insert(func.target.to_reg_unit(output));
+                .insert(T::to_reg_unit(output));
         }
     }
 
@@ -282,7 +280,7 @@ impl Liveness {
             self.propagate_vreg(func, input, block_id);
         }
         for input in inst.data.input_regs() {
-            self.propagate_reg(func, func.target.to_reg_unit(input), block_id);
+            self.propagate_reg(func, T::to_reg_unit(input), block_id);
         }
     }
 
