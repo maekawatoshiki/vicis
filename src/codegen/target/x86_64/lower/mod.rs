@@ -1,7 +1,7 @@
 use crate::codegen::{
     calling_conv::CallingConv,
     function::instruction::Instruction as MachInstruction,
-    lower::pattern::{Lower as LowerTrait, LoweringContext},
+    lower::{Lower as LowerTrait, LoweringContext},
     register::VReg,
     target::x86_64::{
         instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},

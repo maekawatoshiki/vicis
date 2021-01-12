@@ -11,7 +11,7 @@ use crate::codegen::{
 pub trait Target: Copy {
     type InstData: ::std::fmt::Debug + InstructionData;
     type RegClass: RegisterClass;
-    type Lower: lower::pattern::Lower<Self>;
+    type Lower: lower::Lower<Self>;
     type CallingConv: calling_conv::CallingConv<Self::RegClass>;
 
     fn module_pass() -> Vec<fn(&mut Module<Self>)>;

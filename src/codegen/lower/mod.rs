@@ -1,24 +1,44 @@
-pub mod pattern;
-
 use super::{
     function::{
-        data::Data, instruction::InstructionData, layout::Layout, slot::Slots,
+        basic_block::BasicBlockId as MachBasicBlockId,
+        data::Data,
+        instruction::{Instruction as MachInstruction, InstructionData},
+        layout::Layout,
+        slot::{SlotId, Slots},
         Function as MachFunction,
     },
     module::Module as MachModule,
-    register::VRegs,
+    register::{VReg, VRegs},
     target::Target,
 };
 use crate::ir::{
     function::{
-        instruction::{Instruction as IrInstruction, Opcode},
+        basic_block::BasicBlockId as IrBasicBlockId,
+        instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId, Opcode},
         Data as IrData, Function as IrFunction,
     },
     module::Module as IrModule,
+    types::Types,
 };
 use id_arena::Arena;
-use pattern::{Lower, LoweringContext};
 use rustc_hash::FxHashMap;
+
+pub trait Lower<T: Target> {
+    fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
+}
+
+pub struct LoweringContext<'a, T: Target> {
+    pub ir_data: &'a IrData,
+    pub mach_data: &'a mut Data<T::InstData>,
+    pub slots: &'a mut Slots<T>,
+    pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
+    pub inst_seq: &'a mut Vec<MachInstruction<T::InstData>>,
+    pub types: &'a Types,
+    pub vregs: &'a mut VRegs,
+    pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
+    pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
+    pub cur_block: IrBasicBlockId,
+}
 
 pub struct Context<'a, InstData: InstructionData> {
     pub ir_data: &'a IrData,
