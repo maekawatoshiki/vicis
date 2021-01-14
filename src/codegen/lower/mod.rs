@@ -2,7 +2,7 @@ use super::{
     function::{
         basic_block::BasicBlockId as MachBasicBlockId,
         data::Data,
-        instruction::{Instruction as MachInstruction, InstructionData},
+        instruction::Instruction as MachInstruction,
         layout::Layout,
         slot::{SlotId, Slots},
         Function as MachFunction,
@@ -14,7 +14,7 @@ use super::{
 use crate::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
-        instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId, Opcode},
+        instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId},
         Data as IrData, Function as IrFunction,
     },
     module::Module as IrModule,
@@ -38,12 +38,6 @@ pub struct LoweringContext<'a, T: Target> {
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub cur_block: IrBasicBlockId,
-}
-
-pub struct Context<'a, InstData: InstructionData> {
-    pub ir_data: &'a IrData,
-    pub inst: &'a IrInstruction,
-    pub mach_data: &'a mut Data<InstData>,
 }
 
 pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
@@ -106,9 +100,7 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
-            // `inst` is used once in current block
-            // `inst` is used many times in current block
-            if matches!(inst.opcode, Opcode::Add | Opcode::ICmp)
+            if !inst.opcode.has_side_effects()
                 && inst.users.len() == 1
                 && function
                     .data

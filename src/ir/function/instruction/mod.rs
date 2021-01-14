@@ -310,6 +310,35 @@ impl Opcode {
     pub fn is_terminator(&self) -> bool {
         matches!(self, Self::Ret | Self::Br | Self::CondBr)
     }
+
+    pub fn is_load(&self) -> bool {
+        self == &Self::Load
+    }
+
+    pub fn is_store(&self) -> bool {
+        self == &Self::Store
+    }
+
+    pub fn is_alloca(&self) -> bool {
+        self == &Self::Alloca
+    }
+
+    pub fn is_phi(&self) -> bool {
+        self == &Self::Phi
+    }
+
+    pub fn is_call(&self) -> bool {
+        self == &Self::Call
+    }
+
+    pub fn has_side_effects(&self) -> bool {
+        self.is_load()
+            || self.is_store()
+            || self.is_alloca()
+            || self.is_phi()
+            || self.is_call()
+            || self.is_terminator()
+    }
 }
 
 impl Operand {
