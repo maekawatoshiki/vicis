@@ -206,7 +206,43 @@ attributes #0 = { noinline nounwind optnone uwtable  }
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
     let mach_module = convert_module(X86_64::new(SystemV), module);
-    println!("{}", mach_module);
+    assert_eq!(
+        format!("{}", mach_module),
+        r#"  .text
+  .intel_syntax noprefix
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-12], 0
+  mov dword ptr [rbp-4], 0
+  mov dword ptr [rbp-8], 1
+  jmp .LBL1
+.LBL1:
+  mov eax, dword ptr [rbp-8]
+  cmp eax, 10
+  jle .LBL2
+  jmp .LBL4
+.LBL2:
+  mov eax, dword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-4]
+  add ecx, eax
+  mov dword ptr [rbp-4], ecx
+  jmp .LBL3
+.LBL3:
+  mov eax, dword ptr [rbp-8]
+  add eax, 1
+  mov dword ptr [rbp-8], eax
+  jmp .LBL1
+.LBL4:
+  mov eax, dword ptr [rbp-4]
+  add rsp, 16
+  pop rbp
+  ret 
+"#
+    );
 }
 
 #[test]
@@ -248,7 +284,33 @@ attributes #0 = { noinline nounwind uwtable }
     println!("{:?}", module);
     // let main = module.find_function_by_name("main").unwrap();
     let mach_module = convert_module(X86_64::new(SystemV), module);
-    println!("{}", mach_module);
+    assert_eq!(
+        format!("{}", mach_module),
+        r#"  .text
+  .intel_syntax noprefix
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-4], 1
+  mov eax, dword ptr [rbp-4]
+  cmp eax, 0
+  je .LBL1
+  jmp .LBL2
+.LBL1:
+  mov eax, 1
+  jmp .LBL3
+.LBL2:
+  mov eax, 2
+  jmp .LBL3
+.LBL3:
+  add rsp, 16
+  pop rbp
+  ret 
+"#
+    );
 }
 
 #[test]
@@ -293,5 +355,35 @@ attributes #0 = { noinline nounwind uwtable }
     println!("{:?}", module);
     // let main = module.find_function_by_name("main").unwrap();
     let mach_module = convert_module(X86_64::new(SystemV), module);
-    println!("{}", mach_module);
+    assert_eq!(
+        format!("{}", mach_module),
+        r#"  .text
+  .intel_syntax noprefix
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 0
+  mov eax, 0
+  mov ecx, 1
+  jmp .LBL1
+.LBL1:
+  cmp ecx, 10
+  jle .LBL2
+  jmp .LBL4
+.LBL2:
+  add eax, ecx
+  jmp .LBL3
+.LBL3:
+  mov edx, ecx
+  add edx, 1
+  mov ecx, edx
+  jmp .LBL1
+.LBL4:
+  add rsp, 0
+  pop rbp
+  ret 
+"#
+    );
 }
