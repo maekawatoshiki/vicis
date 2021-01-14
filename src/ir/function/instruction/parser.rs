@@ -213,6 +213,11 @@ pub fn parse_call_args<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Vec<(types::TypeId, value::ValueId)>, VerboseError<&'a str>> {
     let (mut source, _) = preceded(spaces, char('('))(source)?;
+
+    if let Ok((source, _)) = preceded(spaces, char(')'))(source) {
+        return Ok((source, vec![]));
+    }
+
     let mut args = vec![];
     loop {
         let (source_, ty) = types::parse(source, ctx.types)?;
