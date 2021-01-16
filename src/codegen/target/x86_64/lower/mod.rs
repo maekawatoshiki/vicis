@@ -15,6 +15,7 @@ use crate::ir::{
         instruction::{ICmpCond, Instruction as IrInstruction, InstructionId, Operand},
         Data as IrData,
     },
+    module::name::Name,
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
@@ -59,6 +60,7 @@ fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst:
         Operand::IntBinary { ty, ref args, .. } => lower_add(ctx, inst.id.unwrap(), ty, args),
         Operand::Br { block } => lower_br(ctx, block),
         Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
+        Operand::Call { ref args, ref tys } => lower_call(ctx, inst.id.unwrap(), tys, args),
         Operand::Ret { val: None, .. } => todo!(),
         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
         _ => todo!(),
@@ -335,6 +337,44 @@ fn lower_condbr<CC: CallingConv<RegClass>>(
     }
 
     todo!()
+}
+
+fn lower_call<CC: CallingConv<RegClass>>(
+    ctx: &mut LoweringContext<X86_64<CC>>,
+    id: InstructionId,
+    tys: &[TypeId],
+    args: &[ValueId],
+) {
+    let output = new_empty_inst_output(ctx, tys[0], id);
+    // let mut new_args = vec![];
+    // for (&arg, &ty) in args[1..].iter().zip(tys[1..].iter()) {
+    //     match &ctx.ir_data.values[arg] {
+    //         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {}
+    //         Value::Instruction(id) => {
+    //             get_or_generate_inst_output(ctx, ty, *id);
+    //         }
+    //         _ => todo!(),
+    //     }
+    // }
+    let name = match &ctx.ir_data.values[args[0]] {
+        Value::Constant(ConstantData::GlobalRef(Name::Name(name))) => name.clone(),
+        _ => todo!(),
+    };
+    let result_reg = GR32::EAX.into();
+    ctx.inst_seq.push(MachInstruction::new(InstructionData {
+        opcode: Opcode::CALL,
+        operands: vec![
+            MOperand::implicit_output(OperandData::Reg(result_reg)),
+            MOperand::new(OperandData::Label(name)),
+        ],
+    }));
+    ctx.inst_seq.push(MachInstruction::new(InstructionData {
+        opcode: Opcode::MOVrr32,
+        operands: vec![
+            MOperand::output(OperandData::VReg(output)),
+            MOperand::input(OperandData::Reg(result_reg)),
+        ],
+    }));
 }
 
 fn lower_return<CC: CallingConv<RegClass>>(

@@ -38,6 +38,9 @@ pub fn print_function<CC: CallingConv<RegClass>>(
             let inst = function.data.inst_ref(inst);
             write!(f, "  {} ", inst.data.opcode)?;
             for (i, operand) in inst.data.operands.iter().enumerate() {
+                if operand.implicit {
+                    continue;
+                }
                 if let OperandData::Mem(_) = &operand.data {
                     write!(f, "{} ptr ", mem_size(&inst.data.opcode))?
                 }
@@ -101,6 +104,7 @@ impl fmt::Display for Opcode {
                 Self::JL => "jl",
                 Self::JGE => "jge",
                 Self::JG => "jg",
+                Self::CALL => "call",
                 Self::RET => "ret",
                 Self::Phi => "PHI",
             }
@@ -116,6 +120,7 @@ impl fmt::Display for OperandData {
             Self::Mem(mem) => write!(f, "{}", mem),
             Self::Int32(i) => write!(f, "{}", i),
             Self::Block(block) => write!(f, ".LBL{}", block.index()),
+            Self::Label(name) => write!(f, "{}", name),
         }
     }
 }

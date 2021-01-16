@@ -31,6 +31,7 @@ pub enum Opcode {
     JL,
     JGE,
     JG,
+    CALL,
     RET,
 
     // TODO
@@ -40,8 +41,9 @@ pub enum Opcode {
 #[derive(Debug)]
 pub struct Operand {
     pub data: OperandData,
-    input: bool,
-    output: bool,
+    pub input: bool,
+    pub output: bool,
+    pub implicit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +53,7 @@ pub enum OperandData {
     Int32(i32),
     Mem(MemoryOperand),
     Block(BasicBlockId),
+    Label(String),
 }
 
 #[derive(Debug, Clone)]
@@ -180,6 +183,7 @@ impl Operand {
             data,
             input: false,
             output: false,
+            implicit: false,
         }
     }
 
@@ -188,6 +192,7 @@ impl Operand {
             data,
             input: true,
             output: false,
+            implicit: false,
         }
     }
 
@@ -196,6 +201,16 @@ impl Operand {
             data,
             input: false,
             output: true,
+            implicit: false,
+        }
+    }
+
+    pub fn implicit_output(data: OperandData) -> Self {
+        Self {
+            data,
+            input: false,
+            output: true,
+            implicit: true,
         }
     }
 
@@ -204,6 +219,7 @@ impl Operand {
             data,
             input: true,
             output: true,
+            implicit: false,
         }
     }
 }

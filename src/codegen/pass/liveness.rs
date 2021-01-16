@@ -139,10 +139,10 @@ impl Liveness {
             for &live_in in &self.block_data[&block_id].reg_live_in {
                 local_reg_lr_map.insert(
                     live_in,
-                    LiveRange {
+                    LiveRanges(vec![LiveRange {
                         start: ProgramPoint(block_num, 0),
                         end: ProgramPoint(block_num, 0),
-                    },
+                    }]),
                 );
             }
 
@@ -167,6 +167,9 @@ impl Liveness {
                     local_reg_lr_map
                         .get_mut(&T::to_reg_unit(input))
                         .unwrap()
+                        .0
+                        .last_mut()
+                        .unwrap()
                         .end = ProgramPoint(block_num, inst_num);
                 }
 
@@ -183,11 +186,12 @@ impl Liveness {
                 for output in inst.data.output_regs() {
                     local_reg_lr_map
                         .entry(T::to_reg_unit(output))
-                        .or_insert(LiveRange {
+                        .or_insert(LiveRanges(vec![]))
+                        .0
+                        .push(LiveRange {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
                         })
-                        .end = ProgramPoint(block_num, inst_num);
                 }
 
                 inst_num += STEP;
@@ -199,7 +203,13 @@ impl Liveness {
                     ProgramPoint(block_num, inst_num);
             }
             for live_out in &self.block_data[&block_id].reg_live_out {
-                local_reg_lr_map.get_mut(live_out).unwrap().end = ProgramPoint(block_num, inst_num);
+                local_reg_lr_map
+                    .get_mut(live_out)
+                    .unwrap()
+                    .0
+                    .last_mut()
+                    .unwrap()
+                    .end = ProgramPoint(block_num, inst_num);
             }
 
             // merge local lr_map into lrs_map
@@ -215,7 +225,7 @@ impl Liveness {
                     .entry(reg)
                     .or_insert(LiveRanges(vec![]))
                     .0
-                    .push(local_lr)
+                    .extend(local_lr.0.into_iter())
             }
 
             block_num += 1;

@@ -387,3 +387,62 @@ main:
 "#
     );
 }
+
+#[test]
+fn call1() {
+    let asm = r#"
+define dso_local i32 @f() #0 {
+  ret i32 1
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  %2 = call i32 @f()
+  ret i32 %2
+}
+    "#;
+    let module = module::parse_assembly(asm).unwrap();
+    println!("{:?}", module);
+    let mach_module = convert_module(X86_64::new(SystemV), module);
+    println!("{}", format!("{}", mach_module));
+    assert_eq!(
+        format!("{}", mach_module),
+        r#"  .text
+  .intel_syntax noprefix
+  .globl f
+f:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 0
+  mov eax, 1
+  add rsp, 0
+  pop rbp
+  ret 
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-4], 0
+  call f
+  add rsp, 16
+  pop rbp
+  ret 
+"#
+    );
+}
+
+// #[test]
+// fn run_file() {
+//     let path = "";
+//     let asm = include_str!(path);
+//     let module = module::parse_assembly(asm).unwrap();
+//     println!("{:?}", module);
+//     // let main = module.find_function_by_name("main").unwrap();
+//     let mach_module = convert_module(X86_64::new(SystemV), module);
+//     println!("{}", mach_module);
+// }
