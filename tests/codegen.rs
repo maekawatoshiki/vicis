@@ -364,7 +364,6 @@ main:
 .LBL0:
   push rbp
   mov rbp, rsp
-  sub rsp, 0
   mov eax, 0
   mov ecx, 1
   jmp .LBL1
@@ -381,7 +380,6 @@ main:
   mov ecx, edx
   jmp .LBL1
 .LBL4:
-  add rsp, 0
   pop rbp
   ret 
 "#
@@ -416,9 +414,7 @@ f:
 .LBL0:
   push rbp
   mov rbp, rsp
-  sub rsp, 0
   mov eax, 1
-  add rsp, 0
   pop rbp
   ret 
   .globl main

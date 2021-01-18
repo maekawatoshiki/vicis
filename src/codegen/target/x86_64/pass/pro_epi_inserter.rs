@@ -26,17 +26,19 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
 
     // insert prologue
     if let Some(entry) = function.layout.first_block {
-        let sub = function.data.create_inst(Instruction {
-            id: None,
-            data: InstructionData {
-                opcode: Opcode::SUBr64i32,
-                operands: vec![
-                    Operand::input_output(OperandData::Reg(GR64::RSP.into())),
-                    Operand::input(OperandData::Int32(adj)),
-                ],
-            },
-        });
-        function.layout.insert_inst_at_start(sub, entry);
+        if adj > 0 {
+            let sub = function.data.create_inst(Instruction {
+                id: None,
+                data: InstructionData {
+                    opcode: Opcode::SUBr64i32,
+                    operands: vec![
+                        Operand::input_output(OperandData::Reg(GR64::RSP.into())),
+                        Operand::input(OperandData::Int32(adj)),
+                    ],
+                },
+            });
+            function.layout.insert_inst_at_start(sub, entry);
+        }
         let mov = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData {
@@ -70,17 +72,19 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
         }
     }
     for (block, ret_id) in epilogues {
-        let add = function.data.create_inst(Instruction {
-            id: None,
-            data: InstructionData {
-                opcode: Opcode::ADDr64i32,
-                operands: vec![
-                    Operand::output(OperandData::Reg(GR64::RSP.into())),
-                    Operand::input(OperandData::Int32(adj)),
-                ],
-            },
-        });
-        function.layout.insert_inst_before(ret_id, add, block);
+        if adj > 0 {
+            let add = function.data.create_inst(Instruction {
+                id: None,
+                data: InstructionData {
+                    opcode: Opcode::ADDr64i32,
+                    operands: vec![
+                        Operand::output(OperandData::Reg(GR64::RSP.into())),
+                        Operand::input(OperandData::Int32(adj)),
+                    ],
+                },
+            });
+            function.layout.insert_inst_before(ret_id, add, block);
+        }
         let pop64 = function.data.create_inst(Instruction {
             id: None,
             data: InstructionData {
