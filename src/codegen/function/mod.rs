@@ -12,6 +12,7 @@ use crate::ir::{
 };
 use either::Either;
 use instruction::InstructionId;
+use std::fmt;
 
 pub struct Function<T: Target> {
     pub name: String,
@@ -32,5 +33,50 @@ pub struct Function<T: Target> {
 impl<T: Target> Function<T> {
     pub fn remove_inst(&mut self, inst: InstructionId<T::InstData>) -> Option<()> {
         self.layout.remove_inst(inst)
+    }
+}
+
+impl<T: Target> fmt::Debug for Function<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_prototype {
+            write!(f, "declare ")?
+        } else {
+            write!(f, "define ")?
+        }
+        write!(f, "{:?} ", self.preemption_specifier)?;
+        write!(f, "{} ", self.types.to_string(self.result_ty))?;
+        write!(f, "@{}(", self.name)?;
+        for (i, param) in self.params.iter().enumerate() {
+            write!(
+                f,
+                "{} %A{}{}",
+                self.types.to_string(param.ty),
+                i,
+                if i == self.params.len() - 1 { "" } else { ", " }
+            )?;
+        }
+        write!(f, ") ")?;
+        for attr in &self.attributes {
+            match attr {
+                Either::Left(attr) => write!(f, "{:?} ", attr)?,
+                Either::Right(id) => write!(f, "#{} ", id)?,
+            }
+        }
+
+        if self.is_prototype {
+            writeln!(f)?;
+        } else {
+            write!(f, "{{\n")?;
+            for block_id in self.layout.block_iter() {
+                writeln!(f, "B{:?}:", block_id.index())?;
+                for inst_id in self.layout.inst_iter(block_id) {
+                    let inst = self.data.inst_ref(inst_id);
+                    writeln!(f, "    {:#?}", inst)?;
+                }
+            }
+            write!(f, "}}\n")?;
+        }
+
+        Ok(())
     }
 }

@@ -375,9 +375,7 @@ main:
   add eax, ecx
   jmp .LBL3
 .LBL3:
-  mov edx, ecx
-  add edx, 1
-  mov ecx, edx
+  add ecx, 1
   jmp .LBL1
 .LBL4:
   pop rbp

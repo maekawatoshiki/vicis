@@ -2,7 +2,7 @@ use crate::codegen::{
     calling_conv::CallingConv,
     function::{basic_block::BasicBlockId, instruction::Instruction, Function},
     module::Module,
-    register::VReg,
+    register::Reg,
     target::x86_64::{
         instruction::{InstructionData, Opcode, Operand, OperandData},
         register::RegClass,
@@ -19,7 +19,7 @@ pub fn run_on_module<CC: CallingConv<RegClass>>(module: &mut Module<X86_64<CC>>)
 
 pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64<CC>>) {
     let mut worklist = vec![];
-    let mut map: FxHashMap<VReg, Vec<(OperandData, BasicBlockId)>> = FxHashMap::default();
+    let mut map: FxHashMap<Reg, Vec<(OperandData, BasicBlockId)>> = FxHashMap::default();
 
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
@@ -28,7 +28,7 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
                 continue;
             }
             worklist.push(inst_id);
-            let output = *inst.data.operands[0].data.as_vreg();
+            let output = *inst.data.operands[0].data.as_reg();
             for i in (0..inst.data.operands[1..].len()).step_by(2) {
                 let val = inst.data.operands[1 + i + 0].data.clone();
                 let block = *inst.data.operands[1 + i + 1].data.as_block();
@@ -44,15 +44,12 @@ pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64
             let copy = match arg {
                 OperandData::Int32(_) => Instruction::new(InstructionData {
                     opcode: Opcode::MOVri32,
-                    operands: vec![
-                        Operand::output(OperandData::VReg(output)),
-                        Operand::new(arg),
-                    ],
+                    operands: vec![Operand::output(OperandData::Reg(output)), Operand::new(arg)],
                 }),
-                OperandData::VReg(_) => Instruction::new(InstructionData {
+                OperandData::Reg(_) => Instruction::new(InstructionData {
                     opcode: Opcode::MOVrr32,
                     operands: vec![
-                        Operand::output(OperandData::VReg(output)),
+                        Operand::output(OperandData::Reg(output)),
                         Operand::input(arg),
                     ],
                 }),

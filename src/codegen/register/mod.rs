@@ -1,7 +1,7 @@
 use crate::ir::types::{TypeId, Types};
 use rustc_hash::FxHashMap;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Reg(pub u16, pub u16);
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]

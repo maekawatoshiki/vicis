@@ -17,6 +17,8 @@ pub fn run_on_module<T: Target>(module: &mut Module<T>) {
 
 // Linear-scan
 pub fn run_on_function<T: Target>(function: &mut Function<T>) {
+    debug!(&function);
+
     let mut liveness = liveness::Liveness::new();
     liveness.analyze_function(function);
 
