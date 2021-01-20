@@ -1,4 +1,7 @@
-use crate::ir::types::{TypeId, Types};
+use crate::{
+    codegen::call_conv::CallConvKind,
+    ir::types::{TypeId, Types},
+};
 use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
@@ -23,6 +26,8 @@ pub struct VRegData {
 
 pub trait RegisterClass {
     fn for_type(types: &Types, id: TypeId) -> Self;
+    fn gpr_list_for(rc: &Self) -> Vec<Reg>;
+    fn arg_reg_list_for(rc: &Self, cc: &CallConvKind) -> Vec<Reg>;
 }
 
 impl VRegs {

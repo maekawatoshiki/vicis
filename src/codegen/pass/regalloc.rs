@@ -1,5 +1,4 @@
 use crate::codegen::{
-    calling_conv::CallingConv,
     function::{instruction::InstructionData, Function},
     module::Module,
     pass::liveness,
@@ -47,7 +46,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let availables = T::CallingConv::gpr_list_for_rc(&T::RegClass::for_type(
+        let availables = T::RegClass::gpr_list_for(&T::RegClass::for_type(
             &function.types,
             function.vregs.type_for(vreg),
         ));

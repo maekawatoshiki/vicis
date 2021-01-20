@@ -1,21 +1,20 @@
 use crate::codegen::{
-    calling_conv::CallingConv,
     function::{instruction::Instruction, Function},
     module::Module,
     target::x86_64::{
         instruction::{InstructionData, Opcode, Operand, OperandData},
-        register::{RegClass, GR64},
+        register::GR64,
         X86_64,
     },
 };
 
-pub fn run_on_module<CC: CallingConv<RegClass>>(module: &mut Module<X86_64<CC>>) {
+pub fn run_on_module(module: &mut Module<X86_64>) {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
 }
 
-pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64<CC>>) {
+pub fn run_on_function(function: &mut Function<X86_64>) {
     let unaligned_slot_size = function.slots.unaligned_size();
     let num_saved_64bit_regs = 1; // rbp TODO
 

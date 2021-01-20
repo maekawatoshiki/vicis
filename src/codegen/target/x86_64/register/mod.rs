@@ -1,5 +1,8 @@
 use crate::{
-    codegen::register::{Reg, RegUnit, RegisterClass},
+    codegen::{
+        call_conv::CallConvKind,
+        register::{Reg, RegUnit, RegisterClass},
+    },
     ir::types::{Type, TypeId, Types},
 };
 use std::fmt;
@@ -66,6 +69,25 @@ impl RegisterClass for RegClass {
             Type::Int(64) => Self::GR64,
             _ => todo!(),
         }
+    }
+
+    fn gpr_list_for(rc: &Self) -> Vec<Reg> {
+        match rc {
+            // TODO: Add more general-purpose registers
+            RegClass::GR32 => vec![GR32::EAX, GR32::ECX, GR32::EDX]
+                .into_iter()
+                .map(|r| r.into())
+                .collect(),
+            // TODO: Add more general-purpose registers
+            RegClass::GR64 => vec![GR64::RAX, GR64::RCX, GR64::RDX]
+                .into_iter()
+                .map(|r| r.into())
+                .collect(),
+        }
+    }
+
+    fn arg_reg_list_for(_rc: &Self, _cc: &CallConvKind) -> Vec<Reg> {
+        todo!()
     }
 }
 

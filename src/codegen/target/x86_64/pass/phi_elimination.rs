@@ -1,23 +1,21 @@
 use crate::codegen::{
-    calling_conv::CallingConv,
     function::{basic_block::BasicBlockId, instruction::Instruction, Function},
     module::Module,
     register::Reg,
     target::x86_64::{
         instruction::{InstructionData, Opcode, Operand, OperandData},
-        register::RegClass,
         X86_64,
     },
 };
 use rustc_hash::FxHashMap;
 
-pub fn run_on_module<CC: CallingConv<RegClass>>(module: &mut Module<X86_64<CC>>) {
+pub fn run_on_module(module: &mut Module<X86_64>) {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
 }
 
-pub fn run_on_function<CC: CallingConv<RegClass>>(function: &mut Function<X86_64<CC>>) {
+pub fn run_on_function(function: &mut Function<X86_64>) {
     let mut worklist = vec![];
     let mut map: FxHashMap<Reg, Vec<(OperandData, BasicBlockId)>> = FxHashMap::default();
 

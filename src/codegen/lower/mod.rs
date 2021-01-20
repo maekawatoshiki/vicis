@@ -157,5 +157,6 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         types: function.types,
         is_prototype: function.is_prototype,
         target,
+        call_conv: T::default_call_conv(),
     }
 }

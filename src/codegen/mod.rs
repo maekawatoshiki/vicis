@@ -1,4 +1,4 @@
-pub mod calling_conv;
+pub mod call_conv;
 pub mod function;
 pub mod lower;
 pub mod module;

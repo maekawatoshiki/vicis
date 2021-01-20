@@ -1,20 +1,15 @@
 use crate::codegen::{
-    calling_conv::CallingConv,
     function::Function,
     module::Module,
     register::Reg,
     target::x86_64::{
         instruction::{MemoryOperand, Opcode, OperandData},
-        register::RegClass,
         X86_64,
     },
 };
 use std::fmt;
 
-pub fn print<CC: CallingConv<RegClass>>(
-    f: &mut fmt::Formatter<'_>,
-    module: &Module<X86_64<CC>>,
-) -> fmt::Result {
+pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result {
     writeln!(f, "  .text")?;
     writeln!(f, "  .intel_syntax noprefix")?;
 
@@ -25,10 +20,7 @@ pub fn print<CC: CallingConv<RegClass>>(
     Ok(())
 }
 
-pub fn print_function<CC: CallingConv<RegClass>>(
-    f: &mut fmt::Formatter<'_>,
-    function: &Function<X86_64<CC>>,
-) -> fmt::Result {
+pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -> fmt::Result {
     writeln!(f, "  .globl {}", function.name)?;
     writeln!(f, "{}:", function.name)?;
 
@@ -73,7 +65,7 @@ impl fmt::Display for MemoryOperand {
     }
 }
 
-impl<CC: CallingConv<RegClass>> fmt::Display for Module<X86_64<CC>> {
+impl fmt::Display for Module<X86_64> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print(f, self)
     }

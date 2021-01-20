@@ -4,7 +4,7 @@ pub mod instruction;
 pub mod layout;
 pub mod slot;
 
-use super::{register::VRegs, target::Target};
+use super::{call_conv::CallConvKind, register::VRegs, target::Target};
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
@@ -27,6 +27,7 @@ pub struct Function<T: Target> {
     pub vregs: VRegs,
     pub types: Types,
     pub is_prototype: bool,
+    pub call_conv: CallConvKind,
     pub target: T,
 }
 

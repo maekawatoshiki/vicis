@@ -1,5 +1,4 @@
 pub mod asm;
-pub mod calling_conv;
 pub mod instruction;
 pub mod lower;
 pub mod pass;
@@ -7,7 +6,7 @@ pub mod register;
 
 use super::Target;
 use crate::codegen::{
-    calling_conv::CallingConv,
+    call_conv::CallConvKind,
     module::Module,
     pass::regalloc,
     register::{Reg, RegUnit},
@@ -15,25 +14,12 @@ use crate::codegen::{
 };
 
 #[derive(Copy, Clone)]
-pub struct X86_64<CC: CallingConv<register::RegClass>> {
-    lower: x86_64::lower::Lower,
-    calling_conv: CC,
-}
+pub struct X86_64;
 
-impl<CC: CallingConv<register::RegClass>> X86_64<CC> {
-    pub fn new(calling_conv: CC) -> Self {
-        Self {
-            lower: x86_64::lower::Lower::new(),
-            calling_conv,
-        }
-    }
-}
-
-impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
+impl Target for X86_64 {
     type InstData = instruction::InstructionData;
     type Lower = x86_64::lower::Lower;
     type RegClass = register::RegClass;
-    type CallingConv = CC;
 
     fn module_pass() -> Vec<fn(&mut Module<Self>)> {
         vec![
@@ -47,5 +33,9 @@ impl<CC: CallingConv<register::RegClass>> Target for X86_64<CC> {
 
     fn to_reg_unit(r: Reg) -> RegUnit {
         register::to_reg_unit(r)
+    }
+
+    fn default_call_conv() -> CallConvKind {
+        CallConvKind::SystemV
     }
 }

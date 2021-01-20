@@ -1,11 +1,10 @@
 use crate::codegen::{
-    calling_conv::CallingConv,
     function::instruction::Instruction as MachInstruction,
     lower::{Lower as LowerTrait, LoweringContext},
     register::VReg,
     target::x86_64::{
         instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},
-        register::{RegClass, GR32},
+        register::GR32,
         X86_64,
     },
 };
@@ -29,13 +28,13 @@ impl Lower {
     }
 }
 
-impl<CC: CallingConv<RegClass>> LowerTrait<X86_64<CC>> for Lower {
-    fn lower(ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
+impl LowerTrait<X86_64> for Lower {
+    fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
         lower(ctx, inst)
     }
 }
 
-fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst: &IrInstruction) {
+fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
     match inst.operand {
         Operand::Alloca {
             ref tys,
@@ -67,8 +66,8 @@ fn lower<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, inst:
     }
 }
 
-fn lower_alloca<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
+fn lower_alloca(
+    ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     tys: &[TypeId],
     _num_elements: &ConstantData,
@@ -78,8 +77,8 @@ fn lower_alloca<CC: CallingConv<RegClass>>(
     ctx.inst_id_to_slot_id.insert(id, slot_id);
 }
 
-fn lower_phi<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
+fn lower_phi(
+    ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     ty: TypeId,
     args: &[ValueId],
@@ -105,8 +104,8 @@ fn lower_phi<CC: CallingConv<RegClass>>(
     }));
 }
 
-fn lower_load<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
+fn lower_load(
+    ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     tys: &[TypeId],
     addr: ValueId,
@@ -140,12 +139,7 @@ fn lower_load<CC: CallingConv<RegClass>>(
     todo!()
 }
 
-fn lower_store<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    tys: &[TypeId],
-    args: &[ValueId],
-    _align: u32,
-) {
+fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueId], _align: u32) {
     let mut slot = None;
 
     match ctx.ir_data.value_ref(args[1]) {
@@ -200,12 +194,7 @@ fn lower_store<CC: CallingConv<RegClass>>(
     }
 }
 
-fn lower_add<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    id: InstructionId,
-    ty: TypeId,
-    args: &[ValueId],
-) {
+fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, args: &[ValueId]) {
     let lhs;
     let rhs = ctx.ir_data.value_ref(args[1]);
     let output;
@@ -217,7 +206,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
         panic!();
     };
 
-    let insert_move = |ctx: &mut LoweringContext<X86_64<CC>>| {
+    let insert_move = |ctx: &mut LoweringContext<X86_64>| {
         ctx.inst_seq.push(MachInstruction {
             id: None,
             data: InstructionData {
@@ -264,7 +253,7 @@ fn lower_add<CC: CallingConv<RegClass>>(
     todo!()
 }
 
-fn lower_br<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, block: BasicBlockId) {
+fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) {
     ctx.inst_seq.push(MachInstruction {
         id: None,
         data: InstructionData {
@@ -274,11 +263,7 @@ fn lower_br<CC: CallingConv<RegClass>>(ctx: &mut LoweringContext<X86_64<CC>>, bl
     })
 }
 
-fn lower_condbr<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    arg: ValueId,
-    blocks: [BasicBlockId; 2],
-) {
+fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicBlockId; 2]) {
     fn is_icmp<'a>(
         data: &'a IrData,
         val: &Value,
@@ -339,8 +324,8 @@ fn lower_condbr<CC: CallingConv<RegClass>>(
     todo!()
 }
 
-fn lower_call<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
+fn lower_call(
+    ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     tys: &[TypeId],
     args: &[ValueId],
@@ -377,11 +362,7 @@ fn lower_call<CC: CallingConv<RegClass>>(
     }));
 }
 
-fn lower_return<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    ty: TypeId,
-    value: ValueId,
-) {
+fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) {
     let value = ctx.ir_data.value_ref(value);
     match value {
         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
@@ -426,8 +407,8 @@ fn lower_return<CC: CallingConv<RegClass>>(
 // If the instruction must be placed in another block except the current block(, which means
 // the instruction output must live out from its parent basic block to the current block),
 // just create a new virtual register to store the instruction output.
-fn get_or_generate_inst_output<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
+fn get_or_generate_inst_output(
+    ctx: &mut LoweringContext<X86_64>,
     ty: TypeId,
     id: InstructionId,
 ) -> VReg {
@@ -447,11 +428,7 @@ fn get_or_generate_inst_output<CC: CallingConv<RegClass>>(
     get_or_generate_inst_output(ctx, ty, id)
 }
 
-fn new_empty_inst_output<CC: CallingConv<RegClass>>(
-    ctx: &mut LoweringContext<X86_64<CC>>,
-    ty: TypeId,
-    id: InstructionId,
-) -> VReg {
+fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: InstructionId) -> VReg {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
         return *vreg;
     }
