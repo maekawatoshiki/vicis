@@ -1,8 +1,5 @@
 use vicis::{
-    codegen::{
-        lower::convert_module,
-        target::x86_64::{calling_conv::SystemV, X86_64},
-    },
+    codegen::{lower::convert_module, target::x86_64::X86_64},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::module,
 };
@@ -29,7 +26,7 @@ attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         "  .text
@@ -76,7 +73,7 @@ attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         "  .text
@@ -123,7 +120,7 @@ attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         "  .text
@@ -205,7 +202,7 @@ attributes #0 = { noinline nounwind optnone uwtable  }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         r#"  .text
@@ -283,7 +280,7 @@ attributes #0 = { noinline nounwind uwtable }
     let module = module::parse_assembly(asm).unwrap();
     println!("{:?}", module);
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         r#"  .text
@@ -354,7 +351,7 @@ attributes #0 = { noinline nounwind uwtable }
     let module = module::parse_assembly(asm).unwrap();
     println!("{:?}", module);
     // let main = module.find_function_by_name("main").unwrap();
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     assert_eq!(
         format!("{}", mach_module),
         r#"  .text
@@ -401,7 +398,7 @@ define dso_local i32 @main() #0 {
     "#;
     let module = module::parse_assembly(asm).unwrap();
     println!("{:?}", module);
-    let mach_module = convert_module(X86_64::new(SystemV), module);
+    let mach_module = convert_module(X86_64, module);
     println!("{}", format!("{}", mach_module));
     assert_eq!(
         format!("{}", mach_module),
@@ -431,12 +428,31 @@ main:
 }
 
 // #[test]
+// fn call2() {
+//     let asm = r#"
+// define dso_local i32 @f(i32 %a) #0 {
+//   ret i32 %a
+// }
+//
+// ; Function Attrs: noinline nounwind optnone uwtable
+// define dso_local i32 @main() #0 {
+//   %1 = call i32 @f(i32 1)
+//   ret i32 %1
+// }
+//     "#;
+//     let module = module::parse_assembly(asm).unwrap();
+//     println!("{:?}", module);
+//     let mach_module = convert_module(X86_64, module);
+//     println!("{}", format!("{}", mach_module));
+// }
+
+// #[test]
 // fn run_file() {
 //     let path = "";
 //     let asm = include_str!(path);
 //     let module = module::parse_assembly(asm).unwrap();
 //     println!("{:?}", module);
 //     // let main = module.find_function_by_name("main").unwrap();
-//     let mach_module = convert_module(X86_64::new(SystemV), module);
+//     let mach_module = convert_module(X86_64, module);
 //     println!("{}", mach_module);
 // }
