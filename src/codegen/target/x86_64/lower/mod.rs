@@ -360,7 +360,7 @@ fn lower_call<CC: CallingConv<RegClass>>(
         Value::Constant(ConstantData::GlobalRef(Name::Name(name))) => name.clone(),
         _ => todo!(),
     };
-    let result_reg = GR32::EAX.into();
+    let result_reg = GR32::EAX.into(); // TODO: do not hard code
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
         opcode: Opcode::CALL,
         operands: vec![

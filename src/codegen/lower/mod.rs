@@ -15,7 +15,8 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
         instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId},
-        Data as IrData, Function as IrFunction,
+        Data as IrData,
+        Function as IrFunction, // Parameter,
     },
     module::Module as IrModule,
     types::Types,
@@ -25,8 +26,10 @@ use rustc_hash::FxHashMap;
 
 pub trait Lower<T: Target> {
     fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
+    // fn move_arg_to_vreg(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
 }
 
+// TODO: So confusing. Need refactoring.
 pub struct LoweringContext<'a, T: Target> {
     pub ir_data: &'a IrData,
     pub mach_data: &'a mut Data<T::InstData>,
@@ -96,6 +99,13 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
     let mut vregs = VRegs::new();
 
     for block_id in function.layout.block_iter() {
+        // TODO: if the current block is the entry block, move argument values into virtual
+        // registers.
+        // for (i, Parameter { name, ty }) in function.params.iter().enumerate() {
+        //     let r = vregs.add_vreg_data(*ty);
+        //     T::Lower::move_arg_to_vreg();
+        // }
+
         let mut inst_seq = vec![];
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
