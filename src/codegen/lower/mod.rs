@@ -1,4 +1,5 @@
 use super::{
+    call_conv::CallConvKind,
     function::{
         basic_block::BasicBlockId as MachBasicBlockId,
         data::Data,
@@ -15,8 +16,7 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
         instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId},
-        Data as IrData,
-        Function as IrFunction, // Parameter,
+        Data as IrData, Function as IrFunction, Parameter,
     },
     module::Module as IrModule,
     types::Types,
@@ -26,7 +26,7 @@ use rustc_hash::FxHashMap;
 
 pub trait Lower<T: Target> {
     fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
-    // fn move_arg_to_vreg(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
+    fn copy_args_to_vregs(ctx: &mut LoweringContext<T>, params: &[Parameter]);
 }
 
 // TODO: So confusing. Need refactoring.
@@ -35,11 +35,13 @@ pub struct LoweringContext<'a, T: Target> {
     pub mach_data: &'a mut Data<T::InstData>,
     pub slots: &'a mut Slots<T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
+    pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
     pub inst_seq: &'a mut Vec<MachInstruction<T::InstData>>,
     pub types: &'a Types,
     pub vregs: &'a mut VRegs,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
+    pub call_conv: CallConvKind,
     pub cur_block: IrBasicBlockId,
 }
 
@@ -73,7 +75,6 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
-
     // Create machine basic blocks
     for block_id in function.layout.block_iter() {
         let new_block_id = data.create_block();
@@ -96,17 +97,34 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
 
     let mut inst_id_to_slot_id = FxHashMap::default();
     let mut inst_id_to_vreg = FxHashMap::default();
+    let mut arg_idx_to_vreg = FxHashMap::default();
     let mut vregs = VRegs::new();
+    let call_conv = T::default_call_conv();
 
-    for block_id in function.layout.block_iter() {
-        // TODO: if the current block is the entry block, move argument values into virtual
-        // registers.
-        // for (i, Parameter { name, ty }) in function.params.iter().enumerate() {
-        //     let r = vregs.add_vreg_data(*ty);
-        //     T::Lower::move_arg_to_vreg();
-        // }
-
+    for (i, block_id) in function.layout.block_iter().enumerate() {
         let mut inst_seq = vec![];
+
+        // entry block
+        if i == 0 {
+            T::Lower::copy_args_to_vregs(
+                &mut LoweringContext {
+                    ir_data: &function.data,
+                    mach_data: &mut data,
+                    slots: &mut slots,
+                    inst_id_to_slot_id: &mut inst_id_to_slot_id,
+                    inst_seq: &mut inst_seq,
+                    arg_idx_to_vreg: &mut arg_idx_to_vreg,
+                    types: &function.types,
+                    vregs: &mut vregs,
+                    inst_id_to_vreg: &mut inst_id_to_vreg,
+                    block_map: &block_map,
+                    call_conv,
+                    cur_block: block_id,
+                },
+                &function.params,
+            );
+        }
+
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
@@ -128,10 +146,12 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
                     slots: &mut slots,
                     inst_id_to_slot_id: &mut inst_id_to_slot_id,
                     inst_seq: &mut inst_seq,
+                    arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     vregs: &mut vregs,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
                     block_map: &block_map,
+                    call_conv,
                     cur_block: block_id,
                 },
                 inst,
@@ -157,6 +177,6 @@ pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunct
         types: function.types,
         is_prototype: function.is_prototype,
         target,
-        call_conv: T::default_call_conv(),
+        call_conv,
     }
 }

@@ -71,8 +71,8 @@ impl RegisterClass for RegClass {
         }
     }
 
-    fn gpr_list_for(rc: &Self) -> Vec<Reg> {
-        match rc {
+    fn gpr_list(&self) -> Vec<Reg> {
+        match self {
             // TODO: Add more general-purpose registers
             RegClass::GR32 => vec![GR32::EAX, GR32::ECX, GR32::EDX]
                 .into_iter()
@@ -86,15 +86,54 @@ impl RegisterClass for RegClass {
         }
     }
 
-    fn arg_reg_list_for(_rc: &Self, _cc: &CallConvKind) -> Vec<Reg> {
-        todo!()
+    fn arg_reg_list(&self, cc: &CallConvKind) -> Vec<Reg> {
+        match cc {
+            CallConvKind::SystemV => match self {
+                Self::GR32 => vec![
+                    GR32::EDI,
+                    GR32::ESI,
+                    GR32::EDX,
+                    GR32::ECX,
+                    GR32::R8D,
+                    GR32::R9D,
+                ]
+                .into_iter()
+                .map(|r| r.into())
+                .collect(),
+                Self::GR64 => vec![
+                    GR64::RDI,
+                    GR64::RSI,
+                    GR64::RDX,
+                    GR64::RCX,
+                    GR64::R8,
+                    GR64::R9,
+                ]
+                .into_iter()
+                .map(|r| r.into())
+                .collect(),
+            },
+        }
+    }
+
+    fn arg_reg_unit_list(&self, cc: &CallConvKind) -> Vec<RegUnit> {
+        self.arg_reg_list(cc)
+            .into_iter()
+            .map(|r| to_reg_unit(r))
+            .collect()
+    }
+
+    fn apply_for(&self, ru: RegUnit) -> Reg {
+        match self {
+            Self::GR32 => Reg(0, ru.1),
+            Self::GR64 => Reg(1, ru.1),
+        }
     }
 }
 
 pub fn to_reg_unit(r: Reg) -> RegUnit {
     match r {
-        Reg(/*GR32*/ 0, x) => RegUnit(0, x),
-        Reg(/*GR64*/ 1, x) => RegUnit(0, x),
+        Reg(/*GR32*/ 0, x) => RegUnit(1, x),
+        Reg(/*GR64*/ 1, x) => RegUnit(1, x),
         _ => todo!(),
     }
 }

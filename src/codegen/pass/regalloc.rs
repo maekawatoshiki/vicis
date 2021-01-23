@@ -46,10 +46,8 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let availables = T::RegClass::gpr_list_for(&T::RegClass::for_type(
-            &function.types,
-            function.vregs.type_for(vreg),
-        ));
+        let availables =
+            T::RegClass::for_type(&function.types, function.vregs.type_for(vreg)).gpr_list();
         for reg in availables {
             let reg_unit = T::to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
