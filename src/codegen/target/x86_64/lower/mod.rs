@@ -326,20 +326,20 @@ fn lower_call(
     let gpru = RegClass::GR64.arg_reg_unit_list(&ctx.call_conv);
     let mut gpr_used = 0;
     for (&arg, &ty) in args[1..].iter().zip(tys[1..].iter()) {
-        match &ctx.ir_data.values[arg] {
-            Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
-                let r = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
-                gpr_used += 1;
-                ctx.inst_seq.push(MachInstruction {
-                    id: None,
-                    data: InstructionData {
-                        opcode: Opcode::MOVri32,
-                        operands: vec![MOperand::output(r.into()), MOperand::input(i.into())],
-                    },
-                });
-            }
-            _ => todo!(),
-        }
+        let arg = val_to_operand_data(ctx, ty, arg);
+        let r = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
+        gpr_used += 1;
+        ctx.inst_seq.push(MachInstruction {
+            id: None,
+            data: InstructionData {
+                opcode: match &arg {
+                    OperandData::Int32(_) => Opcode::MOVri32,
+                    OperandData::VReg(_) | OperandData::Reg(_) => Opcode::MOVrr32,
+                    _ => todo!(),
+                },
+                operands: vec![MOperand::output(r.into()), MOperand::input(arg.into())],
+            },
+        });
     }
 
     let name = match &ctx.ir_data.values[args[0]] {
