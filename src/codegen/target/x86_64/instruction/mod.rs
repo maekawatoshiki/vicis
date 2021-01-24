@@ -246,3 +246,27 @@ impl OperandData {
         }
     }
 }
+
+impl Into<OperandData> for VReg {
+    fn into(self) -> OperandData {
+        OperandData::VReg(self)
+    }
+}
+
+impl Into<OperandData> for Reg {
+    fn into(self) -> OperandData {
+        OperandData::Reg(self)
+    }
+}
+
+impl Into<OperandData> for i32 {
+    fn into(self) -> OperandData {
+        OperandData::Int32(self)
+    }
+}
+
+impl Into<OperandData> for &i32 {
+    fn into(self) -> OperandData {
+        OperandData::Int32(*self)
+    }
+}

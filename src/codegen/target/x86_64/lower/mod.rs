@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
     lower::{Lower as LowerTrait, LoweringContext},
-    register::{RegisterClass, VReg},
+    register::{Reg, RegisterClass, VReg},
     target::x86_64::{
         instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},
         register::{RegClass, GR32},
@@ -41,15 +41,13 @@ impl LowerTrait<X86_64> for Lower {
             gpr_used += 1;
             debug!(reg);
             // Copy reg to new vreg
+            assert!(*ctx.types.get(*ty) == Type::Int(32));
             let output = ctx.vregs.add_vreg_data(*ty);
             ctx.inst_seq.push(MachInstruction {
                 id: None,
                 data: InstructionData {
                     opcode: Opcode::MOVrr32,
-                    operands: vec![
-                        MOperand::output(OperandData::VReg(output)),
-                        MOperand::input(OperandData::Reg(reg)),
-                    ],
+                    operands: vec![MOperand::output(output.into()), MOperand::input(reg.into())],
                 },
             });
             ctx.arg_idx_to_vreg.insert(i, output);
@@ -108,17 +106,9 @@ fn lower_phi(
     blocks: &[BasicBlockId],
 ) {
     let output = new_empty_inst_output(ctx, ty, id);
-    let mut operands = vec![MOperand::output(OperandData::VReg(output))];
+    let mut operands = vec![MOperand::output(output.into())];
     for (arg, block) in args.iter().zip(blocks.iter()) {
-        operands.push(match ctx.ir_data.value_ref(*arg) {
-            Value::Instruction(id) => {
-                MOperand::input(OperandData::VReg(get_or_generate_inst_output(ctx, ty, *id)))
-            }
-            Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
-                MOperand::new(OperandData::Int32(*i))
-            }
-            _ => todo!(),
-        });
+        operands.push(MOperand::input(val_to_operand_data(ctx, ty, *arg)));
         operands.push(MOperand::new(OperandData::Block(ctx.block_map[block])))
     }
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
@@ -151,7 +141,7 @@ fn lower_load(
             ctx.inst_seq.push(MachInstruction::new(InstructionData {
                 opcode: Opcode::MOVrm32,
                 operands: vec![
-                    MOperand::output(OperandData::VReg(output)),
+                    MOperand::output(output.into()),
                     MOperand::input(OperandData::Mem(MemoryOperand::Slot(slot))),
                 ],
             }));
@@ -166,6 +156,7 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
     let mut slot = None;
 
     match ctx.ir_data.value_ref(args[1]) {
+        // Maybe Alloca
         Value::Instruction(id) => {
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
                 slot = Some(*slot_id);
@@ -191,7 +182,7 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
                     opcode: Opcode::MOVmi32,
                     operands: vec![
                         MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
-                        MOperand::input(OperandData::VReg(inst)),
+                        MOperand::input(inst.into()),
                     ],
                 })]);
             return;
@@ -207,7 +198,7 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
                     opcode: Opcode::MOVmi32,
                     operands: vec![
                         MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
-                        MOperand::input(OperandData::Int32(imm)),
+                        MOperand::input(imm.into()),
                     ],
                 },
             }]);
@@ -218,62 +209,46 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
 }
 
 fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, args: &[ValueId]) {
-    let lhs;
-    let rhs = ctx.ir_data.value_ref(args[1]);
-    let output;
-
-    if let Value::Instruction(l) = ctx.ir_data.value_ref(args[0]) {
-        lhs = get_or_generate_inst_output(ctx, ty, *l);
-        output = new_empty_inst_output(ctx, ty, id);
-    } else {
-        panic!();
-    };
+    let lhs = val_to_vreg(ctx, ty, args[0]);
+    let output = new_empty_inst_output(ctx, ty, id);
 
     let insert_move = |ctx: &mut LoweringContext<X86_64>| {
         ctx.inst_seq.push(MachInstruction {
             id: None,
             data: InstructionData {
                 opcode: Opcode::MOVrr32,
-                operands: vec![
-                    MOperand::output(OperandData::VReg(output)),
-                    MOperand::input(OperandData::VReg(lhs)),
-                ],
+                operands: vec![MOperand::output(output.into()), MOperand::input(lhs.into())],
             },
         })
     };
 
-    if let Value::Instruction(rhs) = rhs {
-        let rhs = get_or_generate_inst_output(ctx, ty, *rhs);
-        insert_move(ctx);
-        ctx.inst_seq.push(MachInstruction {
-            id: None,
-            data: InstructionData {
+    let rhs = val_to_operand_data(ctx, ty, args[1]);
+
+    let data = match rhs {
+        OperandData::Int32(rhs) => {
+            insert_move(ctx);
+            InstructionData {
+                opcode: Opcode::ADDri32,
+                operands: vec![
+                    MOperand::input_output(output.into()),
+                    MOperand::new(rhs.into()),
+                ],
+            }
+        }
+        OperandData::VReg(rhs) => {
+            insert_move(ctx);
+            InstructionData {
                 opcode: Opcode::ADDrr32,
                 operands: vec![
-                    MOperand::input_output(OperandData::VReg(output)),
-                    MOperand::input(OperandData::VReg(rhs)),
+                    MOperand::input_output(output.into()),
+                    MOperand::input(rhs.into()),
                 ],
-            },
-        });
-        return;
-    }
+            }
+        }
+        _ => todo!(),
+    };
 
-    if let Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))) = rhs {
-        insert_move(ctx);
-        ctx.inst_seq.push(MachInstruction {
-            id: None,
-            data: InstructionData {
-                opcode: Opcode::ADDrr32,
-                operands: vec![
-                    MOperand::input_output(OperandData::VReg(output)),
-                    MOperand::new(OperandData::Int32(*rhs)),
-                ],
-            },
-        });
-        return;
-    }
-
-    todo!()
+    ctx.inst_seq.push(MachInstruction { id: None, data });
 }
 
 fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) {
@@ -306,20 +281,13 @@ fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicB
     let arg = ctx.ir_data.value_ref(arg);
 
     if let Some((ty, args, cond)) = is_icmp(ctx.ir_data, arg) {
-        let lhs = ctx.ir_data.value_ref(args[0]);
+        let lhs = val_to_vreg(ctx, *ty, args[0]);
         let rhs = ctx.ir_data.value_ref(args[1]);
-        match (lhs, rhs) {
-            (
-                Value::Instruction(lhs),
-                Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))),
-            ) => {
-                let lhs = get_or_generate_inst_output(ctx, *ty, *lhs);
+        match rhs {
+            Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))) => {
                 ctx.inst_seq.push(MachInstruction::new(InstructionData {
                     opcode: Opcode::CMPri32,
-                    operands: vec![
-                        MOperand::input(OperandData::VReg(lhs)),
-                        MOperand::new(OperandData::Int32(*rhs)),
-                    ],
+                    operands: vec![MOperand::input(lhs.into()), MOperand::new(rhs.into())],
                 }));
             }
             _ => todo!(),
@@ -366,10 +334,7 @@ fn lower_call(
                     id: None,
                     data: InstructionData {
                         opcode: Opcode::MOVri32,
-                        operands: vec![
-                            MOperand::output(OperandData::Reg(r)),
-                            MOperand::input(OperandData::Int32(*i)),
-                        ],
+                        operands: vec![MOperand::output(r.into()), MOperand::input(i.into())],
                     },
                 });
             }
@@ -381,66 +346,36 @@ fn lower_call(
         Value::Constant(ConstantData::GlobalRef(Name::Name(name))) => name.clone(),
         _ => todo!(),
     };
-    let result_reg = GR32::EAX.into(); // TODO: do not hard code
+    let result_reg: Reg = GR32::EAX.into(); // TODO: do not hard code
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
         opcode: Opcode::CALL,
         operands: vec![
-            MOperand::implicit_output(OperandData::Reg(result_reg)),
+            MOperand::implicit_output(result_reg.into()),
             MOperand::new(OperandData::Label(name)),
         ],
     }));
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
         opcode: Opcode::MOVrr32,
         operands: vec![
-            MOperand::output(OperandData::VReg(output)),
-            MOperand::input(OperandData::Reg(result_reg)),
+            MOperand::output(output.into()),
+            MOperand::input(result_reg.into()),
         ],
     }));
 }
 
 fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) {
-    let value = ctx.ir_data.value_ref(value);
-    match value {
-        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
-            ctx.inst_seq.push(MachInstruction {
-                id: None,
-                data: InstructionData {
-                    opcode: Opcode::MOVri32,
-                    operands: vec![
-                        MOperand::output(OperandData::Reg(GR32::EAX.into())),
-                        MOperand::input(OperandData::Int32(*i)),
-                    ],
-                },
-            });
-        }
-        Value::Instruction(id) => {
-            assert!(*ctx.types.get(ty) == Type::Int(32));
-            let output = get_or_generate_inst_output(ctx, ty, *id);
-            ctx.inst_seq.push(MachInstruction {
-                id: None,
-                data: InstructionData {
-                    opcode: Opcode::MOVrr32,
-                    operands: vec![
-                        MOperand::output(OperandData::Reg(GR32::EAX.into())),
-                        MOperand::input(OperandData::VReg(output)),
-                    ],
-                },
-            });
-        }
-        Value::Argument(idx) => {
-            ctx.inst_seq.push(MachInstruction {
-                id: None,
-                data: InstructionData {
-                    opcode: Opcode::MOVrr32,
-                    operands: vec![
-                        MOperand::output(OperandData::Reg(GR32::EAX.into())),
-                        MOperand::input(OperandData::VReg(ctx.arg_idx_to_vreg[idx])),
-                    ],
-                },
-            });
-        }
-        _ => todo!(),
-    }
+    let vreg = val_to_vreg(ctx, ty, value);
+    assert!(*ctx.types.get(ty) == Type::Int(32));
+    ctx.inst_seq.push(MachInstruction {
+        id: None,
+        data: InstructionData {
+            opcode: Opcode::MOVrr32,
+            operands: vec![
+                MOperand::output(OperandData::Reg(GR32::EAX.into())),
+                MOperand::input(vreg.into()),
+            ],
+        },
+    });
     ctx.inst_seq.push(MachInstruction {
         id: None,
         data: InstructionData {
@@ -483,4 +418,31 @@ fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: Inst
     let vreg = ctx.vregs.add_vreg_data(ty);
     ctx.inst_id_to_vreg.insert(id, vreg);
     vreg
+}
+
+fn val_to_operand_data(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> OperandData {
+    match ctx.ir_data.values[val] {
+        Value::Instruction(id) => get_or_generate_inst_output(ctx, ty, id).into(),
+        Value::Argument(idx) => ctx.arg_idx_to_vreg[&idx].into(),
+        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => OperandData::Int32(i),
+        _ => todo!(),
+    }
+}
+
+fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> VReg {
+    match val_to_operand_data(ctx, ty, val) {
+        OperandData::Int32(i) => {
+            let output = ctx.vregs.add_vreg_data(ty);
+            ctx.inst_seq.push(MachInstruction {
+                id: None,
+                data: InstructionData {
+                    opcode: Opcode::MOVri32,
+                    operands: vec![MOperand::output(output.into()), MOperand::new(i.into())],
+                },
+            });
+            output
+        }
+        OperandData::VReg(vr) => vr,
+        _ => todo!(),
+    }
 }
