@@ -46,9 +46,6 @@ fn run_on_module(module: &Module) {
 }
 
 fn run_on_function(func: &Function) {
-    let mut worklist = vec![];
-    let mut elimination_list = vec![];
-
     for block_id in func.layout.block_iter() {
         for inst_id in func.layout.inst_iter(block_id) {
             let inst = func.data.inst_ref(inst_id);
@@ -85,7 +82,7 @@ let asm = r#"
 let module = module::parse_assembly(asm).unwrap();
 
 // Compile the module for x86 and get a machine module
-let mach_module = convert_module(X86_64::new(SystemV), module);
+let mach_module = convert_module(X86_64, module);
 
 // Display the machine module as assembly
 assert_eq!(
