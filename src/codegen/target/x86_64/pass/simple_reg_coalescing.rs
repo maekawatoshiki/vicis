@@ -1,10 +1,8 @@
 use crate::codegen::{
     function::Function,
     module::Module,
-    target::{
-        x86_64::{instruction::Opcode, X86_64},
-        Target,
-    },
+    register::RegisterInfo,
+    target::x86_64::{instruction::Opcode, register::RegInfo, X86_64},
 };
 
 pub fn run_on_module(module: &mut Module<X86_64>) {
@@ -21,8 +19,8 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
             let inst = function.data.inst_ref(inst_id);
             match inst.data.opcode {
                 Opcode::MOVrr32 | Opcode::MOVrr64
-                    if X86_64::to_reg_unit(*inst.data.operands[0].data.as_reg())
-                        == X86_64::to_reg_unit(*inst.data.operands[1].data.as_reg()) =>
+                    if RegInfo::to_reg_unit(*inst.data.operands[0].data.as_reg())
+                        == RegInfo::to_reg_unit(*inst.data.operands[1].data.as_reg()) =>
                 {
                     worklist.push(inst_id)
                 }

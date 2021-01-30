@@ -5,15 +5,15 @@ use crate::codegen::{
     function::instruction::InstructionData,
     lower,
     module::Module,
-    register::{Reg, RegUnit, RegisterClass},
+    register::{RegisterClass, RegisterInfo},
 };
 
 pub trait Target: Copy {
     type InstData: ::std::fmt::Debug + InstructionData;
     type RegClass: RegisterClass;
+    type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;
 
     fn module_pass() -> Vec<fn(&mut Module<Self>)>;
-    fn to_reg_unit(r: Reg) -> RegUnit;
     fn default_call_conv() -> CallConvKind;
 }

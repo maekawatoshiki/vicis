@@ -2,7 +2,7 @@ use crate::codegen::{
     function::{instruction::InstructionData, Function},
     module::Module,
     pass::liveness,
-    register::{Reg, RegisterClass, VReg},
+    register::{Reg, RegisterClass, RegisterInfo, VReg},
     target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -49,7 +49,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
         let availables =
             T::RegClass::for_type(&function.types, function.vregs.type_for(vreg)).gpr_list();
         for reg in availables {
-            let reg_unit = T::to_reg_unit(reg);
+            let reg_unit = T::RegInfo::to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];
             let lrs2 = liveness
                 .reg_lrs_map

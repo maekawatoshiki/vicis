@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 pub struct Reg(pub u16, pub u16);
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
-pub struct RegUnit(pub u16, pub u16); // Same as top-level register. TODO: This is not actually register unit
+pub struct RegUnit(pub u16, pub u16); // Same as top-level register
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VReg(pub u32);
@@ -24,11 +24,14 @@ pub struct VRegData {
     // ...
 }
 
+pub trait RegisterInfo {
+    fn arg_reg_list(cc: &CallConvKind) -> &'static [RegUnit];
+    fn to_reg_unit(reg: Reg) -> RegUnit;
+}
+
 pub trait RegisterClass {
     fn for_type(types: &Types, id: TypeId) -> Self;
     fn gpr_list(&self) -> Vec<Reg>;
-    fn arg_reg_list(&self, cc: &CallConvKind) -> Vec<Reg>;
-    fn arg_reg_unit_list(&self, cc: &CallConvKind) -> Vec<RegUnit>;
     fn apply_for(&self, ru: RegUnit) -> Reg;
 }
 

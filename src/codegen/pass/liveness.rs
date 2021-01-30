@@ -5,7 +5,7 @@ use crate::codegen::{
         Function,
     },
     // module::Module,
-    register::{RegUnit, VReg},
+    register::{RegUnit, RegisterInfo, VReg},
     target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -160,7 +160,7 @@ impl Liveness {
                 }
                 for input in inst.data.input_regs() {
                     local_reg_lr_map
-                        .get_mut(&T::to_reg_unit(input))
+                        .get_mut(&T::RegInfo::to_reg_unit(input))
                         .unwrap()
                         .0
                         .last_mut()
@@ -180,7 +180,7 @@ impl Liveness {
                 }
                 for output in inst.data.output_regs() {
                     local_reg_lr_map
-                        .entry(T::to_reg_unit(output))
+                        .entry(T::RegInfo::to_reg_unit(output))
                         .or_insert(LiveRanges(vec![]))
                         .0
                         .push(LiveRange {
@@ -262,7 +262,7 @@ impl Liveness {
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
                 .reg_def
-                .insert(T::to_reg_unit(output));
+                .insert(T::RegInfo::to_reg_unit(output));
         }
     }
 
@@ -285,7 +285,7 @@ impl Liveness {
             self.propagate_vreg(func, input, block_id);
         }
         for input in inst.data.input_regs() {
-            self.propagate_reg(func, T::to_reg_unit(input), block_id);
+            self.propagate_reg(func, T::RegInfo::to_reg_unit(input), block_id);
         }
     }
 

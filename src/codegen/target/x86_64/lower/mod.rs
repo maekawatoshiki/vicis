@@ -1,10 +1,10 @@
 use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
     lower::{Lower as LowerTrait, LoweringContext},
-    register::{Reg, RegisterClass, VReg},
+    register::{Reg, RegisterClass, RegisterInfo, VReg},
     target::x86_64::{
         instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},
-        register::{RegClass, GR32},
+        register::{RegClass, RegInfo, GR32},
         X86_64,
     },
 };
@@ -35,7 +35,7 @@ impl LowerTrait<X86_64> for Lower {
 
     fn copy_args_to_vregs(ctx: &mut LoweringContext<X86_64>, params: &[Parameter]) {
         let mut gpr_used = 0;
-        let args = RegClass::GR64.arg_reg_unit_list(&ctx.call_conv);
+        let args = RegInfo::arg_reg_list(&ctx.call_conv);
         for (i, Parameter { name: _, ty }) in params.iter().enumerate() {
             let reg = args[gpr_used].apply(&RegClass::for_type(ctx.types, *ty));
             gpr_used += 1;
@@ -323,7 +323,7 @@ fn lower_call(
 ) {
     let output = new_empty_inst_output(ctx, tys[0], id);
 
-    let gpru = RegClass::GR64.arg_reg_unit_list(&ctx.call_conv);
+    let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
     let mut gpr_used = 0;
     for (&arg, &ty) in args[1..].iter().zip(tys[1..].iter()) {
         let arg = val_to_operand_data(ctx, ty, arg);

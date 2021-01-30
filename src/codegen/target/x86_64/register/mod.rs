@@ -1,11 +1,13 @@
 use crate::{
     codegen::{
         call_conv::CallConvKind,
-        register::{Reg, RegUnit, RegisterClass},
+        register::{Reg, RegUnit, RegisterClass, RegisterInfo},
     },
     ir::types::{Type, TypeId, Types},
 };
 use std::fmt;
+
+pub struct RegInfo;
 
 pub enum GR32 {
     EAX,
@@ -52,13 +54,50 @@ pub enum RegClass {
 
 impl Into<Reg> for GR32 {
     fn into(self) -> Reg {
-        Reg(0, self as u16)
+        Reg(RegClass::GR32 as u16, self as u16)
     }
 }
 
 impl Into<Reg> for GR64 {
     fn into(self) -> Reg {
-        Reg(1, self as u16)
+        Reg(RegClass::GR64 as u16, self as u16)
+    }
+}
+
+impl Into<RegUnit> for GR32 {
+    fn into(self) -> RegUnit {
+        RegUnit(RegClass::GR64 as u16, self as u16)
+    }
+}
+
+impl Into<RegUnit> for GR64 {
+    fn into(self) -> RegUnit {
+        RegUnit(RegClass::GR64 as u16, self as u16)
+    }
+}
+
+const ARG_REGS: [RegUnit; 6] = [
+    RegUnit(RegClass::GR64 as u16, GR64::RDI as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::RSI as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::RDX as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::RCX as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R8 as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R9 as u16),
+];
+
+impl RegisterInfo for RegInfo {
+    fn arg_reg_list(cc: &CallConvKind) -> &'static [RegUnit] {
+        match cc {
+            CallConvKind::SystemV => &ARG_REGS,
+        }
+    }
+
+    fn to_reg_unit(r: Reg) -> RegUnit {
+        match r {
+            Reg(/*GR32*/ 0, x) => RegUnit(RegClass::GR64 as u16, x),
+            Reg(/*GR64*/ 1, x) => RegUnit(RegClass::GR64 as u16, x),
+            _ => todo!(),
+        }
     }
 }
 
@@ -86,46 +125,10 @@ impl RegisterClass for RegClass {
         }
     }
 
-    fn arg_reg_list(&self, cc: &CallConvKind) -> Vec<Reg> {
-        match cc {
-            CallConvKind::SystemV => match self {
-                Self::GR32 => vec![
-                    GR32::EDI,
-                    GR32::ESI,
-                    GR32::EDX,
-                    GR32::ECX,
-                    GR32::R8D,
-                    GR32::R9D,
-                ]
-                .into_iter()
-                .map(|r| r.into())
-                .collect(),
-                Self::GR64 => vec![
-                    GR64::RDI,
-                    GR64::RSI,
-                    GR64::RDX,
-                    GR64::RCX,
-                    GR64::R8,
-                    GR64::R9,
-                ]
-                .into_iter()
-                .map(|r| r.into())
-                .collect(),
-            },
-        }
-    }
-
-    fn arg_reg_unit_list(&self, cc: &CallConvKind) -> Vec<RegUnit> {
-        self.arg_reg_list(cc)
-            .into_iter()
-            .map(|r| to_reg_unit(r))
-            .collect()
-    }
-
     fn apply_for(&self, ru: RegUnit) -> Reg {
         match self {
-            Self::GR32 => Reg(0, ru.1),
-            Self::GR64 => Reg(1, ru.1),
+            Self::GR32 => Reg(RegClass::GR32 as u16, ru.1),
+            Self::GR64 => Reg(RegClass::GR64 as u16, ru.1),
         }
     }
 }
