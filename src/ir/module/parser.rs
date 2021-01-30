@@ -124,14 +124,19 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
 
 #[test]
 fn parse_all_examples() {
+    use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
     use std::{fs, io::Write, process};
-    let paths = match fs::read_dir("./examples") {
-        Ok(paths) => paths,
-        Err(e) => panic!("{:?}", e.kind()),
-    };
+
+    let files_count = fs::read_dir("./examples")
+        .expect("Failed to open file")
+        .count() as u64;
+    let paths = fs::read_dir("./examples").unwrap();
+    let pb = ProgressBar::with_draw_target(files_count, ProgressDrawTarget::stdout());
+    pb.set_style(ProgressStyle::default_bar().template("{bar:60} {pos:>4}/{len:>4} {msg}"));
     for path in paths {
         println!("{:?}", path);
         let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
+        pb.set_message(name.as_str());
 
         let mut module = parse(&fs::read_to_string(name).unwrap()).unwrap();
         crate::ir::pass::dce::run_on_module(&mut module);
@@ -147,7 +152,9 @@ fn parse_all_examples() {
             .status()
             .unwrap()
             .success());
+        pb.inc(1);
     }
+    pb.finish();
 }
 
 #[test]
@@ -199,21 +206,21 @@ fn parse_module2() {
             Attribute::NoUnwind,
             Attribute::OptNone,
             Attribute::UWTable, 
-            Attribute::StringAttribute {kind: "correctly-rounded-divide-sqrt-fp-math".to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "disable-tail-calls"                   .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "frame-pointer"                        .to_string() , value: "all"                            .to_string()} ,
-            Attribute::StringAttribute {kind: "less-precise-fpmad"                   .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "min-legal-vector-width"               .to_string() , value: "0"                              .to_string()} ,
-            Attribute::StringAttribute {kind: "no-infs-fp-math"                      .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "no-jump-tables"                       .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "no-nans-fp-math"                      .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "no-signed-zeros-fp-math"              .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "no-trapping-math"                     .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "stack-protector-buffer-size"          .to_string() , value: "8"                              .to_string()} ,
-            Attribute::StringAttribute {kind: "target-cpu"                           .to_string() , value: "x86-64"                         .to_string()} ,
-            Attribute::StringAttribute {kind: "target-features"                      .to_string() , value: "+cx8,+fxsr,+mmx,+sse,+sse2,+x87".to_string()} ,
-            Attribute::StringAttribute {kind: "unsafe-fp-math"                       .to_string() , value: "false"                          .to_string()} ,
-            Attribute::StringAttribute {kind: "use-soft-float"                       .to_string() , value: "false"                          .to_string()} ,
+            Attribute::StringAttribute {kind: "correctly-rounded-divide-sqrt-fp-math".to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "disable-tail-calls"                   .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "frame-pointer"                        .to_string(), value: "all"                       .to_string()},
+            Attribute::StringAttribute {kind: "less-precise-fpmad"                   .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "min-legal-vector-width"               .to_string(), value: "0"                         .to_string()},
+            Attribute::StringAttribute {kind: "no-infs-fp-math"                      .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "no-jump-tables"                       .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "no-nans-fp-math"                      .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "no-signed-zeros-fp-math"              .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "no-trapping-math"                     .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "stack-protector-buffer-size"          .to_string(), value: "8"                         .to_string()},
+            Attribute::StringAttribute {kind: "target-cpu"                           .to_string(), value: "x86-64"                    .to_string()},
+            Attribute::StringAttribute {kind: "target-features"                      .to_string(), value: "+fxsr,+mmx,+sse,+sse2,+x87".to_string()},
+            Attribute::StringAttribute {kind: "unsafe-fp-math"                       .to_string(), value: "false"                     .to_string()},
+            Attribute::StringAttribute {kind: "use-soft-float"                       .to_string(), value: "false"                     .to_string()},
         ],
     )]
     .into_iter()
