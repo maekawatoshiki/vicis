@@ -20,8 +20,9 @@ jobs:
       with:
         toolchain: nightly
     - name: Install dependencies
+      env: 
+        ACCEPT_EULA: Y
       run:  |
-            export ACCEPT_EULA=Y && \
             sudo apt-get update && \
             sudo apt-get upgrade -y && \
             sudo apt-get install -y zlib1g-dev apt-utils && \
