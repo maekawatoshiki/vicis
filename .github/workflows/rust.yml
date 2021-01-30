@@ -26,7 +26,7 @@ jobs:
             sudo apt-get install -y zlib1g-dev apt-utils && \
             sudo apt-get install -y opt libedit-dev build-essential make && \
             sudo apt-get install -y cmake g++ clang pkg-config jq && \
-            sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev && \
+            ACCEPT_EULA=Y sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev && \
             cargo install cargo-kcov && \
             cargo kcov --print-install-kcov-sh | sh
     - name: Run tests
