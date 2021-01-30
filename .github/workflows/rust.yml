@@ -23,6 +23,7 @@ jobs:
       env: 
         ACCEPT_EULA: Y
       run:  |
+            rustup override set nightly
             sudo -E apt-get update && \
             sudo -E apt-get upgrade -y && \
             sudo -E apt-get install -y zlib1g-dev apt-utils && \
