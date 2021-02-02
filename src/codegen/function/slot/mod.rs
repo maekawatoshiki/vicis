@@ -25,9 +25,9 @@ impl<T: Target> Slots<T> {
         }
     }
 
-    pub fn add_slot(&mut self, ty: TypeId) -> SlotId {
+    pub fn add_slot(&mut self, ty: TypeId, size: u32) -> SlotId {
         self.arena.alloc(Slot {
-            size: 4,
+            size,
             ty,
             num_elements: 0,
             align: 0,

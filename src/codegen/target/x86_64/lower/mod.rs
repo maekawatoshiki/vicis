@@ -7,11 +7,14 @@ use crate::codegen::{
         register::{RegClass, RegInfo, GR32},
         X86_64,
     },
+    target::Target,
 };
 use crate::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{ICmpCond, Instruction as IrInstruction, InstructionId, Operand},
+        instruction::{
+            ICmpCond, Instruction as IrInstruction, InstructionId, Opcode as IrOpcode, Operand,
+        },
         Data as IrData, Parameter,
     },
     module::name::Name,
@@ -94,7 +97,9 @@ fn lower_alloca(
     _num_elements: &ConstantData,
     _align: u32,
 ) {
-    let slot_id = ctx.slots.add_slot(tys[0]);
+    let slot_id = ctx
+        .slots
+        .add_slot(tys[0], X86_64::type_size(ctx.types, tys[0]));
     ctx.inst_id_to_slot_id.insert(id, slot_id);
 }
 
@@ -156,10 +161,14 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
     let mut slot = None;
 
     match ctx.ir_data.value_ref(args[1]) {
-        // Maybe Alloca
         Value::Instruction(id) => {
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
+                // Maybe Alloca
                 slot = Some(*slot_id);
+            } else {
+                if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
+                    return lower_store_gep(ctx, tys, args, _align, *id);
+                }
             }
         }
         _ => todo!(),
@@ -206,6 +215,74 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
         }
         _ => todo!(),
     }
+}
+
+fn lower_store_gep(
+    ctx: &mut LoweringContext<X86_64>,
+    tys: &[TypeId],
+    args: &[ValueId],
+    _align: u32,
+    gep_id: InstructionId,
+) {
+    let gep = &ctx.ir_data.instructions[gep_id];
+
+    // The simplest pattern
+    if let &[base, idx0, idx1] = gep.operand.args() {
+        let _base_ty = gep.operand.types()[1];
+        let base = ctx.inst_id_to_slot_id[ctx.ir_data.values[base].as_inst()];
+
+        let idx0_ty = gep.operand.types()[2];
+        assert_eq!(*ctx.types.get(idx0_ty), Type::Int(64));
+        let idx0 = match ctx.ir_data.values[idx0] {
+            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx,
+            _ => todo!(),
+        };
+
+        let idx1_ty = gep.operand.types()[3];
+        assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
+        let idx1 = match ctx.ir_data.values[idx1] {
+            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx,
+            _ => todo!(),
+        };
+
+        // idx0 * (size of base_ty) + idx1 * (size of inner of base_ty)
+        let base_inner_ty = gep.operand.types()[0];
+        let offset = idx0 * X86_64::type_size(ctx.types, base_inner_ty) as i64
+            + idx1
+                * X86_64::type_size(ctx.types, ctx.types.get_element(base_inner_ty).unwrap())
+                    as i64;
+        debug!(offset);
+
+        let mut src_int = None;
+        let mut src_inst = None;
+
+        match ctx.ir_data.value_ref(args[0]) {
+            Value::Constant(ConstantData::Int(int)) => src_int = Some(*int),
+            Value::Instruction(id) => src_inst = Some(*id),
+            _ => todo!(),
+        }
+
+        if let Some(ConstantInt::Int32(int)) = src_int {
+            ctx.inst_seq
+                .append(&mut vec![MachInstruction::new(InstructionData {
+                    opcode: Opcode::MOVmi32,
+                    operands: vec![
+                        MOperand::output(OperandData::Mem(MemoryOperand::ImmSlot(
+                            offset as i32,
+                            base,
+                        ))),
+                        MOperand::new(int.into()),
+                    ],
+                })]);
+            return;
+        }
+
+        if let Some(inst) = src_inst {
+            let _src = get_or_generate_inst_output(ctx, tys[0], inst);
+            todo!();
+        }
+    }
+    todo!()
 }
 
 fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, args: &[ValueId]) {

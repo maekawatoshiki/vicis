@@ -39,6 +39,15 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
                         *mem_op = MemoryOperand::ImmReg(-(offset as i32), GR64::RBP.into());
                     }
                 }
+                MemoryOperand::ImmSlot(imm, id) => {
+                    if let Some(offset) = offset_map.get(id) {
+                        *mem_op = MemoryOperand::ImmReg(*imm - (*offset as i32), GR64::RBP.into());
+                    } else {
+                        offset += function.slots.get(*id).size;
+                        offset_map.insert(*id, offset);
+                        *mem_op = MemoryOperand::ImmReg(*imm - (offset as i32), GR64::RBP.into());
+                    }
+                }
                 _ => {}
             }
         }

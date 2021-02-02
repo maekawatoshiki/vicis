@@ -1,11 +1,14 @@
 pub mod x86_64;
 
-use crate::codegen::{
-    call_conv::CallConvKind,
-    function::instruction::InstructionData,
-    lower,
-    module::Module,
-    register::{RegisterClass, RegisterInfo},
+use crate::{
+    codegen::{
+        call_conv::CallConvKind,
+        function::instruction::InstructionData,
+        lower,
+        module::Module,
+        register::{RegisterClass, RegisterInfo},
+    },
+    ir::types::{TypeId, Types},
 };
 
 pub trait Target: Copy {
@@ -16,4 +19,5 @@ pub trait Target: Copy {
 
     fn module_pass() -> Vec<fn(&mut Module<Self>)>;
     fn default_call_conv() -> CallConvKind;
+    fn type_size(types: &Types, ty: TypeId) -> u32;
 }

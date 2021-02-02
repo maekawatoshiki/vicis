@@ -75,6 +75,11 @@ impl Types {
         RefMut::map(self.0.borrow_mut(), |base| &mut base.arena[id])
     }
 
+    // Get element type of pointer or array type
+    pub fn get_element(&self, id: TypeId) -> Option<TypeId> {
+        self.0.borrow().element(id)
+    }
+
     pub fn to_string(&self, ty: TypeId) -> String {
         self.base().to_string(ty)
     }
@@ -162,6 +167,16 @@ impl TypesBase {
                 num_elements,
             })))
             .clone()
+    }
+
+    pub fn element(&self, ty: TypeId) -> Option<TypeId> {
+        match self.arena[ty] {
+            Type::Void => None,
+            Type::Int(_) => None,
+            Type::Pointer(PointerType { inner, .. }) => Some(inner),
+            Type::Array(ArrayType { inner, .. }) => Some(inner),
+            Type::Function(_) => None,
+        }
     }
 
     pub fn to_string(&self, ty: TypeId) -> String {

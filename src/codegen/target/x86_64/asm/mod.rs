@@ -60,7 +60,7 @@ impl fmt::Display for MemoryOperand {
                     *imm
                 )
             }
-            Self::Slot(_) => panic!(),
+            Self::ImmSlot(_, _) | Self::Slot(_) => panic!(),
         }
     }
 }

@@ -50,6 +50,13 @@ pub enum ConstantExpr {
 }
 
 impl Value {
+    pub fn as_inst(&self) -> &InstructionId {
+        match self {
+            Self::Instruction(id) => id,
+            _ => panic!(),
+        }
+    }
+
     pub fn to_string(&self, _data: &Data, types: &Types) -> String {
         match self {
             Self::Constant(c) => c.to_string(types),

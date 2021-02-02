@@ -60,33 +60,36 @@ pub enum OperandData {
 pub enum MemoryOperand {
     Slot(SlotId),
     ImmReg(i32, Reg),
+    ImmSlot(i32, SlotId),
 }
 
 impl InstructionData {
-    pub fn mem_ops(&self) -> &[MemoryOperand] {
+    pub fn mem_ops(&self) -> Vec<&MemoryOperand> {
+        let mut output = vec![];
         for operand in &self.operands {
             match operand {
                 Operand {
                     data: OperandData::Mem(mem),
                     ..
-                } => return ::std::slice::from_ref(mem),
+                } => output.push(mem),
                 _ => {}
             }
         }
-        &[]
+        output
     }
 
-    pub fn mem_ops_mut(&mut self) -> &mut [MemoryOperand] {
+    pub fn mem_ops_mut(&mut self) -> Vec<&mut MemoryOperand> {
+        let mut output = vec![];
         for operand in &mut self.operands {
             match operand {
                 Operand {
                     data: OperandData::Mem(mem),
                     ..
-                } => return ::std::slice::from_mut(mem),
+                } => output.push(mem),
                 _ => {}
             }
         }
-        &mut []
+        output
     }
 }
 
@@ -95,6 +98,7 @@ impl MemoryOperand {
         match self {
             Self::Slot(_) => vec![],
             Self::ImmReg(_, _) => vec![],
+            Self::ImmSlot(_, _) => vec![],
         }
     }
 
@@ -102,6 +106,7 @@ impl MemoryOperand {
         match self {
             Self::Slot(_) => vec![],
             Self::ImmReg(_, r) => vec![*r],
+            Self::ImmSlot(_, _) => vec![],
         }
     }
 }
