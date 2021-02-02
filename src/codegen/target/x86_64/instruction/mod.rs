@@ -23,6 +23,7 @@ pub enum Opcode {
     MOVri32,
     MOVrm32,
     MOVmi32,
+    MOVmr32,
     CMPri32,
     JMP,
     JE,
@@ -61,6 +62,8 @@ pub enum MemoryOperand {
     Slot(SlotId),
     ImmReg(i32, Reg),
     ImmSlot(i32, SlotId),
+    // ImmRegRegShift(i32, Reg, Reg, i8),
+    // ImmSlotVRegShift(i32, SlotId,VReg,i8),
 }
 
 impl InstructionData {

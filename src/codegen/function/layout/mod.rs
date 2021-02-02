@@ -12,7 +12,7 @@ pub struct Layout<InstData: InstructionData> {
 }
 
 pub struct BasicBlockNode<InstData: InstructionData> {
-    prev: Option<BasicBlockId>,
+    _prev: Option<BasicBlockId>,
     next: Option<BasicBlockId>,
     first_inst: Option<InstructionId<InstData>>,
     last_inst: Option<InstructionId<InstData>>,
@@ -70,7 +70,7 @@ impl<InstData: InstructionData> Layout<InstData> {
 
     pub fn append_block(&mut self, block: BasicBlockId) {
         self.basic_blocks.entry(block).or_insert(BasicBlockNode {
-            prev: self.last_block,
+            _prev: self.last_block,
             next: None,
             first_inst: None,
             last_inst: None,
@@ -78,7 +78,7 @@ impl<InstData: InstructionData> Layout<InstData> {
 
         if let Some(last_block) = self.last_block {
             self.basic_blocks.get_mut(&last_block).unwrap().next = Some(block);
-            self.basic_blocks.get_mut(&block).unwrap().prev = Some(last_block);
+            self.basic_blocks.get_mut(&block).unwrap()._prev = Some(last_block);
         }
 
         self.last_block = Some(block);

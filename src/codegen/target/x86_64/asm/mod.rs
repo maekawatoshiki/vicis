@@ -88,6 +88,7 @@ impl fmt::Display for Opcode {
                 Self::MOVri32 => "mov",
                 Self::MOVrm32 => "mov",
                 Self::MOVmi32 => "mov",
+                Self::MOVmr32 => "mov",
                 Self::CMPri32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
@@ -135,7 +136,7 @@ fn reg_to_str(r: &Reg) -> &'static str {
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
-        Opcode::MOVrm32 | Opcode::MOVmi32 => "dword",
+        Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 => "dword",
         _ => todo!(),
     }
 }

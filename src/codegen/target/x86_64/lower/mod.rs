@@ -188,7 +188,7 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
             let inst = get_or_generate_inst_output(ctx, tys[0], id);
             ctx.inst_seq
                 .append(&mut vec![MachInstruction::new(InstructionData {
-                    opcode: Opcode::MOVmi32,
+                    opcode: Opcode::MOVmr32,
                     operands: vec![
                         MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
                         MOperand::input(inst.into()),
@@ -253,35 +253,33 @@ fn lower_store_gep(
                     as i64;
         debug!(offset);
 
-        let mut src_int = None;
-        let mut src_inst = None;
+        let mem_op = MOperand::output(OperandData::Mem(MemoryOperand::ImmSlot(
+            offset as i32,
+            base,
+        )));
 
         match ctx.ir_data.value_ref(args[0]) {
-            Value::Constant(ConstantData::Int(int)) => src_int = Some(*int),
-            Value::Instruction(id) => src_inst = Some(*id),
+            Value::Constant(ConstantData::Int(ConstantInt::Int32(int))) => {
+                ctx.inst_seq
+                    .append(&mut vec![MachInstruction::new(InstructionData {
+                        opcode: Opcode::MOVmi32,
+                        operands: vec![mem_op, MOperand::new(int.into())],
+                    })]);
+            }
+            Value::Instruction(id) => {
+                let src = get_or_generate_inst_output(ctx, tys[0], *id);
+                ctx.inst_seq
+                    .append(&mut vec![MachInstruction::new(InstructionData {
+                        opcode: Opcode::MOVmr32,
+                        operands: vec![mem_op, MOperand::input(src.into())],
+                    })]);
+            }
             _ => todo!(),
         }
 
-        if let Some(ConstantInt::Int32(int)) = src_int {
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
-                    opcode: Opcode::MOVmi32,
-                    operands: vec![
-                        MOperand::output(OperandData::Mem(MemoryOperand::ImmSlot(
-                            offset as i32,
-                            base,
-                        ))),
-                        MOperand::new(int.into()),
-                    ],
-                })]);
-            return;
-        }
-
-        if let Some(inst) = src_inst {
-            let _src = get_or_generate_inst_output(ctx, tys[0], inst);
-            todo!();
-        }
+        return;
     }
+
     todo!()
 }
 

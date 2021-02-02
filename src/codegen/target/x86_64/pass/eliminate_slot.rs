@@ -30,6 +30,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         let inst = function.data.inst_ref_mut(inst_id);
         for mem_op in inst.data.mem_ops_mut() {
             match mem_op {
+                // TODO: Refactoring
                 MemoryOperand::Slot(id) => {
                     if let Some(offset) = offset_map.get(id) {
                         *mem_op = MemoryOperand::ImmReg(-(*offset as i32), GR64::RBP.into());
