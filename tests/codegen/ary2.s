@@ -1,0 +1,18 @@
+  .text
+  .intel_syntax noprefix
+  .globl main
+main:
+.LBL0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 32
+  mov dword ptr [rbp-20], 42
+  mov eax, dword ptr [rbp-20]
+  mov dword ptr [rbp-16], eax
+  mov dword ptr [rbp-12], eax
+  mov dword ptr [rbp-8], eax
+  mov dword ptr [rbp-4], eax
+  mov eax, 0
+  add rsp, 32
+  pop rbp
+  ret 
