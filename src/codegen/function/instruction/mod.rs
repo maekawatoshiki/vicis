@@ -3,7 +3,7 @@ use id_arena::Id;
 
 pub type InstructionId<Data> = Id<Instruction<Data>>;
 
-pub trait InstructionData {
+pub trait InstructionData: Clone {
     fn input_vregs(&self) -> Vec<VReg>;
     fn output_vregs(&self) -> Vec<VReg>;
     fn input_regs(&self) -> Vec<Reg>;
@@ -11,7 +11,7 @@ pub trait InstructionData {
     fn rewrite(&mut self, vreg: VReg, reg: Reg);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Instruction<Data: InstructionData> {
     pub id: Option<InstructionId<Data>>,
     pub data: Data,

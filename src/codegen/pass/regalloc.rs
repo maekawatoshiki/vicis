@@ -69,6 +69,7 @@ pub fn run_on_function<T: Target>(function: &mut Function<T>) {
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref_mut(inst_id);
+            // println!("{:?}", inst.data);
             for vreg in inst
                 .data
                 .input_vregs()

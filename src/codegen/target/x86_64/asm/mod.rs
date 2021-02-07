@@ -3,7 +3,7 @@ use crate::codegen::{
     module::Module,
     register::Reg,
     target::x86_64::{
-        instruction::{MemoryOperand, Opcode, OperandData},
+        instruction::{Opcode, Operand, OperandData},
         X86_64,
     },
 };
@@ -29,40 +29,31 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
         for inst in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst);
             write!(f, "  {} ", inst.data.opcode)?;
-            for (i, operand) in inst.data.operands.iter().enumerate() {
+            let mut i = 0;
+            while i < inst.data.operands.len() {
+                let operand = &inst.data.operands[i];
                 if operand.implicit {
+                    i += 1;
                     continue;
                 }
-                if let OperandData::Mem(_) = &operand.data {
-                    write!(f, "{} ptr ", mem_size(&inst.data.opcode))?
+                if matches!(operand.data, OperandData::MemStart) {
+                    i += 1;
+                    write!(f, "{} ptr ", mem_size(&inst.data.opcode))?;
+                    write!(f, "{}", mem_op(&inst.data.operands[i..i + 5]))?;
+                    i += 5 - 1;
+                } else {
+                    write!(f, "{}", operand.data)?;
                 }
-                write!(f, "{}", operand.data)?;
                 if i < inst.data.operands.len() - 1 {
                     write!(f, ", ")?
                 }
+                i += 1;
             }
             writeln!(f)?;
         }
     }
 
     Ok(())
-}
-
-impl fmt::Display for MemoryOperand {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ImmReg(imm, reg) => {
-                write!(
-                    f,
-                    "[{}{}{}]",
-                    reg_to_str(reg),
-                    if *imm < 0 { "" } else { "+" },
-                    *imm
-                )
-            }
-            Self::ImmSlot(_, _) | Self::Slot(_) => panic!(),
-        }
-    }
 }
 
 impl fmt::Display for Module<X86_64> {
@@ -89,6 +80,7 @@ impl fmt::Display for Opcode {
                 Self::MOVrm32 => "mov",
                 Self::MOVmi32 => "mov",
                 Self::MOVmr32 => "mov",
+                Self::MOVSXDr64r32 => "movsxd",
                 Self::CMPri32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
@@ -110,10 +102,13 @@ impl fmt::Display for OperandData {
         match self {
             Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
             Self::VReg(r) => write!(f, "%{}", r.0),
-            Self::Mem(mem) => write!(f, "{}", mem),
+            // Self::Mem(mem) => write!(f, "{}", mem),
+            Self::Slot(slot) => write!(f, "{:?}", slot),
             Self::Int32(i) => write!(f, "{}", i),
             Self::Block(block) => write!(f, ".LBL{}", block.index()),
             Self::Label(name) => write!(f, "{}", name),
+            Self::MemStart => Ok(()),
+            Self::None => write!(f, "none"),
         }
     }
 }
@@ -137,6 +132,36 @@ fn reg_to_str(r: &Reg) -> &'static str {
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
         Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 => "dword",
+        _ => todo!(),
+    }
+}
+
+fn mem_op(args: &[Operand]) -> String {
+    assert!(matches!(&args[0].data, &OperandData::None)); // assure slot is eliminated
+    match (&args[1].data, &args[2].data, &args[3].data, &args[4].data) {
+        (OperandData::Int32(imm), OperandData::Reg(reg), OperandData::None, OperandData::None) => {
+            format!(
+                "[{}{}{}]",
+                reg_to_str(reg),
+                if *imm < 0 { "" } else { "+" },
+                *imm
+            )
+        }
+        (
+            OperandData::Int32(imm),
+            OperandData::Reg(reg1),
+            OperandData::Reg(reg2),
+            OperandData::Int32(shift),
+        ) => {
+            format!(
+                "[{}{}{}+{}*{}]",
+                reg_to_str(reg1),
+                if *imm < 0 { "" } else { "+" },
+                *imm,
+                reg_to_str(reg2),
+                shift
+            )
+        }
         _ => todo!(),
     }
 }

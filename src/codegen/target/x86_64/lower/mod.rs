@@ -3,7 +3,7 @@ use crate::codegen::{
     lower::{Lower as LowerTrait, LoweringContext},
     register::{Reg, RegisterClass, RegisterInfo, VReg},
     target::x86_64::{
-        instruction::{InstructionData, MemoryOperand, Opcode, Operand as MOperand, OperandData},
+        instruction::{InstructionData, Opcode, Operand as MOperand, OperandData},
         register::{RegClass, RegInfo, GR32},
         X86_64,
     },
@@ -81,6 +81,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
             align,
         } => lower_store(ctx, tys, args, align),
         Operand::IntBinary { ty, ref args, .. } => lower_add(ctx, inst.id.unwrap(), ty, args),
+        Operand::Cast { ref tys, arg } if inst.opcode == IrOpcode::Sext => {
+            lower_sext(ctx, inst.id.unwrap(), tys, arg)
+        }
         Operand::Br { block } => lower_br(ctx, block),
         Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
         Operand::Call { ref args, ref tys } => lower_call(ctx, inst.id.unwrap(), tys, args),
@@ -147,7 +150,12 @@ fn lower_load(
                 opcode: Opcode::MOVrm32,
                 operands: vec![
                     MOperand::output(output.into()),
-                    MOperand::input(OperandData::Mem(MemoryOperand::Slot(slot))),
+                    MOperand::new(OperandData::MemStart),
+                    MOperand::new(OperandData::Slot(slot)),
+                    MOperand::new(OperandData::None),
+                    MOperand::input(OperandData::None),
+                    MOperand::input(OperandData::None),
+                    MOperand::new(OperandData::None),
                 ],
             }));
             return;
@@ -190,7 +198,12 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
                 .append(&mut vec![MachInstruction::new(InstructionData {
                     opcode: Opcode::MOVmr32,
                     operands: vec![
-                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
+                        MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::Slot(slot)),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::new(OperandData::None),
                         MOperand::input(inst.into()),
                     ],
                 })]);
@@ -206,7 +219,12 @@ fn lower_store(ctx: &mut LoweringContext<X86_64>, tys: &[TypeId], args: &[ValueI
                 data: InstructionData {
                     opcode: Opcode::MOVmi32,
                     operands: vec![
-                        MOperand::output(OperandData::Mem(MemoryOperand::Slot(slot))),
+                        MOperand::new(OperandData::MemStart),
+                        MOperand::output(OperandData::Slot(slot)),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::new(OperandData::None),
                         MOperand::input(imm.into()),
                     ],
                 },
@@ -227,9 +245,9 @@ fn lower_store_gep(
     let gep = &ctx.ir_data.instructions[gep_id];
 
     // The simplest pattern
-    if let &[base, idx0, idx1] = gep.operand.args() {
-        let _base_ty = gep.operand.types()[1];
-        let base = ctx.inst_id_to_slot_id[ctx.ir_data.values[base].as_inst()];
+    if let &[base_ptr, idx0, idx1] = gep.operand.args() {
+        // let base_ty = gep.operand.types()[0];
+        let base_ptr = ctx.inst_id_to_slot_id[ctx.ir_data.values[base_ptr].as_inst()];
 
         let idx0_ty = gep.operand.types()[2];
         assert_eq!(*ctx.types.get(idx0_ty), Type::Int(64));
@@ -240,30 +258,65 @@ fn lower_store_gep(
 
         let idx1_ty = gep.operand.types()[3];
         assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
-        let idx1 = match ctx.ir_data.values[idx1] {
-            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx,
+        let mut idx1_const = None;
+        let mut idx1_vreg = None;
+        match ctx.ir_data.values[idx1] {
+            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx1_const = Some(idx),
+            Value::Instruction(id) => {
+                idx1_vreg = Some(get_or_generate_inst_output(ctx, idx1_ty, id))
+            }
             _ => todo!(),
         };
 
-        // idx0 * (size of base_ty) + idx1 * (size of inner of base_ty)
-        let base_inner_ty = gep.operand.types()[0];
-        let offset = idx0 * X86_64::type_size(ctx.types, base_inner_ty) as i64
-            + idx1
-                * X86_64::type_size(ctx.types, ctx.types.get_element(base_inner_ty).unwrap())
-                    as i64;
-        debug!(offset);
+        let mem_op = if let Some(idx1) = idx1_const {
+            // idx0 * (size of base_ty) + idx1 * (size of inner of base_ty)
+            let base_ty = gep.operand.types()[0];
+            let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64
+                + idx1
+                    * X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i64;
+            debug!(offset);
 
-        let mem_op = MOperand::output(OperandData::Mem(MemoryOperand::ImmSlot(
-            offset as i32,
-            base,
-        )));
+            vec![
+                MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::Slot(base_ptr)),
+                MOperand::new(OperandData::Int32(offset as i32)),
+                MOperand::input(OperandData::None),
+                MOperand::input(OperandData::None),
+                MOperand::new(OperandData::None),
+            ]
+        } else if let Some(idx1) = idx1_vreg {
+            let base_ty = gep.operand.types()[0];
+            let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64;
+            debug!(offset);
+
+            assert!(
+                X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i8 == 4
+            );
+
+            vec![
+                MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::Slot(base_ptr)),
+                MOperand::new(OperandData::Int32(offset as i32)),
+                MOperand::input(OperandData::None),
+                MOperand::input(OperandData::VReg(idx1)),
+                MOperand::new(OperandData::Int32(X86_64::type_size(
+                    ctx.types,
+                    ctx.types.get_element(base_ty).unwrap(),
+                ) as i32)),
+            ]
+        } else {
+            panic!()
+        };
 
         match ctx.ir_data.value_ref(args[0]) {
             Value::Constant(ConstantData::Int(ConstantInt::Int32(int))) => {
                 ctx.inst_seq
                     .append(&mut vec![MachInstruction::new(InstructionData {
                         opcode: Opcode::MOVmi32,
-                        operands: vec![mem_op, MOperand::new(int.into())],
+                        operands: mem_op
+                            .into_iter()
+                            .chain(vec![MOperand::input(int.into())].into_iter())
+                            .collect(),
                     })]);
             }
             Value::Instruction(id) => {
@@ -271,7 +324,10 @@ fn lower_store_gep(
                 ctx.inst_seq
                     .append(&mut vec![MachInstruction::new(InstructionData {
                         opcode: Opcode::MOVmr32,
-                        operands: vec![mem_op, MOperand::input(src.into())],
+                        operands: mem_op
+                            .into_iter()
+                            .chain(vec![MOperand::input(src.into())].into_iter())
+                            .collect(),
                     })]);
             }
             _ => todo!(),
@@ -324,6 +380,33 @@ fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, a
     };
 
     ctx.inst_seq.push(MachInstruction { id: None, data });
+}
+
+fn lower_sext(
+    ctx: &mut LoweringContext<X86_64>,
+    id: InstructionId,
+    tys: &[TypeId; 2],
+    arg: ValueId,
+) {
+    let from = tys[0];
+    let to = tys[1];
+    assert_eq!(*ctx.types.get(from), Type::Int(32));
+    assert_eq!(*ctx.types.get(to), Type::Int(64));
+
+    let val = match ctx.ir_data.values[arg] {
+        Value::Instruction(id) => get_or_generate_inst_output(ctx, from, id),
+        _ => todo!(),
+    };
+
+    let output = new_empty_inst_output(ctx, to, id);
+
+    ctx.inst_seq.push(MachInstruction {
+        id: None,
+        data: InstructionData {
+            opcode: Opcode::MOVSXDr64r32,
+            operands: vec![MOperand::output(output.into()), MOperand::input(val.into())],
+        },
+    });
 }
 
 fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) {

@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::Function,
     module::Module,
-    target::x86_64::{instruction::MemoryOperand, register::GR64, X86_64},
+    target::x86_64::{instruction::OperandData, register::GR64, X86_64},
 };
 use rustc_hash::FxHashMap;
 
@@ -17,7 +17,13 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     for block in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst_id);
-            if inst.data.mem_ops().len() > 0 {
+            if inst
+                .data
+                .operands
+                .iter()
+                .find(|op| matches!(op.data, OperandData::Slot(_)))
+                .is_some()
+            {
                 worklist.push(inst_id);
             }
         }
@@ -27,30 +33,47 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     let mut offset_map = FxHashMap::default();
 
     while let Some(inst_id) = worklist.pop() {
-        let inst = function.data.inst_ref_mut(inst_id);
-        for mem_op in inst.data.mem_ops_mut() {
-            match mem_op {
-                // TODO: Refactoring
-                MemoryOperand::Slot(id) => {
-                    if let Some(offset) = offset_map.get(id) {
-                        *mem_op = MemoryOperand::ImmReg(-(*offset as i32), GR64::RBP.into());
-                    } else {
-                        offset += function.slots.get(*id).size;
-                        offset_map.insert(*id, offset);
-                        *mem_op = MemoryOperand::ImmReg(-(offset as i32), GR64::RBP.into());
-                    }
-                }
-                MemoryOperand::ImmSlot(imm, id) => {
-                    if let Some(offset) = offset_map.get(id) {
-                        *mem_op = MemoryOperand::ImmReg(*imm - (*offset as i32), GR64::RBP.into());
-                    } else {
-                        offset += function.slots.get(*id).size;
-                        offset_map.insert(*id, offset);
-                        *mem_op = MemoryOperand::ImmReg(*imm - (offset as i32), GR64::RBP.into());
-                    }
-                }
-                _ => {}
+        let mut inst = function.data.instructions[inst_id].clone();
+
+        let mut i = 0;
+        let len = inst.data.operands.len();
+
+        while i < len {
+            // MemStart indicates the beginning of memory arguments
+            if !matches!(&inst.data.operands[i].data, &OperandData::MemStart) {
+                i += 1;
+                continue;
             }
+
+            i += 1;
+
+            let mem = &mut inst.data.operands[i..i + 5];
+
+            match (&mem[0].data, &mem[1].data) {
+                (OperandData::Slot(slot), OperandData::None) => {
+                    let off = offset_map.entry(*slot).or_insert_with(|| {
+                        offset += function.slots.get(*slot).size;
+                        offset
+                    });
+                    mem[0].data = OperandData::None;
+                    mem[1].data = OperandData::Int32(-(*off as i32));
+                    mem[2].data = OperandData::Reg(GR64::RBP.into());
+                }
+                (OperandData::Slot(slot), OperandData::Int32(imm)) => {
+                    let off = offset_map.entry(*slot).or_insert_with(|| {
+                        offset += function.slots.get(*slot).size;
+                        offset
+                    });
+                    mem[1].data = OperandData::Int32(*imm - *off as i32);
+                    mem[0].data = OperandData::None;
+                    mem[2].data = OperandData::Reg(GR64::RBP.into());
+                }
+                _ => todo!(),
+            }
+
+            i += 5;
         }
+
+        function.data.instructions[inst_id] = inst;
     }
 }

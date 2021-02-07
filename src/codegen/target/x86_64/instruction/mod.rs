@@ -4,13 +4,13 @@ use crate::codegen::{
 };
 // use crate::ir::instruction::InstructionId;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InstructionData {
     pub opcode: Opcode,
     pub operands: Vec<Operand>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Opcode {
     PUSH64,
     POP64,
@@ -24,6 +24,7 @@ pub enum Opcode {
     MOVrm32,
     MOVmi32,
     MOVmr32,
+    MOVSXDr64r32,
     CMPri32,
     JMP,
     JE,
@@ -39,7 +40,7 @@ pub enum Opcode {
     Phi,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Operand {
     pub data: OperandData,
     pub input: bool,
@@ -47,71 +48,18 @@ pub struct Operand {
     pub implicit: bool,
 }
 
+// MemStart, Slot, Imm, Reg(rbp), Reg, Shift
+
 #[derive(Debug, Clone)]
 pub enum OperandData {
     Reg(Reg),
     VReg(VReg),
     Int32(i32),
-    Mem(MemoryOperand),
+    MemStart,
+    Slot(SlotId),
     Block(BasicBlockId),
     Label(String),
-}
-
-#[derive(Debug, Clone)]
-pub enum MemoryOperand {
-    Slot(SlotId),
-    ImmReg(i32, Reg),
-    ImmSlot(i32, SlotId),
-    // ImmRegRegShift(i32, Reg, Reg, i8),
-    // ImmSlotVRegShift(i32, SlotId,VReg,i8),
-}
-
-impl InstructionData {
-    pub fn mem_ops(&self) -> Vec<&MemoryOperand> {
-        let mut output = vec![];
-        for operand in &self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::Mem(mem),
-                    ..
-                } => output.push(mem),
-                _ => {}
-            }
-        }
-        output
-    }
-
-    pub fn mem_ops_mut(&mut self) -> Vec<&mut MemoryOperand> {
-        let mut output = vec![];
-        for operand in &mut self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::Mem(mem),
-                    ..
-                } => output.push(mem),
-                _ => {}
-            }
-        }
-        output
-    }
-}
-
-impl MemoryOperand {
-    pub fn vregs(&self) -> Vec<VReg> {
-        match self {
-            Self::Slot(_) => vec![],
-            Self::ImmReg(_, _) => vec![],
-            Self::ImmSlot(_, _) => vec![],
-        }
-    }
-
-    pub fn regs(&self) -> Vec<Reg> {
-        match self {
-            Self::Slot(_) => vec![],
-            Self::ImmReg(_, r) => vec![*r],
-            Self::ImmSlot(_, _) => vec![],
-        }
-    }
+    None,
 }
 
 impl ID for InstructionData {

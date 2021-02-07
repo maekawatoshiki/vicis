@@ -19,9 +19,13 @@ fn compile_tests() {
 
     for path in paths {
         let input = path.as_ref().unwrap().path().to_str().unwrap().to_string();
+        println!(">> {}", input);
         if !input.ends_with(".ll") {
             continue;
         }
+        // if input.contains("ary3") {
+        //     continue;
+        // }
         let output = format!("{}.s", input.trim_end_matches(".ll"));
         pb.set_message(input.as_str());
 
@@ -30,6 +34,8 @@ fn compile_tests() {
 
         let module = module::parse_assembly(input_body).unwrap();
         let mach_module = convert_module(X86_64, module);
+
+        println!("{}", mach_module);
 
         assert_eq!(
             &format!("{}", mach_module),
