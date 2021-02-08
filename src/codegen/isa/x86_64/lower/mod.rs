@@ -3,14 +3,14 @@ pub mod store;
 
 use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
-    lower::{Lower as LowerTrait, LoweringContext},
-    register::{Reg, RegisterClass, RegisterInfo, VReg},
-    target::x86_64::{
+    isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand as MOperand, OperandData},
         register::{RegClass, RegInfo, GR32},
         X86_64,
     },
-    target::Target,
+    isa::Target,
+    lower::{Lower as LowerTrait, LoweringContext},
+    register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
 use crate::ir::{
     function::{

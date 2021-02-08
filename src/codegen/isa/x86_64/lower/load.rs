@@ -1,12 +1,12 @@
-use super::get_or_generate_inst_output;
+use super::{get_or_generate_inst_output, new_empty_inst_output};
 use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
-    lower::LoweringContext,
-    target::x86_64::{
+    isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand as MOperand, OperandData},
         X86_64,
     },
-    target::Target,
+    isa::Target,
+    lower::LoweringContext,
 };
 use crate::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
@@ -14,87 +14,56 @@ use crate::ir::{
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 
-pub fn lower_store(
+pub fn lower_load(
     ctx: &mut LoweringContext<X86_64>,
+    id: InstructionId,
     tys: &[TypeId],
-    args: &[ValueId],
+    addr: ValueId,
     _align: u32,
 ) {
     let mut slot = None;
 
-    match ctx.ir_data.value_ref(args[1]) {
-        Value::Instruction(id) => {
-            if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
-                // Maybe Alloca
+    match ctx.ir_data.value_ref(addr) {
+        Value::Instruction(gep_id) => {
+            if let Some(slot_id) = ctx.inst_id_to_slot_id.get(gep_id) {
                 slot = Some(*slot_id);
             } else {
-                if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
-                    return lower_store_gep(ctx, tys, args, _align, *id);
+                if ctx.ir_data.instructions[*gep_id].opcode == IrOpcode::GetElementPtr {
+                    return lower_load_gep(ctx, id, tys, *gep_id, _align);
                 }
             }
         }
         _ => todo!(),
     }
 
-    let mut const_int = None;
-    let mut inst = None;
-
-    match ctx.ir_data.value_ref(args[0]) {
-        Value::Constant(ConstantData::Int(int)) => const_int = Some(*int),
-        Value::Instruction(id) => inst = Some(*id),
-        _ => {}
-    }
-
-    match (slot, inst) {
-        (Some(slot), Some(id)) => {
-            let inst = get_or_generate_inst_output(ctx, tys[0], id);
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
-                    opcode: Opcode::MOVmr32,
-                    operands: vec![
-                        MOperand::new(OperandData::MemStart),
-                        MOperand::new(OperandData::Slot(slot)),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(inst.into()),
-                    ],
-                })]);
+    if let Some(slot) = slot {
+        if matches!(&*ctx.types.get(tys[0]), Type::Int(32)) {
+            let output = new_empty_inst_output(ctx, tys[0], id);
+            ctx.inst_seq.push(MachInstruction::new(InstructionData {
+                opcode: Opcode::MOVrm32,
+                operands: vec![
+                    MOperand::output(output.into()),
+                    MOperand::new(OperandData::MemStart),
+                    MOperand::new(OperandData::Slot(slot)),
+                    MOperand::new(OperandData::None),
+                    MOperand::input(OperandData::None),
+                    MOperand::input(OperandData::None),
+                    MOperand::new(OperandData::None),
+                ],
+            }));
             return;
         }
-        _ => {}
     }
 
-    match (slot, const_int) {
-        (Some(slot), Some(ConstantInt::Int32(imm))) => {
-            ctx.inst_seq.append(&mut vec![MachInstruction {
-                id: None,
-                data: InstructionData {
-                    opcode: Opcode::MOVmi32,
-                    operands: vec![
-                        MOperand::new(OperandData::MemStart),
-                        MOperand::output(OperandData::Slot(slot)),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(imm.into()),
-                    ],
-                },
-            }]);
-            return;
-        }
-        _ => todo!(),
-    }
+    todo!()
 }
 
-fn lower_store_gep(
+fn lower_load_gep(
     ctx: &mut LoweringContext<X86_64>,
+    id: InstructionId,
     tys: &[TypeId],
-    args: &[ValueId],
-    _align: u32,
     gep_id: InstructionId,
+    _align: u32,
 ) {
     let gep = &ctx.ir_data.instructions[gep_id];
 
@@ -162,25 +131,16 @@ fn lower_store_gep(
             panic!()
         };
 
-        match ctx.ir_data.value_ref(args[0]) {
-            Value::Constant(ConstantData::Int(ConstantInt::Int32(int))) => {
+        let output = new_empty_inst_output(ctx, tys[0], id);
+
+        match &*ctx.types.get(tys[0]) {
+            Type::Int(32) => {
                 ctx.inst_seq
                     .append(&mut vec![MachInstruction::new(InstructionData {
-                        opcode: Opcode::MOVmi32,
-                        operands: mem_op
+                        opcode: Opcode::MOVrm32,
+                        operands: vec![MOperand::output(OperandData::VReg(output))]
                             .into_iter()
-                            .chain(vec![MOperand::input(int.into())].into_iter())
-                            .collect(),
-                    })]);
-            }
-            Value::Instruction(id) => {
-                let src = get_or_generate_inst_output(ctx, tys[0], *id);
-                ctx.inst_seq
-                    .append(&mut vec![MachInstruction::new(InstructionData {
-                        opcode: Opcode::MOVmr32,
-                        operands: mem_op
-                            .into_iter()
-                            .chain(vec![MOperand::input(src.into())].into_iter())
+                            .chain(mem_op.into_iter())
                             .collect(),
                     })]);
             }

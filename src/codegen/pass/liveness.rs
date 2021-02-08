@@ -4,9 +4,9 @@ use crate::codegen::{
         instruction::{Instruction, InstructionData},
         Function,
     },
+    isa::Target,
     // module::Module,
     register::{RegUnit, RegisterInfo, VReg},
-    target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;

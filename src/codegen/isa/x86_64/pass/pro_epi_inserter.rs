@@ -1,11 +1,11 @@
 use crate::codegen::{
     function::{instruction::Instruction, Function},
-    module::Module,
-    target::x86_64::{
+    isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand, OperandData},
         register::GR64,
         X86_64,
     },
+    module::Module,
 };
 
 pub fn run_on_module(module: &mut Module<X86_64>) {

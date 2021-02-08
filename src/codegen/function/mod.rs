@@ -4,7 +4,7 @@ pub mod instruction;
 pub mod layout;
 pub mod slot;
 
-use super::{call_conv::CallConvKind, register::VRegs, target::Target};
+use super::{call_conv::CallConvKind, isa::Target, register::VRegs};
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},

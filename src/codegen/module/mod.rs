@@ -1,4 +1,4 @@
-use super::{function::Function, target::Target};
+use super::{function::Function, isa::Target};
 use crate::ir::{
     module::{
         attributes::Attribute, global_variable::GlobalVariable, name::Name, Target as ModuleTarget,

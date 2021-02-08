@@ -6,7 +6,7 @@ pub mod register;
 
 use super::Target;
 use crate::{
-    codegen::{call_conv::CallConvKind, module::Module, pass::regalloc, target::x86_64},
+    codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc},
     ir::types::{ArrayType, Type, TypeId, Types},
 };
 

@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::Function,
+    isa::x86_64::{instruction::OperandData, register::GR64, X86_64},
     module::Module,
-    target::x86_64::{instruction::OperandData, register::GR64, X86_64},
 };
 use rustc_hash::FxHashMap;
 

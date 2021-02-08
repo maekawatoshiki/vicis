@@ -1,8 +1,8 @@
 use crate::codegen::{
     function::Function,
+    isa::x86_64::{instruction::Opcode, register::RegInfo, X86_64},
     module::Module,
     register::RegisterInfo,
-    target::x86_64::{instruction::Opcode, register::RegInfo, X86_64},
 };
 
 pub fn run_on_module(module: &mut Module<X86_64>) {

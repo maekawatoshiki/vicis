@@ -1,5 +1,5 @@
 use vicis::{
-    codegen::{lower::convert_module, target::x86_64::X86_64},
+    codegen::{isa::x86_64::X86_64, lower::convert_module},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::module,
 };

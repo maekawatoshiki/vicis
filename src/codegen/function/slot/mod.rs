@@ -1,4 +1,4 @@
-use crate::codegen::target::Target;
+use crate::codegen::isa::Target;
 use crate::ir::types::TypeId;
 use id_arena::{Arena, Id};
 

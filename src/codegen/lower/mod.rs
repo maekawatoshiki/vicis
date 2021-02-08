@@ -8,9 +8,9 @@ use super::{
         slot::{SlotId, Slots},
         Function as MachFunction,
     },
+    isa::Target,
     module::Module as MachModule,
     register::{VReg, VRegs},
-    target::Target,
 };
 use crate::ir::{
     function::{

@@ -1,11 +1,11 @@
 use crate::codegen::{
     function::Function,
-    module::Module,
-    register::Reg,
-    target::x86_64::{
+    isa::x86_64::{
         instruction::{Opcode, Operand, OperandData},
         X86_64,
     },
+    module::Module,
+    register::Reg,
 };
 use std::fmt;
 

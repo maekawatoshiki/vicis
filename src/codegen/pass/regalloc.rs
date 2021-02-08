@@ -1,9 +1,9 @@
 use crate::codegen::{
     function::{instruction::InstructionData, Function},
+    isa::Target,
     module::Module,
     pass::liveness,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
-    target::Target,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
