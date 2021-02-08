@@ -17,5 +17,5 @@ pub struct Module<T: TargetIsa> {
     pub global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
     // TODO: Metadata
-    pub arch: T, // TODO: Should be named 'target'
+    pub isa: T,
 }

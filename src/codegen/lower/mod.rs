@@ -45,11 +45,11 @@ pub struct LoweringContext<'a, T: TargetIsa> {
     pub cur_block: IrBasicBlockId,
 }
 
-pub fn convert_module<T: TargetIsa>(target: T, module: IrModule) -> MachModule<T> {
+pub fn convert_module<T: TargetIsa>(isa: T, module: IrModule) -> MachModule<T> {
     let mut functions = Arena::new();
 
     for (_, function) in module.functions {
-        functions.alloc(convert_function(target, function));
+        functions.alloc(convert_function(isa, function));
     }
 
     let mut mach_module = MachModule {
@@ -60,7 +60,7 @@ pub fn convert_module<T: TargetIsa>(target: T, module: IrModule) -> MachModule<T
         attributes: module.attributes,
         global_variables: module.global_variables,
         types: module.types,
-        arch: target,
+        isa,
     };
 
     for pass in T::module_pass() {
@@ -70,8 +70,8 @@ pub fn convert_module<T: TargetIsa>(target: T, module: IrModule) -> MachModule<T
     mach_module
 }
 
-pub fn convert_function<T: TargetIsa>(target: T, function: IrFunction) -> MachFunction<T> {
-    let mut slots: Slots<T> = Slots::new(target);
+pub fn convert_function<T: TargetIsa>(isa: T, function: IrFunction) -> MachFunction<T> {
+    let mut slots: Slots<T> = Slots::new(isa);
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
     let mut block_map = FxHashMap::default();
@@ -176,7 +176,7 @@ pub fn convert_function<T: TargetIsa>(target: T, function: IrFunction) -> MachFu
         vregs,
         types: function.types,
         is_prototype: function.is_prototype,
-        target,
+        isa,
         call_conv,
     }
 }

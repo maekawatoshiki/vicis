@@ -5,7 +5,7 @@ use id_arena::{Arena, Id};
 pub type SlotId = Id<Slot>;
 
 pub struct Slots<T: TargetIsa> {
-    pub target: T,
+    pub isa: T,
     arena: Arena<Slot>,
 }
 
@@ -18,9 +18,9 @@ pub struct Slot {
 }
 
 impl<T: TargetIsa> Slots<T> {
-    pub fn new(target: T) -> Self {
+    pub fn new(isa: T) -> Self {
         Self {
-            target,
+            isa,
             arena: Arena::new(),
         }
     }

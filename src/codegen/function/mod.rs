@@ -28,7 +28,7 @@ pub struct Function<T: TargetIsa> {
     pub types: Types,
     pub is_prototype: bool,
     pub call_conv: CallConvKind,
-    pub target: T,
+    pub isa: T,
 }
 
 impl<T: TargetIsa> Function<T> {
