@@ -5,7 +5,7 @@ use crate::codegen::{
         instruction::{InstructionData, Opcode, Operand as MOperand, OperandData},
         X86_64,
     },
-    isa::Target,
+    isa::TargetIsa,
     lower::LoweringContext,
 };
 use crate::ir::{

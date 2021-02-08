@@ -1,6 +1,6 @@
 use crate::codegen::{
     function::{instruction::InstructionData, Function},
-    isa::Target,
+    isa::TargetIsa,
     module::Module,
     pass::liveness,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
@@ -8,14 +8,14 @@ use crate::codegen::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
 
-pub fn run_on_module<T: Target>(module: &mut Module<T>) {
+pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
 }
 
 // Linear-scan
-pub fn run_on_function<T: Target>(function: &mut Function<T>) {
+pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     let mut liveness = liveness::Liveness::new();
     liveness.analyze_function(function);
 

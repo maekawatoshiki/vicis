@@ -4,7 +4,7 @@ pub mod instruction;
 pub mod layout;
 pub mod slot;
 
-use super::{call_conv::CallConvKind, isa::Target, register::VRegs};
+use super::{call_conv::CallConvKind, isa::TargetIsa, register::VRegs};
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
@@ -14,7 +14,7 @@ use either::Either;
 use instruction::InstructionId;
 use std::fmt;
 
-pub struct Function<T: Target> {
+pub struct Function<T: TargetIsa> {
     pub name: String,
     pub is_var_arg: bool,
     pub result_ty: TypeId,
@@ -31,13 +31,13 @@ pub struct Function<T: Target> {
     pub target: T,
 }
 
-impl<T: Target> Function<T> {
+impl<T: TargetIsa> Function<T> {
     pub fn remove_inst(&mut self, inst: InstructionId<T::InstData>) -> Option<()> {
         self.layout.remove_inst(inst)
     }
 }
 
-impl<T: Target> fmt::Debug for Function<T> {
+impl<T: TargetIsa> fmt::Debug for Function<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_prototype {
             write!(f, "declare ")?

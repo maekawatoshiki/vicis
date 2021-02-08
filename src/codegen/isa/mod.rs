@@ -11,7 +11,7 @@ use crate::{
     ir::types::{TypeId, Types},
 };
 
-pub trait Target: Copy {
+pub trait TargetIsa: Copy {
     type InstData: ::std::fmt::Debug + InstructionData;
     type RegClass: RegisterClass;
     type RegInfo: RegisterInfo;

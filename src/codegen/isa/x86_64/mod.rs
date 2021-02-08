@@ -4,7 +4,7 @@ pub mod lower;
 pub mod pass;
 pub mod register;
 
-use super::Target;
+use super::TargetIsa;
 use crate::{
     codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc},
     ir::types::{ArrayType, Type, TypeId, Types},
@@ -13,7 +13,7 @@ use crate::{
 #[derive(Copy, Clone)]
 pub struct X86_64;
 
-impl Target for X86_64 {
+impl TargetIsa for X86_64 {
     type InstData = instruction::InstructionData;
     type Lower = x86_64::lower::Lower;
     type RegClass = register::RegClass;

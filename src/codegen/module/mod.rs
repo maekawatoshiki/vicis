@@ -1,4 +1,4 @@
-use super::{function::Function, isa::Target};
+use super::{function::Function, isa::TargetIsa};
 use crate::ir::{
     module::{
         attributes::Attribute, global_variable::GlobalVariable, name::Name, Target as ModuleTarget,
@@ -8,7 +8,7 @@ use crate::ir::{
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
-pub struct Module<T: Target> {
+pub struct Module<T: TargetIsa> {
     pub name: String,
     pub source_filename: String,
     pub target: ModuleTarget, // TODO

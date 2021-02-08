@@ -8,7 +8,7 @@ use crate::codegen::{
         register::{RegClass, RegInfo, GR32},
         X86_64,
     },
-    isa::Target,
+    isa::TargetIsa,
     lower::{Lower as LowerTrait, LoweringContext},
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };

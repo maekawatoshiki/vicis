@@ -8,7 +8,7 @@ use super::{
         slot::{SlotId, Slots},
         Function as MachFunction,
     },
-    isa::Target,
+    isa::TargetIsa,
     module::Module as MachModule,
     register::{VReg, VRegs},
 };
@@ -24,13 +24,13 @@ use crate::ir::{
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
-pub trait Lower<T: Target> {
+pub trait Lower<T: TargetIsa> {
     fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
     fn copy_args_to_vregs(ctx: &mut LoweringContext<T>, params: &[Parameter]);
 }
 
 // TODO: So confusing. Need refactoring.
-pub struct LoweringContext<'a, T: Target> {
+pub struct LoweringContext<'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
     pub mach_data: &'a mut Data<T::InstData>,
     pub slots: &'a mut Slots<T>,
@@ -45,7 +45,7 @@ pub struct LoweringContext<'a, T: Target> {
     pub cur_block: IrBasicBlockId,
 }
 
-pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
+pub fn convert_module<T: TargetIsa>(target: T, module: IrModule) -> MachModule<T> {
     let mut functions = Arena::new();
 
     for (_, function) in module.functions {
@@ -70,7 +70,7 @@ pub fn convert_module<T: Target>(target: T, module: IrModule) -> MachModule<T> {
     mach_module
 }
 
-pub fn convert_function<T: Target>(target: T, function: IrFunction) -> MachFunction<T> {
+pub fn convert_function<T: TargetIsa>(target: T, function: IrFunction) -> MachFunction<T> {
     let mut slots: Slots<T> = Slots::new(target);
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();

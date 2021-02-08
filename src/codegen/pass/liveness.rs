@@ -4,7 +4,7 @@ use crate::codegen::{
         instruction::{Instruction, InstructionData},
         Function,
     },
-    isa::Target,
+    isa::TargetIsa,
     // module::Module,
     register::{RegUnit, RegisterInfo, VReg},
 };
@@ -81,13 +81,13 @@ impl PartialEq for ProgramPoint {
 
 impl Eq for ProgramPoint {}
 
-// pub fn run_on_module<T: Target>(module: &mut Module<T>) {
+// pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) {
 //     for (_, func) in &mut module.functions {
 //         run_on_function(func);
 //     }
 // }
 
-// pub fn run_on_function<T: Target>(function: &mut Function<T>) -> Liveness {
+// pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) -> Liveness {
 //     // for block_id in function.layout.block_iter() {
 //     //     for inst_id in function.layout.inst_iter(block_id) {
 //     //         let inst = function.data.inst_ref(inst_id);
@@ -105,7 +105,7 @@ impl Liveness {
         }
     }
 
-    pub fn analyze_function<T: Target>(&mut self, func: &Function<T>) {
+    pub fn analyze_function<T: TargetIsa>(&mut self, func: &Function<T>) {
         // Analyze live-in and live-out virutal registers
         self.set_def(func);
         self.visit(func);
@@ -118,7 +118,7 @@ impl Liveness {
 
     ////////
 
-    pub fn compute_program_points<T: Target>(&mut self, func: &Function<T>) {
+    pub fn compute_program_points<T: TargetIsa>(&mut self, func: &Function<T>) {
         let mut block_num = 0;
         for block_id in func.layout.block_iter() {
             const STEP: u32 = 16;
@@ -235,7 +235,7 @@ impl Liveness {
 
     ////////
 
-    fn set_def<T: Target>(&mut self, func: &Function<T>) {
+    fn set_def<T: TargetIsa>(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
             self.block_data.entry(block_id).or_insert(BlockData::new());
             for inst_id in func.layout.inst_iter(block_id) {
@@ -245,7 +245,7 @@ impl Liveness {
         }
     }
 
-    fn set_def_on_inst<T: Target>(
+    fn set_def_on_inst<T: TargetIsa>(
         &mut self,
         inst: &Instruction<T::InstData>,
         block_id: BasicBlockId,
@@ -266,7 +266,7 @@ impl Liveness {
         }
     }
 
-    fn visit<T: Target>(&mut self, func: &Function<T>) {
+    fn visit<T: TargetIsa>(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
@@ -275,7 +275,7 @@ impl Liveness {
         }
     }
 
-    fn visit_inst<T: Target>(
+    fn visit_inst<T: TargetIsa>(
         &mut self,
         func: &Function<T>,
         inst: &Instruction<T::InstData>,
@@ -289,7 +289,7 @@ impl Liveness {
         }
     }
 
-    fn propagate_vreg<T: Target>(
+    fn propagate_vreg<T: TargetIsa>(
         &mut self,
         func: &Function<T>,
         input: VReg,
@@ -320,7 +320,7 @@ impl Liveness {
         }
     }
 
-    fn propagate_reg<T: Target>(
+    fn propagate_reg<T: TargetIsa>(
         &mut self,
         func: &Function<T>,
         input: RegUnit,

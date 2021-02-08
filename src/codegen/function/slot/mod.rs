@@ -1,10 +1,10 @@
-use crate::codegen::isa::Target;
+use crate::codegen::isa::TargetIsa;
 use crate::ir::types::TypeId;
 use id_arena::{Arena, Id};
 
 pub type SlotId = Id<Slot>;
 
-pub struct Slots<T: Target> {
+pub struct Slots<T: TargetIsa> {
     pub target: T,
     arena: Arena<Slot>,
 }
@@ -17,7 +17,7 @@ pub struct Slot {
     pub(crate) align: u32,
 }
 
-impl<T: Target> Slots<T> {
+impl<T: TargetIsa> Slots<T> {
     pub fn new(target: T) -> Self {
         Self {
             target,
