@@ -48,14 +48,12 @@ pub struct Operand {
     pub implicit: bool,
 }
 
-// MemStart, Slot, Imm, Reg(rbp), Reg, Shift
-
 #[derive(Debug, Clone)]
 pub enum OperandData {
     Reg(Reg),
     VReg(VReg),
     Int32(i32),
-    MemStart,
+    MemStart, // followed by: Slot, Imm, Reg(basically rbp), Reg, Shift
     Slot(SlotId),
     Block(BasicBlockId),
     Label(String),

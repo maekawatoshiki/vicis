@@ -23,21 +23,22 @@ pub fn lower_load(
 ) {
     let mut slot = None;
 
-    match ctx.ir_data.value_ref(addr) {
-        Value::Instruction(gep_id) => {
-            if let Some(slot_id) = ctx.inst_id_to_slot_id.get(gep_id) {
-                slot = Some(*slot_id);
-            } else {
-                if ctx.ir_data.instructions[*gep_id].opcode == IrOpcode::GetElementPtr {
-                    return lower_load_gep(ctx, id, tys, *gep_id, _align);
-                }
+    if let Value::Instruction(gep_id) = &ctx.ir_data.values[addr] {
+        if let Some(slot_id) = ctx.inst_id_to_slot_id.get(gep_id) {
+            slot = Some(*slot_id);
+        } else {
+            let opcode = ctx.ir_data.instructions[*gep_id].opcode;
+            if opcode == IrOpcode::GetElementPtr {
+                return lower_load_gep(ctx, id, tys, *gep_id, _align);
             }
         }
-        _ => todo!(),
+    } else {
+        panic!()
     }
 
     if let Some(slot) = slot {
-        if matches!(&*ctx.types.get(tys[0]), Type::Int(32)) {
+        let src_ty = tys[0];
+        if matches!(&*ctx.types.get(src_ty), Type::Int(32)) {
             let output = new_empty_inst_output(ctx, tys[0], id);
             ctx.inst_seq.push(MachInstruction::new(InstructionData {
                 opcode: Opcode::MOVrm32,
@@ -65,58 +66,51 @@ fn lower_load_gep(
     gep_id: InstructionId,
     _align: u32,
 ) {
+    use {Constant as Const, ConstantData::Int, ConstantInt::Int64, Value::Constant};
+
     let gep = &ctx.ir_data.instructions[gep_id];
 
-    // The simplest pattern
-    if let &[base_ptr, idx0, idx1] = gep.operand.args() {
-        // let base_ty = gep.operand.types()[0];
-        let base_ptr = ctx.inst_id_to_slot_id[ctx.ir_data.values[base_ptr].as_inst()];
+    let gep_args: Vec<&Value> = gep
+        .operand
+        .args()
+        .into_iter()
+        .map(|&arg| &ctx.ir_data.values[arg])
+        .collect();
 
-        let idx0_ty = gep.operand.types()[2];
-        assert_eq!(*ctx.types.get(idx0_ty), Type::Int(64));
-        let idx0 = match ctx.ir_data.values[idx0] {
-            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx,
-            _ => todo!(),
-        };
+    let mem;
 
-        let idx1_ty = gep.operand.types()[3];
-        assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
-        let mut idx1_const = None;
-        let mut idx1_vreg = None;
-        match ctx.ir_data.values[idx1] {
-            Value::Constant(ConstantData::Int(ConstantInt::Int64(idx))) => idx1_const = Some(idx),
-            Value::Instruction(id) => {
-                idx1_vreg = Some(get_or_generate_inst_output(ctx, idx1_ty, id))
-            }
-            _ => todo!(),
-        };
-
-        let mem_op = if let Some(idx1) = idx1_const {
-            // idx0 * (size of base_ty) + idx1 * (size of inner of base_ty)
+    match &gep_args[..] {
+        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Const(Int(Int64(idx1)))] => {
+            let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
             let base_ty = gep.operand.types()[0];
             let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64
                 + idx1
                     * X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i64;
-            debug!(offset);
+            // debug!(offset);
 
-            vec![
+            mem = vec![
                 MOperand::new(OperandData::MemStart),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),
                 MOperand::input(OperandData::None),
                 MOperand::new(OperandData::None),
-            ]
-        } else if let Some(idx1) = idx1_vreg {
+            ];
+        }
+        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
+            let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
+
             let base_ty = gep.operand.types()[0];
             let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64;
-            debug!(offset);
+            // debug!(offset);
 
-            assert!(
-                X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i8 == 4
-            );
+            let idx1_ty = gep.operand.types()[3];
+            assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
+            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1);
 
-            vec![
+            assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
+
+            mem = vec![
                 MOperand::new(OperandData::MemStart),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
@@ -126,29 +120,25 @@ fn lower_load_gep(
                     ctx.types,
                     ctx.types.get_element(base_ty).unwrap(),
                 ) as i32)),
-            ]
-        } else {
-            panic!()
-        };
-
-        let output = new_empty_inst_output(ctx, tys[0], id);
-
-        match &*ctx.types.get(tys[0]) {
-            Type::Int(32) => {
-                ctx.inst_seq
-                    .append(&mut vec![MachInstruction::new(InstructionData {
-                        opcode: Opcode::MOVrm32,
-                        operands: vec![MOperand::output(OperandData::VReg(output))]
-                            .into_iter()
-                            .chain(mem_op.into_iter())
-                            .collect(),
-                    })]);
-            }
-            _ => todo!(),
+            ];
         }
-
-        return;
+        _ => todo!(),
     }
 
-    todo!()
+    let output = new_empty_inst_output(ctx, tys[0], id);
+
+    let src_ty = tys[0];
+    match &*ctx.types.get(src_ty) {
+        Type::Int(32) => {
+            ctx.inst_seq
+                .append(&mut vec![MachInstruction::new(InstructionData {
+                    opcode: Opcode::MOVrm32,
+                    operands: vec![MOperand::output(OperandData::VReg(output))]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
+                })]);
+        }
+        _ => todo!(),
+    }
 }
