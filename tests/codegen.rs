@@ -33,7 +33,7 @@ fn compile_tests() {
         let output_body = &fs::read_to_string(output).unwrap();
 
         let module = module::parse_assembly(input_body).unwrap();
-        let mach_module = convert_module(X86_64, module);
+        let mach_module = convert_module(X86_64, module).unwrap();
 
         println!("{}", mach_module);
 

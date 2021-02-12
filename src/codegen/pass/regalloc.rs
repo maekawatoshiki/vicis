@@ -5,13 +5,15 @@ use crate::codegen::{
     pass::liveness,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
+use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
 
-pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) {
+pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) -> Result<()> {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
+    Ok(())
 }
 
 // Linear-scan

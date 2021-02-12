@@ -7,12 +7,14 @@ use crate::codegen::{
     module::Module,
     register::Reg,
 };
+use anyhow::Result;
 use rustc_hash::FxHashMap;
 
-pub fn run_on_module(module: &mut Module<X86_64>) {
+pub fn run_on_module(module: &mut Module<X86_64>) -> Result<()> {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
+    Ok(())
 }
 
 pub fn run_on_function(function: &mut Function<X86_64>) {

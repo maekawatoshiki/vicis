@@ -9,6 +9,7 @@ use crate::{
     codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc},
     ir::types::{ArrayType, Type, TypeId, Types},
 };
+use anyhow::Result;
 
 #[derive(Copy, Clone)]
 pub struct X86_64;
@@ -19,7 +20,7 @@ impl TargetIsa for X86_64 {
     type RegClass = register::RegClass;
     type RegInfo = register::RegInfo;
 
-    fn module_pass() -> Vec<fn(&mut Module<Self>)> {
+    fn module_pass_list() -> Vec<fn(&mut Module<Self>) -> Result<()>> {
         vec![
             regalloc::run_on_module,
             pass::phi_elimination::run_on_module, // TODO: should be target independent

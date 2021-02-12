@@ -12,6 +12,7 @@ rustc-hash = "= 1.1.0"
 id-arena = "= 2.2.1"
 either = "= 1.6.1"
 indicatif = "= 0.15.0"
+anyhow = "= 1.0.38"
 
 [patch.crates-io]
 lexical-core = {git = 'https://github.com/Gelbpunkt/rust-lexical', branch = 'fix-warnings-and-update-deps'}

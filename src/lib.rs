@@ -6,4 +6,5 @@ pub mod codegen;
 pub mod exec;
 pub mod ir;
 
+extern crate anyhow;
 extern crate nom;
