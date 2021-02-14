@@ -6,20 +6,21 @@ use crate::codegen::{
         X86_64,
     },
     isa::TargetIsa,
-    lower::LoweringContext,
+    lower::{LoweringContext, LoweringError},
 };
 use crate::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
+use anyhow::Result;
 
 pub fn lower_store(
     ctx: &mut LoweringContext<X86_64>,
     tys: &[TypeId],
     args: &[ValueId],
     _align: u32,
-) {
+) -> Result<()> {
     let mut dst_slot = None;
 
     match ctx.ir_data.value_ref(args[1]) {
@@ -33,7 +34,7 @@ pub fn lower_store(
                 }
             }
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
 
     let mut imm = None;
@@ -47,7 +48,7 @@ pub fn lower_store(
 
     match (dst_slot, inst, imm) {
         (Some(slot), Some(id), None) => {
-            let inst = get_or_generate_inst_output(ctx, tys[0], id);
+            let inst = get_or_generate_inst_output(ctx, tys[0], id)?;
             ctx.inst_seq
                 .append(&mut vec![MachInstruction::new(InstructionData {
                     opcode: Opcode::MOVmr32,
@@ -61,7 +62,7 @@ pub fn lower_store(
                         MOperand::input(inst.into()),
                     ],
                 })]);
-            return;
+            return Ok(());
         }
         (Some(slot), None, Some(ConstantInt::Int32(imm))) => {
             ctx.inst_seq
@@ -77,9 +78,9 @@ pub fn lower_store(
                         MOperand::input(imm.into()),
                     ],
                 })]);
-            return;
+            return Ok(());
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
 }
 
@@ -89,7 +90,7 @@ fn lower_store_gep(
     args: &[ValueId],
     _align: u32,
     gep_id: InstructionId,
-) {
+) -> Result<()> {
     use {
         Constant as Const,
         ConstantData::Int,
@@ -133,7 +134,7 @@ fn lower_store_gep(
 
             let idx1_ty = gep.operand.types()[3];
             assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
-            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1);
+            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
 
             assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
 
@@ -149,7 +150,7 @@ fn lower_store_gep(
                 ) as i32)),
             ];
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
 
     let src = args[0];
@@ -166,7 +167,7 @@ fn lower_store_gep(
                 })]);
         }
         Value::Instruction(id) => {
-            let src = get_or_generate_inst_output(ctx, src_ty, *id);
+            let src = get_or_generate_inst_output(ctx, src_ty, *id)?;
             ctx.inst_seq
                 .append(&mut vec![MachInstruction::new(InstructionData {
                     opcode: Opcode::MOVmr32,
@@ -176,6 +177,8 @@ fn lower_store_gep(
                         .collect(),
                 })]);
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
+
+    Ok(())
 }

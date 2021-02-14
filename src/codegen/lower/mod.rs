@@ -24,10 +24,11 @@ use crate::ir::{
 use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
+use std::{error::Error, fmt};
 
 pub trait Lower<T: TargetIsa> {
-    fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction);
-    fn copy_args_to_vregs(ctx: &mut LoweringContext<T>, params: &[Parameter]);
+    fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction) -> Result<()>;
+    fn copy_args_to_vregs(ctx: &mut LoweringContext<T>, params: &[Parameter]) -> Result<()>;
 }
 
 // TODO: So confusing. Need refactoring.
@@ -44,6 +45,11 @@ pub struct LoweringContext<'a, T: TargetIsa> {
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub call_conv: CallConvKind,
     pub cur_block: IrBasicBlockId,
+}
+
+#[derive(Debug)]
+pub enum LoweringError {
+    Todo,
 }
 
 pub fn convert_module<T: TargetIsa>(isa: T, module: IrModule) -> Result<MachModule<T>> {
@@ -123,19 +129,16 @@ pub fn convert_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     cur_block: block_id,
                 },
                 &function.params,
-            );
+            )?;
         }
 
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
             if !inst.opcode.has_side_effects()
-                && inst.users.len() == 1
-                && function
-                    .data
-                    .inst_ref(*inst.users.iter().next().unwrap())
-                    .parent
-                    == inst.parent
+                && (inst.users.len() == 1
+                    && function.data.instructions[*inst.users.iter().next().unwrap()].parent
+                        == inst.parent)
             {
                 continue;
             }
@@ -156,7 +159,7 @@ pub fn convert_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     cur_block: block_id,
                 },
                 inst,
-            );
+            )?;
         }
         for mach_inst in inst_seq {
             let mach_inst = data.create_inst(mach_inst);
@@ -180,4 +183,14 @@ pub fn convert_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
         isa,
         call_conv,
     })
+}
+
+impl Error for LoweringError {}
+
+impl fmt::Display for LoweringError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Todo => write!(f, "Todo"),
+        }
+    }
 }

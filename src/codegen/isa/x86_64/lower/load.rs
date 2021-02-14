@@ -6,13 +6,14 @@ use crate::codegen::{
         X86_64,
     },
     isa::TargetIsa,
-    lower::LoweringContext,
+    lower::{LoweringContext, LoweringError},
 };
 use crate::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
+use anyhow::Result;
 
 pub fn lower_load(
     ctx: &mut LoweringContext<X86_64>,
@@ -20,7 +21,7 @@ pub fn lower_load(
     tys: &[TypeId],
     addr: ValueId,
     _align: u32,
-) {
+) -> Result<()> {
     let mut slot = None;
 
     if let Value::Instruction(gep_id) = &ctx.ir_data.values[addr] {
@@ -52,11 +53,11 @@ pub fn lower_load(
                     MOperand::new(OperandData::None),
                 ],
             }));
-            return;
+            return Ok(());
         }
     }
 
-    todo!()
+    Err(LoweringError::Todo.into())
 }
 
 fn lower_load_gep(
@@ -65,7 +66,7 @@ fn lower_load_gep(
     tys: &[TypeId],
     gep_id: InstructionId,
     _align: u32,
-) {
+) -> Result<()> {
     use {Constant as Const, ConstantData::Int, ConstantInt::Int64, Value::Constant};
 
     let gep = &ctx.ir_data.instructions[gep_id];
@@ -106,7 +107,7 @@ fn lower_load_gep(
 
             let idx1_ty = gep.operand.types()[3];
             assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
-            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1);
+            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
 
             assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
 
@@ -122,7 +123,7 @@ fn lower_load_gep(
                 ) as i32)),
             ];
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
 
     let output = new_empty_inst_output(ctx, tys[0], id);
@@ -139,6 +140,8 @@ fn lower_load_gep(
                         .collect(),
                 })]);
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     }
+
+    Ok(())
 }

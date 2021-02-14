@@ -9,7 +9,7 @@ use crate::codegen::{
         X86_64,
     },
     isa::TargetIsa,
-    lower::{Lower as LowerTrait, LoweringContext},
+    lower::{Lower as LowerTrait, LoweringContext, LoweringError},
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
 use crate::ir::{
@@ -24,6 +24,7 @@ use crate::ir::{
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
+use anyhow::Result;
 use load::lower_load;
 use store::lower_store;
 
@@ -37,11 +38,11 @@ impl Lower {
 }
 
 impl LowerTrait<X86_64> for Lower {
-    fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
+    fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> {
         lower(ctx, inst)
     }
 
-    fn copy_args_to_vregs(ctx: &mut LoweringContext<X86_64>, params: &[Parameter]) {
+    fn copy_args_to_vregs(ctx: &mut LoweringContext<X86_64>, params: &[Parameter]) -> Result<()> {
         let mut gpr_used = 0;
         let args = RegInfo::arg_reg_list(&ctx.call_conv);
         for (i, Parameter { name: _, ty }) in params.iter().enumerate() {
@@ -60,10 +61,11 @@ impl LowerTrait<X86_64> for Lower {
             });
             ctx.arg_idx_to_vreg.insert(i, output);
         }
+        Ok(())
     }
 }
 
-fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
+fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> {
     match inst.operand {
         Operand::Alloca {
             ref tys,
@@ -92,9 +94,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) {
         Operand::Br { block } => lower_br(ctx, block),
         Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
         Operand::Call { ref args, ref tys } => lower_call(ctx, inst.id.unwrap(), tys, args),
-        Operand::Ret { val: None, .. } => todo!(),
+        Operand::Ret { val: None, .. } => Err(LoweringError::Todo.into()),
         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
-        _ => todo!(),
+        _ => Err(LoweringError::Todo.into()),
     }
 }
 
@@ -104,11 +106,12 @@ fn lower_alloca(
     tys: &[TypeId],
     _num_elements: &ConstantData,
     _align: u32,
-) {
+) -> Result<()> {
     let slot_id = ctx
         .slots
         .add_slot(tys[0], X86_64::type_size(ctx.types, tys[0]));
     ctx.inst_id_to_slot_id.insert(id, slot_id);
+    Ok(())
 }
 
 fn lower_phi(
@@ -117,21 +120,27 @@ fn lower_phi(
     ty: TypeId,
     args: &[ValueId],
     blocks: &[BasicBlockId],
-) {
+) -> Result<()> {
     let output = new_empty_inst_output(ctx, ty, id);
     let mut operands = vec![MOperand::output(output.into())];
     for (arg, block) in args.iter().zip(blocks.iter()) {
-        operands.push(MOperand::input(val_to_operand_data(ctx, ty, *arg)));
+        operands.push(MOperand::input(val_to_operand_data(ctx, ty, *arg)?));
         operands.push(MOperand::new(OperandData::Block(ctx.block_map[block])))
     }
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
         opcode: Opcode::Phi,
         operands,
     }));
+    Ok(())
 }
 
-fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, args: &[ValueId]) {
-    let lhs = val_to_vreg(ctx, ty, args[0]);
+fn lower_add(
+    ctx: &mut LoweringContext<X86_64>,
+    id: InstructionId,
+    ty: TypeId,
+    args: &[ValueId],
+) -> Result<()> {
+    let lhs = val_to_vreg(ctx, ty, args[0])?;
     let output = new_empty_inst_output(ctx, ty, id);
 
     let insert_move = |ctx: &mut LoweringContext<X86_64>| {
@@ -144,7 +153,7 @@ fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, a
         })
     };
 
-    let rhs = val_to_operand_data(ctx, ty, args[1]);
+    let rhs = val_to_operand_data(ctx, ty, args[1])?;
 
     let data = match rhs {
         OperandData::Int32(rhs) => {
@@ -167,10 +176,12 @@ fn lower_add(ctx: &mut LoweringContext<X86_64>, id: InstructionId, ty: TypeId, a
                 ],
             }
         }
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     };
 
-    ctx.inst_seq.push(MachInstruction { id: None, data });
+    ctx.inst_seq.push(MachInstruction::new(data));
+
+    Ok(())
 }
 
 fn lower_sext(
@@ -178,15 +189,15 @@ fn lower_sext(
     id: InstructionId,
     tys: &[TypeId; 2],
     arg: ValueId,
-) {
+) -> Result<()> {
     let from = tys[0];
     let to = tys[1];
     assert_eq!(*ctx.types.get(from), Type::Int(32));
     assert_eq!(*ctx.types.get(to), Type::Int(64));
 
     let val = match ctx.ir_data.values[arg] {
-        Value::Instruction(id) => get_or_generate_inst_output(ctx, from, id),
-        _ => todo!(),
+        Value::Instruction(id) => get_or_generate_inst_output(ctx, from, id)?,
+        _ => return Err(LoweringError::Todo.into()),
     };
 
     let output = new_empty_inst_output(ctx, to, id);
@@ -198,19 +209,26 @@ fn lower_sext(
             operands: vec![MOperand::output(output.into()), MOperand::input(val.into())],
         },
     });
+
+    Ok(())
 }
 
-fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) {
+fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) -> Result<()> {
     ctx.inst_seq.push(MachInstruction {
         id: None,
         data: InstructionData {
             opcode: Opcode::JMP,
             operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&block]))],
         },
-    })
+    });
+    Ok(())
 }
 
-fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicBlockId; 2]) {
+fn lower_condbr(
+    ctx: &mut LoweringContext<X86_64>,
+    arg: ValueId,
+    blocks: [BasicBlockId; 2],
+) -> Result<()> {
     fn is_icmp<'a>(
         data: &'a IrData,
         val: &Value,
@@ -230,7 +248,7 @@ fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicB
     let arg = ctx.ir_data.value_ref(arg);
 
     if let Some((ty, args, cond)) = is_icmp(ctx.ir_data, arg) {
-        let lhs = val_to_vreg(ctx, *ty, args[0]);
+        let lhs = val_to_vreg(ctx, *ty, args[0])?;
         let rhs = ctx.ir_data.value_ref(args[1]);
         match rhs {
             Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))) => {
@@ -239,7 +257,7 @@ fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicB
                     operands: vec![MOperand::input(lhs.into()), MOperand::new(rhs.into())],
                 }));
             }
-            _ => todo!(),
+            _ => return Err(LoweringError::Todo.into()),
         }
 
         ctx.inst_seq.push(MachInstruction::new(InstructionData {
@@ -250,7 +268,7 @@ fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicB
                 ICmpCond::Slt => Opcode::JL,
                 ICmpCond::Sge => Opcode::JGE,
                 ICmpCond::Sgt => Opcode::JG,
-                _ => todo!(),
+                _ => return Err(LoweringError::Todo.into()),
             },
             operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
         }));
@@ -258,10 +276,10 @@ fn lower_condbr(ctx: &mut LoweringContext<X86_64>, arg: ValueId, blocks: [BasicB
             opcode: Opcode::JMP,
             operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[1]]))],
         }));
-        return;
+        return Ok(());
     }
 
-    todo!()
+    Err(LoweringError::Todo.into())
 }
 
 fn lower_call(
@@ -269,13 +287,13 @@ fn lower_call(
     id: InstructionId,
     tys: &[TypeId],
     args: &[ValueId],
-) {
+) -> Result<()> {
     let output = new_empty_inst_output(ctx, tys[0], id);
 
     let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
     let mut gpr_used = 0;
     for (&arg, &ty) in args[1..].iter().zip(tys[1..].iter()) {
-        let arg = val_to_operand_data(ctx, ty, arg);
+        let arg = val_to_operand_data(ctx, ty, arg)?;
         let r = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
         gpr_used += 1;
         ctx.inst_seq.push(MachInstruction {
@@ -284,7 +302,7 @@ fn lower_call(
                 opcode: match &arg {
                     OperandData::Int32(_) => Opcode::MOVri32,
                     OperandData::VReg(_) | OperandData::Reg(_) => Opcode::MOVrr32,
-                    _ => todo!(),
+                    _ => return Err(LoweringError::Todo.into()),
                 },
                 operands: vec![MOperand::output(r.into()), MOperand::input(arg.into())],
             },
@@ -293,7 +311,7 @@ fn lower_call(
 
     let name = match &ctx.ir_data.values[args[0]] {
         Value::Constant(ConstantData::GlobalRef(Name::Name(name))) => name.clone(),
-        _ => todo!(),
+        _ => return Err(LoweringError::Todo.into()),
     };
     let result_reg: Reg = GR32::EAX.into(); // TODO: do not hard code
     ctx.inst_seq.push(MachInstruction::new(InstructionData {
@@ -310,10 +328,12 @@ fn lower_call(
             MOperand::input(result_reg.into()),
         ],
     }));
+
+    Ok(())
 }
 
-fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) {
-    let vreg = val_to_vreg(ctx, ty, value);
+fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) -> Result<()> {
+    let vreg = val_to_vreg(ctx, ty, value)?;
     assert!(*ctx.types.get(ty) == Type::Int(32));
     ctx.inst_seq.push(MachInstruction {
         id: None,
@@ -332,6 +352,7 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) {
             operands: vec![],
         },
     });
+    Ok(())
 }
 
 // Get instruction output.
@@ -343,20 +364,20 @@ fn get_or_generate_inst_output(
     ctx: &mut LoweringContext<X86_64>,
     ty: TypeId,
     id: InstructionId,
-) -> VReg {
+) -> Result<VReg> {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
-        return *vreg;
+        return Ok(*vreg);
     }
 
     if ctx.ir_data.inst_ref(id).parent != ctx.cur_block {
         // The instruction indexed as `id` must be placed in another basic block
         let v = ctx.vregs.add_vreg_data(ty);
         ctx.inst_id_to_vreg.insert(id, v);
-        return v;
+        return Ok(v);
     }
 
     // TODO: What about instruction scheduling?
-    lower(ctx, ctx.ir_data.inst_ref(id));
+    lower(ctx, ctx.ir_data.inst_ref(id))?;
     get_or_generate_inst_output(ctx, ty, id)
 }
 
@@ -369,17 +390,21 @@ fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: Inst
     vreg
 }
 
-fn val_to_operand_data(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> OperandData {
+fn val_to_operand_data(
+    ctx: &mut LoweringContext<X86_64>,
+    ty: TypeId,
+    val: ValueId,
+) -> Result<OperandData> {
     match ctx.ir_data.values[val] {
-        Value::Instruction(id) => get_or_generate_inst_output(ctx, ty, id).into(),
-        Value::Argument(idx) => ctx.arg_idx_to_vreg[&idx].into(),
-        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => OperandData::Int32(i),
-        _ => todo!(),
+        Value::Instruction(id) => Ok(get_or_generate_inst_output(ctx, ty, id)?.into()),
+        Value::Argument(idx) => Ok(ctx.arg_idx_to_vreg[&idx].into()),
+        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
+        _ => Err(LoweringError::Todo.into()),
     }
 }
 
-fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> VReg {
-    match val_to_operand_data(ctx, ty, val) {
+fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> Result<VReg> {
+    match val_to_operand_data(ctx, ty, val)? {
         OperandData::Int32(i) => {
             let output = ctx.vregs.add_vreg_data(ty);
             ctx.inst_seq.push(MachInstruction {
@@ -389,9 +414,9 @@ fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> V
                     operands: vec![MOperand::output(output.into()), MOperand::new(i.into())],
                 },
             });
-            output
+            Ok(output)
         }
-        OperandData::VReg(vr) => vr,
-        _ => todo!(),
+        OperandData::VReg(vr) => Ok(vr),
+        _ => Err(LoweringError::Todo.into()),
     }
 }
