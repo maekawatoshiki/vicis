@@ -23,9 +23,11 @@ jobs:
       env: 
         ACCEPT_EULA: Y
       run:  |
-            rustup override set nightly
-            sudo -E apt-get update && \
-            sudo -E apt-get upgrade -y && \
+            rustup override set nightly && \
+            # sudo -E apt-get update && \
+            # sudo -E dpkg --configure -a && \
+            # sudo -E dpkg --remove containers-common && \
+            # sudo -E apt-get upgrade -y && \
             sudo -E apt-get install -y zlib1g-dev apt-utils && \
             sudo -E apt-get install -y opt libedit-dev build-essential make && \
             sudo -E apt-get install -y cmake g++ clang pkg-config jq && \
