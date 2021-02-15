@@ -22,7 +22,7 @@ use crate::ir::{
     },
     module::name::Name,
     types::{Type, TypeId},
-    value::{ConstantData, ConstantInt, Value, ValueId},
+    value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
 };
 use anyhow::Result;
 use load::lower_load;
@@ -399,6 +399,25 @@ fn val_to_operand_data(
         Value::Instruction(id) => Ok(get_or_generate_inst_output(ctx, ty, id)?.into()),
         Value::Argument(idx) => Ok(ctx.arg_idx_to_vreg[&idx].into()),
         Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
+        Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr {
+            inbounds: _,
+            tys: _,
+            ref args,
+        })) => {
+            assert!(matches!(&*ctx.types.get(ty), Type::Pointer(_)));
+            assert!(matches!(args[0], ConstantData::GlobalRef(_)));
+            let all_indices_0 = args[1..]
+                .iter()
+                .all(|arg| matches!(arg, ConstantData::Int(ConstantInt::Int64(0))));
+            assert!(all_indices_0);
+            let src = OperandData::GlobalAddress(args[0].as_global_ref().as_string().clone());
+            let dst = ctx.vregs.add_vreg_data(ty);
+            ctx.inst_seq.push(MachInstruction::new(InstructionData {
+                opcode: Opcode::MOVri32, // TODO: MOVri64 is correct
+                operands: vec![MOperand::output(dst.into()), MOperand::new(src.into())],
+            }));
+            Ok(dst.into())
+        }
         _ => Err(LoweringError::Todo.into()),
     }
 }

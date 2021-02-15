@@ -57,6 +57,7 @@ pub enum OperandData {
     Slot(SlotId),
     Block(BasicBlockId),
     Label(String),
+    GlobalAddress(String),
     None,
 }
 

@@ -84,6 +84,20 @@ impl ConstantData {
             _ => panic!(),
         }
     }
+
+    pub fn as_global_ref(&self) -> &Name {
+        match self {
+            Self::GlobalRef(name) => name,
+            _ => panic!(),
+        }
+    }
+
+    pub fn as_array(&self) -> &ConstantArray {
+        match self {
+            Self::Array(a) => a,
+            _ => panic!(),
+        }
+    }
 }
 
 impl ConstantInt {

@@ -10,6 +10,22 @@ pub enum Name {
     Number(usize),
 }
 
+impl Name {
+    pub fn as_string(&self) -> &String {
+        match self {
+            Self::Name(name) => name,
+            _ => panic!(),
+        }
+    }
+
+    pub fn as_number(&self) -> &usize {
+        match self {
+            Self::Number(n) => n,
+            _ => panic!(),
+        }
+    }
+}
+
 impl fmt::Debug for Name {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

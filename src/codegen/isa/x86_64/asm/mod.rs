@@ -13,6 +13,23 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
     writeln!(f, "  .text")?;
     writeln!(f, "  .intel_syntax noprefix")?;
 
+    for (_, gv) in &module.global_variables {
+        if let Some(init) = &gv.init {
+            let arr = init.as_array();
+            if !arr.is_string {
+                continue;
+            }
+            let mut s = vec![];
+            for elem in &arr.elems {
+                s.push(*elem.as_int().as_i8() as u8)
+            }
+            let s = ::std::str::from_utf8(s.as_slice()).unwrap();
+            debug!(s);
+            writeln!(f, "{}:", gv.name.as_string())?;
+            writeln!(f, "  .string \"{}\"", s)?;
+        }
+    }
+
     for (_, func) in &module.functions {
         print_function(f, func)?
     }
@@ -21,6 +38,10 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
 }
 
 pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -> fmt::Result {
+    if function.is_prototype {
+        return Ok(());
+    }
+
     writeln!(f, "  .globl {}", function.name)?;
     writeln!(f, "{}:", function.name)?;
 
@@ -108,6 +129,7 @@ impl fmt::Display for OperandData {
             Self::Block(block) => write!(f, ".LBL{}", block.index()),
             Self::Label(name) => write!(f, "{}", name),
             Self::MemStart => Ok(()),
+            Self::GlobalAddress(name) => write!(f, "offset {}", name),
             Self::None => write!(f, "none"),
         }
     }
