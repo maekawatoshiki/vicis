@@ -96,7 +96,7 @@ impl RegisterInfo for RegInfo {
         match r {
             Reg(/*GR32*/ 0, x) => RegUnit(RegClass::GR64 as u16, x),
             Reg(/*GR64*/ 1, x) => RegUnit(RegClass::GR64 as u16, x),
-            _ => todo!(),
+            _ => panic!(),
         }
     }
 }
@@ -106,6 +106,7 @@ impl RegisterClass for RegClass {
         match &*types.get(id) {
             Type::Int(32) => Self::GR32,
             Type::Int(64) => Self::GR64,
+            Type::Pointer(_) => Self::GR64,
             _ => todo!(),
         }
     }
@@ -137,7 +138,7 @@ pub fn to_reg_unit(r: Reg) -> RegUnit {
     match r {
         Reg(/*GR32*/ 0, x) => RegUnit(1, x),
         Reg(/*GR64*/ 1, x) => RegUnit(1, x),
-        _ => todo!(),
+        _ => panic!(),
     }
 }
 

@@ -196,7 +196,7 @@ impl TypesBase {
             }) => {
                 format!("[{} x {}]", num_elements, self.to_string(*inner))
             }
-            _ => todo!(),
+            Type::Function(_) => "TODO".to_string(),
         }
     }
 }

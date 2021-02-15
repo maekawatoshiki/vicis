@@ -5,13 +5,14 @@ use super::{
     global_variable,
 };
 use crate::ir::util::{spaces, string_literal};
+use nom;
 use nom::{
     bytes::complete::{tag, take_until},
     character::complete::{char, digit1},
     combinator::map,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
-    Err, IResult,
+    IResult,
 };
 
 fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
@@ -67,7 +68,7 @@ fn parse_metadata<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a 
     )(source)
 }
 
-pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str>>> {
+pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'a str>>> {
     let mut module = Module::new();
 
     loop {
@@ -125,6 +126,7 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, Err<VerboseError<&'a str
 #[test]
 fn parse_all_examples() {
     use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
+    use nom::error::convert_error;
     use std::{fs, io::Write, process};
 
     let files_count = fs::read_dir("./examples")
@@ -138,7 +140,15 @@ fn parse_all_examples() {
         let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
         pb.set_message(name.as_str());
 
-        let mut module = parse(&fs::read_to_string(name).unwrap()).unwrap();
+        let source = fs::read_to_string(name).unwrap();
+        let mut module = match parse(&source) {
+            Ok(ok) => ok,
+            Err(nom::Err::Error(e)) => {
+                println!("{}", convert_error(source.as_str(), e));
+                panic!()
+            }
+            Err(e) => panic!("{:?}", e),
+        };
         crate::ir::pass::dce::run_on_module(&mut module);
 
         println!("{:?}", module);
