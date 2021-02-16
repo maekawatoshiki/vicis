@@ -1,8 +1,15 @@
 [package]
 name = "vicis"
 version = "0.1.0"
-authors = ["maekawatoshiki <konndennsa@gmail.com>"]
+authors = ["uint256_t <uint2p8_t@protonmail.com>"]
 edition = "2018"
+license-file = "LICENSE"
+description = "Manipulate LLVM-IR in Pure Rust"
+homepage = "https://github.com/maekawatoshiki/vicis"
+documentation = "https://docs.rs/vicis"
+repository = "https://github.com/maekawatoshiki/vicis"
+readme = "README.md"
+keywords = ["llvm", "compiler"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
