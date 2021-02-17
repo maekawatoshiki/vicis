@@ -404,6 +404,7 @@ fn val_to_operand_data(
             tys: _,
             ref args,
         })) => {
+            // TODO: Split up into functions
             assert!(matches!(&*ctx.types.get(ty), Type::Pointer(_)));
             assert!(matches!(args[0], ConstantData::GlobalRef(_)));
             let all_indices_0 = args[1..]

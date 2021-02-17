@@ -82,7 +82,7 @@ let asm = r#"
 let module = module::parse_assembly(asm).unwrap();
 
 // Compile the module for x86 and get a machine module
-let mach_module = convert_module(X86_64, module);
+let mach_module = compile_module(X86_64, module);
 
 // Display the machine module as assembly
 assert_eq!(

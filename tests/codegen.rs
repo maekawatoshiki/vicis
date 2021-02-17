@@ -1,5 +1,5 @@
 use vicis::{
-    codegen::{isa::x86_64::X86_64, lower::convert_module},
+    codegen::{isa::x86_64::X86_64, lower::compile_module},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::module,
 };
@@ -29,7 +29,7 @@ fn compile_tests() {
         let output_body = &fs::read_to_string(output).unwrap();
 
         let module = module::parse_assembly(input_body).unwrap();
-        let mach_module = convert_module(X86_64, module).unwrap();
+        let mach_module = compile_module(X86_64, module).unwrap();
 
         assert_eq!(
             &format!("{}", mach_module),

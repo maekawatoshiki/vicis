@@ -52,11 +52,11 @@ pub enum LoweringError {
     Todo,
 }
 
-pub fn convert_module<T: TargetIsa>(isa: T, module: IrModule) -> Result<MachModule<T>> {
+pub fn compile_module<T: TargetIsa>(isa: T, module: IrModule) -> Result<MachModule<T>> {
     let mut functions = Arena::new();
 
     for (_, function) in module.functions {
-        functions.alloc(convert_function(isa, function)?);
+        functions.alloc(compile_function(isa, function)?);
     }
 
     let mut mach_module = MachModule {
@@ -77,7 +77,7 @@ pub fn convert_module<T: TargetIsa>(isa: T, module: IrModule) -> Result<MachModu
     Ok(mach_module)
 }
 
-pub fn convert_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<MachFunction<T>> {
+pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<MachFunction<T>> {
     let mut slots: Slots<T> = Slots::new(isa);
     let mut data: Data<T::InstData> = Data::new();
     let mut layout: Layout<T::InstData> = Layout::new();
