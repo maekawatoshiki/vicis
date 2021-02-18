@@ -3,7 +3,7 @@ pub mod parser;
 pub use parser::parse;
 
 use crate::ir::{
-    function::{basic_block::BasicBlockId, Data},
+    function::{basic_block::BasicBlockId, data::Data},
     module::name::Name,
     types::TypeId,
     types::Types,

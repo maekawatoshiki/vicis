@@ -15,8 +15,9 @@ use super::{
 use crate::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
+        data::Data as IrData,
         instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId},
-        Data as IrData, Function as IrFunction, Parameter,
+        Function as IrFunction, Parameter,
     },
     module::Module as IrModule,
     types::Types,

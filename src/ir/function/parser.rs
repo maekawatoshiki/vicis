@@ -1,9 +1,11 @@
 use super::super::{
     function::{
         basic_block::BasicBlockId,
+        data::Data,
         instruction,
         instruction::{Opcode, Operand},
-        Data, Function, Layout, Parameter,
+        layout::Layout,
+        Function, Parameter,
     },
     module::{attributes, name, preemption_specifier},
     types,
@@ -228,9 +230,9 @@ impl<'a> ParserContext<'a> {
 
     fn set_blocks_info(&mut self) {
         for block_id in self.layout.block_iter() {
-            let maybe_br = self.layout.basic_blocks[&block_id].last_inst;
+            let maybe_br = self.layout.block_node(block_id).last_inst();
             let maybe_br = match maybe_br {
-                Some(maybe_br) => maybe_br,
+                Some(maybe_br) => *maybe_br,
                 None => continue,
             };
             let maybe_br = &self.data.instructions[maybe_br];

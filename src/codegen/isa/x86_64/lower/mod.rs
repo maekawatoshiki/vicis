@@ -15,10 +15,11 @@ use crate::codegen::{
 use crate::ir::{
     function::{
         basic_block::BasicBlockId,
+        data::Data as IrData,
         instruction::{
             ICmpCond, Instruction as IrInstruction, InstructionId, Opcode as IrOpcode, Operand,
         },
-        Data as IrData, Parameter,
+        Parameter,
     },
     module::name::Name,
     types::{Type, TypeId},

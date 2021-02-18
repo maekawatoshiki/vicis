@@ -1,7 +1,8 @@
 use crate::ir::{
     function::{
+        data::Data,
         instruction::{InstructionId, Opcode},
-        Data, Function,
+        Function,
     },
     module::Module,
     value::Value,
