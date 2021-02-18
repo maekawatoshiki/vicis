@@ -103,7 +103,7 @@ impl<BB: BasicBlock> DominatorTree<BB> {
         frontier: &mut FxHashMap<Id<BB>, FxHashSet<Id<BB>>>,
     ) {
         if frontier.contains_key(&x) {
-            // dominance frontier for x is already computeuated
+            // dominance frontier for x is already computed
             return;
         }
 

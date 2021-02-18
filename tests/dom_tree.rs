@@ -1,7 +1,8 @@
+use rustc_hash::FxHashSet;
 use vicis::{
     // codegen::{isa::x86_64::X86_64, lower::compile_module},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
-    ir::module,
+    ir::{function::basic_block::BasicBlockId, module},
     pass::analysis::dom_tree::DominatorTree,
 };
 
@@ -48,10 +49,43 @@ define dso_local i32 @main() {
 
     let module = module::parse_assembly(src).unwrap();
 
-    println!("{:?}", module);
-
     for (_, func) in module.functions() {
+        let blocks: Vec<BasicBlockId> = func.data.basic_blocks.iter().map(|(id, _)| id).collect();
         let dom_tree = DominatorTree::new(func);
-        println!("{:#?}", dom_tree);
+
+        assert!(dom_tree.dominates(blocks[1], blocks[1]));
+        assert!(dom_tree.dominates(blocks[1], blocks[2]));
+        assert!(dom_tree.dominates(blocks[1], blocks[3]));
+        assert!(dom_tree.dominates(blocks[1], blocks[4]));
+        assert!(dom_tree.dominates(blocks[1], blocks[5]));
+        assert!(dom_tree.dominates(blocks[1], blocks[6]));
+        assert!(dom_tree.dominates(blocks[2], blocks[4]));
+        assert!(dom_tree.dominates(blocks[2], blocks[5]));
+        assert!(!dom_tree.dominates(blocks[3], blocks[5]));
+        assert!(!dom_tree.dominates(blocks[3], blocks[6]));
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[5])
+                == Some(&vec![blocks[6]].into_iter().collect::<FxHashSet<_>>())
+        );
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[2])
+                == Some(&vec![blocks[6]].into_iter().collect::<FxHashSet<_>>())
+        );
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[4])
+                == Some(&vec![blocks[5]].into_iter().collect::<FxHashSet<_>>())
+        );
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[3])
+                == Some(&vec![blocks[6]].into_iter().collect::<FxHashSet<_>>())
+        );
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[1])
+                == Some(&vec![].into_iter().collect::<FxHashSet<_>>())
+        );
+        assert!(
+            dom_tree.dominance_frontier_of(blocks[6])
+                == Some(&vec![].into_iter().collect::<FxHashSet<_>>())
+        );
     }
 }

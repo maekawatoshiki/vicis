@@ -229,10 +229,9 @@ impl<'a> ParserContext<'a> {
     fn set_blocks_info(&mut self) {
         for block_id in self.layout.block_iter() {
             let maybe_br = self.layout.basic_blocks[&block_id].last_inst;
-            let maybe_br = if let Some(maybe_br) = maybe_br {
-                maybe_br
-            } else {
-                continue;
+            let maybe_br = match maybe_br {
+                Some(maybe_br) => maybe_br,
+                None => continue,
             };
             let maybe_br = &self.data.instructions[maybe_br];
             if !maybe_br.opcode.is_terminator() {
