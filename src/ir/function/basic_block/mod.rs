@@ -4,6 +4,7 @@ use rustc_hash::FxHashSet;
 
 pub type BasicBlockId = Id<BasicBlock>;
 
+#[derive(Debug)]
 pub struct BasicBlock {
     pub name: Option<Name>,
     pub preds: FxHashSet<BasicBlockId>,

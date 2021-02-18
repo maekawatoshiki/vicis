@@ -1,7 +1,9 @@
 use super::super::{
     function::{
-        basic_block::BasicBlockId, instruction, instruction::Opcode, Data, Function, Layout,
-        Parameter,
+        basic_block::BasicBlockId,
+        instruction,
+        instruction::{Opcode, Operand},
+        Data, Function, Layout, Parameter,
     },
     module::{attributes, name, preemption_specifier},
     types,
@@ -134,6 +136,7 @@ pub fn parse_body<'a, 'b>(
         }
 
         if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
+            ctx.set_blocks_info();
             return Ok((source, ()));
         }
 
@@ -221,6 +224,35 @@ impl<'a> ParserContext<'a> {
         self.data.block_ref_mut(block).name = Some(name.clone());
         self.name_to_block.insert(name, block);
         block
+    }
+
+    fn set_blocks_info(&mut self) {
+        for block_id in self.layout.block_iter() {
+            let maybe_br = self.layout.basic_blocks[&block_id].last_inst;
+            let maybe_br = if let Some(maybe_br) = maybe_br {
+                maybe_br
+            } else {
+                continue;
+            };
+            let maybe_br = &self.data.instructions[maybe_br];
+            if !maybe_br.opcode.is_terminator() {
+                continue;
+            }
+            let br = maybe_br;
+            match br.operand {
+                Operand::Br { block } => {
+                    self.data.basic_blocks[br.parent].succs.insert(block);
+                    self.data.basic_blocks[block].preds.insert(br.parent);
+                }
+                Operand::CondBr { blocks, .. } => {
+                    for &block in blocks.iter() {
+                        self.data.basic_blocks[br.parent].succs.insert(block);
+                        self.data.basic_blocks[block].preds.insert(br.parent);
+                    }
+                }
+                _ => continue,
+            }
+        }
     }
 }
 
