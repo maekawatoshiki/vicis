@@ -6,11 +6,13 @@ use crate::ir::{
     value::{Value, ValueId},
 };
 use id_arena::Arena;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub struct Data {
     pub values: Arena<Value>,
     pub instructions: Arena<Instruction>,
     pub basic_blocks: Arena<BasicBlock>,
+    pub users_map: FxHashMap<InstructionId, FxHashSet<InstructionId>>,
 }
 
 impl Data {
@@ -19,6 +21,7 @@ impl Data {
             values: Arena::new(),
             instructions: Arena::new(),
             basic_blocks: Arena::new(),
+            users_map: FxHashMap::default(),
         }
     }
 
@@ -31,6 +34,7 @@ impl Data {
             inst.id = Some(id);
             inst
         });
+        self.users_map.insert(id, FxHashSet::default());
         self.set_inst_users(id);
         id
     }
@@ -64,6 +68,19 @@ impl Data {
         &mut self.values[id]
     }
 
+    pub fn users_of(&self, id: InstructionId) -> &FxHashSet<InstructionId> {
+        &self.users_map[&id]
+    }
+
+    /// If an instruction with `id` has the only one user, return it.
+    /// Otherwise, return None.
+    pub fn only_one_user_of(&self, id: InstructionId) -> Option<InstructionId> {
+        if self.users_of(id).len() != 1 {
+            return None;
+        }
+        self.users_of(id).iter().next().map(|x| *x)
+    }
+
     // For `Instruction`s
 
     fn set_inst_users(&mut self, id: InstructionId) {
@@ -77,7 +94,10 @@ impl Data {
             })
             .collect::<Vec<InstructionId>>();
         for arg in args {
-            self.instructions[arg].users.insert(id);
+            self.users_map
+                .entry(arg)
+                .or_insert(FxHashSet::default())
+                .insert(id);
         }
     }
 
@@ -92,7 +112,9 @@ impl Data {
             })
             .collect::<Vec<InstructionId>>();
         for arg in args {
-            self.instructions[arg].users.remove(&id);
+            if let Some(users) = self.users_map.get_mut(&arg) {
+                users.remove(&id);
+            }
         }
     }
 }

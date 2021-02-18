@@ -10,7 +10,6 @@ use crate::ir::{
     value::{ConstantData, ValueId},
 };
 use id_arena::Id;
-use rustc_hash::FxHashSet;
 use std::{fmt, slice};
 
 pub type InstructionId = Id<Instruction>;
@@ -21,7 +20,6 @@ pub struct Instruction {
     pub dest: Option<Name>,
     pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
-    pub users: FxHashSet<InstructionId>,
     // pub result_ty: Option<TypeId>
 }
 
@@ -303,7 +301,7 @@ impl Opcode {
             dest: None,
             id: None,
             parent,
-            users: FxHashSet::default(),
+            // users: FxHashSet::default(),
         }
     }
 

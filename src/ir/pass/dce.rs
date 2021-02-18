@@ -42,13 +42,14 @@ fn check_if_elimination_possible(
     elimination_list: &mut Vec<InstructionId>,
     worklist: &mut Vec<InstructionId>,
 ) {
+    let no_users = data.users_of(inst).len() == 0;
     let inst = data.inst_ref(inst);
     let do_not_eliminate =
         matches!(inst.opcode, Opcode::Store | Opcode::Call) || inst.opcode.is_terminator();
     if do_not_eliminate {
         return;
     }
-    if inst.users.len() == 0 {
+    if no_users {
         elimination_list.push(inst.id.unwrap());
         for arg in inst
             .operand

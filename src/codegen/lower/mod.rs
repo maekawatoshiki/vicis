@@ -136,10 +136,15 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
+            // Check if `inst` has no side effects and has the only one user instruction placed in
+            // the same basic block
             if !inst.opcode.has_side_effects()
-                && (inst.users.len() == 1
-                    && function.data.instructions[*inst.users.iter().next().unwrap()].parent
-                        == inst.parent)
+                && function
+                    .data
+                    .only_one_user_of(inst_id)
+                    .map_or(false, |user| {
+                        function.data.inst_ref(user).parent == inst.parent
+                    })
             {
                 continue;
             }
