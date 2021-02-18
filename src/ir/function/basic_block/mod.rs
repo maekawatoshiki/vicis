@@ -1,4 +1,4 @@
-use crate::ir::module::name::Name;
+use crate::{ir::module::name::Name, traits::basic_block::BasicBlock as BB};
 use id_arena::Id;
 use rustc_hash::FxHashSet;
 
@@ -34,5 +34,15 @@ impl BasicBlock {
 
     pub fn succs_mut(&mut self) -> &mut FxHashSet<BasicBlockId> {
         &mut self.succs
+    }
+}
+
+impl BB for BasicBlock {
+    fn preds(&self) -> &FxHashSet<Id<Self>> {
+        &self.preds
+    }
+
+    fn succs(&self) -> &FxHashSet<Id<Self>> {
+        &self.succs
     }
 }

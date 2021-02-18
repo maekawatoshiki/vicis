@@ -9,6 +9,7 @@ use super::{
     types::{TypeId, Types},
     value::{Value, ValueId},
 };
+use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::{BasicBlock, BasicBlockId};
 use either::Either;
 use id_arena::{Arena, Id};
@@ -361,5 +362,17 @@ impl fmt::Debug for Function {
 impl Parameter {
     pub fn to_string(&self, types: &Types) -> String {
         format!("{} %{:?}", types.to_string(self.ty), self.name)
+    }
+}
+
+impl BasicBlockData<BasicBlock> for Function {
+    fn get(&self, id: Id<BasicBlock>) -> &BasicBlock {
+        &self.data.basic_blocks[id]
+    }
+}
+
+impl BasicBlockLayout<BasicBlock> for Function {
+    fn order(&self) -> Box<dyn Iterator<Item = Id<BasicBlock>> + '_> {
+        Box::new(self.layout.block_iter())
     }
 }

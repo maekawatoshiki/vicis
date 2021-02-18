@@ -1,6 +1,6 @@
+use crate::traits::basic_block::{BasicBlock, BasicBlockData, BasicBlockLayout};
 use id_arena::Id;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::fmt;
 
 #[derive(Debug)]
 pub struct DominatorTree<BB: BasicBlock> {
@@ -11,19 +11,6 @@ pub struct DominatorTree<BB: BasicBlock> {
 }
 
 type DomTree<BB> = FxHashMap<Id<BB>, FxHashSet<Id<BB>>>;
-
-pub trait BasicBlock: Sized + fmt::Debug {
-    fn preds(&self) -> &FxHashSet<Id<Self>>;
-    fn succs(&self) -> &FxHashSet<Id<Self>>;
-}
-
-pub trait BasicBlockData<BB: BasicBlock> {
-    fn get(&self, id: Id<BB>) -> &BB;
-}
-
-pub trait BasicBlockLayout<BB: BasicBlock> {
-    fn order(&self) -> Box<dyn Iterator<Item = Id<BB>> + '_>;
-}
 
 type Map<T> = FxHashMap<T, T>;
 
@@ -236,31 +223,5 @@ impl<'a, BB: BasicBlock, F: BasicBlockData<BB> + BasicBlockLayout<BB>> Context<'
     fn link(&mut self, pred: Id<BB>, node: Id<BB>) {
         self.ancestor.insert(node, pred);
         self.best.insert(node, node);
-    }
-}
-
-////
-
-use crate::ir::function::{basic_block::BasicBlock as IrBasicBlock, Function};
-
-impl BasicBlock for IrBasicBlock {
-    fn preds(&self) -> &FxHashSet<Id<Self>> {
-        &self.preds
-    }
-
-    fn succs(&self) -> &FxHashSet<Id<Self>> {
-        &self.succs
-    }
-}
-
-impl BasicBlockData<IrBasicBlock> for Function {
-    fn get(&self, id: Id<IrBasicBlock>) -> &IrBasicBlock {
-        &self.data.basic_blocks[id]
-    }
-}
-
-impl BasicBlockLayout<IrBasicBlock> for Function {
-    fn order(&self) -> Box<dyn Iterator<Item = Id<IrBasicBlock>> + '_> {
-        Box::new(self.layout.block_iter())
     }
 }
