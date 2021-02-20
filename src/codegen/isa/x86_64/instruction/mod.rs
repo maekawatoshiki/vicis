@@ -1,8 +1,14 @@
 use crate::codegen::{
-    function::{basic_block::BasicBlockId, instruction::InstructionData as ID, slot::SlotId},
+    function::{
+        basic_block::BasicBlockId,
+        instruction::{InstructionData as ID, InstructionInfo as II},
+        slot::SlotId,
+    },
     register::{Reg, VReg},
 };
 // use crate::ir::instruction::InstructionId;
+
+pub struct InstructionInfo;
 
 #[derive(Debug, Clone)]
 pub struct InstructionData {
@@ -59,6 +65,10 @@ pub enum OperandData {
     Label(String),
     GlobalAddress(String),
     None,
+}
+
+impl II for InstructionInfo {
+    type Data = InstructionData;
 }
 
 impl ID for InstructionData {

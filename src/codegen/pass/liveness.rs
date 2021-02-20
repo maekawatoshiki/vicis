@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData, InstructionId},
+        instruction::{Instruction, InstructionData as ID, InstructionId, InstructionInfo as II},
         Function,
     },
     isa::TargetIsa,
@@ -15,8 +15,8 @@ pub struct Liveness<T: TargetIsa> {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
     pub vreg_lrs_map: FxHashMap<VReg, LiveRanges>,
     pub reg_lrs_map: FxHashMap<RegUnit, LiveRanges>,
-    pub vreg_to_defs: FxHashMap<VReg, FxHashSet<InstructionId<T::InstData>>>,
-    pub vreg_to_uses: FxHashMap<VReg, FxHashSet<InstructionId<T::InstData>>>,
+    pub vreg_to_defs: FxHashMap<VReg, FxHashSet<InstructionId<<T::InstInfo as II>::Data>>>,
+    pub vreg_to_uses: FxHashMap<VReg, FxHashSet<InstructionId<<T::InstInfo as II>::Data>>>,
     // pub vreg_to_use_insts
 }
 
@@ -250,7 +250,11 @@ impl<T: TargetIsa> Liveness<T> {
         }
     }
 
-    fn set_def_on_inst(&mut self, inst: &Instruction<T::InstData>, block_id: BasicBlockId) {
+    fn set_def_on_inst(
+        &mut self,
+        inst: &Instruction<<T::InstInfo as II>::Data>,
+        block_id: BasicBlockId,
+    ) {
         for output in inst.data.output_vregs() {
             self.vreg_to_defs
                 .entry(output)
@@ -283,7 +287,7 @@ impl<T: TargetIsa> Liveness<T> {
     fn visit_inst(
         &mut self,
         func: &Function<T>,
-        inst: &Instruction<T::InstData>,
+        inst: &Instruction<<T::InstInfo as II>::Data>,
         block_id: BasicBlockId,
     ) {
         for input in inst.data.input_vregs() {

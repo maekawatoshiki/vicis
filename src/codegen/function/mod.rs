@@ -5,6 +5,7 @@ pub mod layout;
 pub mod slot;
 
 use super::{call_conv::CallConvKind, isa::TargetIsa, register::VRegs};
+use crate::codegen::function::instruction::InstructionInfo;
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
@@ -21,8 +22,8 @@ pub struct Function<T: TargetIsa> {
     pub params: Vec<Parameter>,
     pub preemption_specifier: PreemptionSpecifier,
     pub attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
-    pub data: data::Data<T::InstData>,
-    pub layout: layout::Layout<T::InstData>,
+    pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
+    pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
     pub slots: slot::Slots<T>,
     pub vregs: VRegs,
     pub types: Types,
@@ -32,7 +33,10 @@ pub struct Function<T: TargetIsa> {
 }
 
 impl<T: TargetIsa> Function<T> {
-    pub fn remove_inst(&mut self, inst: InstructionId<T::InstData>) -> Option<()> {
+    pub fn remove_inst(
+        &mut self,
+        inst: InstructionId<<T::InstInfo as InstructionInfo>::Data>,
+    ) -> Option<()> {
         self.layout.remove_inst(inst)
     }
 }

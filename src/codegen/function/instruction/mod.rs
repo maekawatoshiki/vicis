@@ -16,6 +16,12 @@ pub trait InstructionData: Clone + fmt::Debug {
     fn is_copy(&self) -> bool;
 }
 
+pub trait InstructionInfo {
+    type Data: InstructionData;
+    // fn store_vreg_to_slot()
+    // fn load_from_slot()
+}
+
 #[derive(Debug, Clone)]
 pub struct Instruction<Data: InstructionData> {
     pub id: Option<InstructionId<Data>>,

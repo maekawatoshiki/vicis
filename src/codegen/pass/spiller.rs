@@ -1,10 +1,6 @@
 use super::liveness::Liveness;
 use crate::{
-    codegen::{
-        function::{instruction::Instruction, Function},
-        isa::TargetIsa,
-        register::VReg,
-    },
+    codegen::{function::Function, isa::TargetIsa, register::VReg},
     ir::types::Type,
 };
 

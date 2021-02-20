@@ -3,7 +3,7 @@ use super::{
     function::{
         basic_block::BasicBlockId as MachBasicBlockId,
         data::Data,
-        instruction::Instruction as MachInstruction,
+        instruction::{Instruction as MachInstruction, InstructionInfo as II},
         layout::Layout,
         slot::{SlotId, Slots},
         Function as MachFunction,
@@ -35,11 +35,11 @@ pub trait Lower<T: TargetIsa> {
 // TODO: So confusing. Need refactoring.
 pub struct LoweringContext<'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
-    pub mach_data: &'a mut Data<T::InstData>,
+    pub mach_data: &'a mut Data<<T::InstInfo as II>::Data>,
     pub slots: &'a mut Slots<T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
-    pub inst_seq: &'a mut Vec<MachInstruction<T::InstData>>,
+    pub inst_seq: &'a mut Vec<MachInstruction<<T::InstInfo as II>::Data>>,
     pub types: &'a Types,
     pub vregs: &'a mut VRegs,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
@@ -79,10 +79,11 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: IrModule) -> Result<MachModu
 }
 
 pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<MachFunction<T>> {
-    let mut slots: Slots<T> = Slots::new(isa);
-    let mut data: Data<T::InstData> = Data::new();
-    let mut layout: Layout<T::InstData> = Layout::new();
+    let mut slots = Slots::new(isa);
+    let mut data = Data::new();
+    let mut layout = Layout::new();
     let mut block_map = FxHashMap::default();
+
     // Create machine basic blocks
     for block_id in function.layout.block_iter() {
         let new_block_id = data.create_block();

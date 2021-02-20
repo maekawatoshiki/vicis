@@ -3,7 +3,7 @@ pub mod x86_64;
 use crate::{
     codegen::{
         call_conv::CallConvKind,
-        function::instruction::InstructionData,
+        function::instruction::InstructionInfo,
         lower,
         module::Module,
         register::{RegisterClass, RegisterInfo},
@@ -13,7 +13,7 @@ use crate::{
 use anyhow::Result;
 
 pub trait TargetIsa: Copy {
-    type InstData: InstructionData;
+    type InstInfo: InstructionInfo;
     type RegClass: RegisterClass;
     type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;
