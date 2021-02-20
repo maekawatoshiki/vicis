@@ -1,6 +1,10 @@
 use super::liveness::Liveness;
 use crate::{
-    codegen::{function::Function, isa::TargetIsa, register::VReg},
+    codegen::{
+        function::{instruction::Instruction, Function},
+        isa::TargetIsa,
+        register::VReg,
+    },
     ir::types::Type,
 };
 
@@ -38,9 +42,23 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
 
         // Most cases
         if defs.len() == 1 {
-            let def_id = defs.iter().next().unwrap();
-            let _def_block = self.function.data.instructions[*def_id].parent;
-            // self.function.layout.insert_inst_after(def_id, inst, block);
+            let def_id = *defs.iter().next().unwrap();
+            let _def_block = self.function.data.instructions[def_id].parent;
+
+            // let inst = self.function.data.create_inst(Instruction::new(
+            //     InstructionData {
+            //         opcode: Opcode::SUBr64i32,
+            //         operands: vec![
+            //             Operand::input_output(OperandData::Reg(GR64::RSP.into())),
+            //             Operand::input(OperandData::Int32(adj)),
+            //         ],
+            //     },
+            //     entry,
+            // ));
+
+            // self.function
+            //     .layout
+            //     .insert_inst_after(def_id, inst, def_block);
             // insert spill after def_id
         }
 

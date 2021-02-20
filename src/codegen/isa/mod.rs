@@ -13,7 +13,7 @@ use crate::{
 use anyhow::Result;
 
 pub trait TargetIsa: Copy {
-    type InstData: ::std::fmt::Debug + InstructionData;
+    type InstData: InstructionData;
     type RegClass: RegisterClass;
     type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;

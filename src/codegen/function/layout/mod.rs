@@ -139,6 +139,35 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
+    pub fn insert_inst_after(
+        &mut self,
+        after: InstructionId<InstData>,
+        inst: InstructionId<InstData>,
+        block: BasicBlockId,
+    ) {
+        {
+            let next = self.instructions[&after].next;
+            self.instructions
+                .entry(inst)
+                .or_insert(InstructionNode {
+                    prev: Some(after),
+                    next,
+                    block: Some(block),
+                })
+                .block = Some(block);
+        }
+
+        if let Some(next) = self.instructions[&after].next {
+            self.instructions.get_mut(&next).unwrap().prev = Some(inst);
+        }
+
+        self.instructions.get_mut(&after).unwrap().next = Some(inst);
+
+        // if self.basic_blocks[&block].first_inst == Some(before) {
+        //     self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
+        // }
+    }
+
     pub fn append_inst(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
         self.instructions
             .entry(inst)

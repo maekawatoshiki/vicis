@@ -3,10 +3,11 @@ use crate::codegen::{
     register::{Reg, VReg},
 };
 use id_arena::Id;
+use std::fmt;
 
 pub type InstructionId<Data> = Id<Instruction<Data>>;
 
-pub trait InstructionData: Clone {
+pub trait InstructionData: Clone + fmt::Debug {
     fn input_vregs(&self) -> Vec<VReg>;
     fn output_vregs(&self) -> Vec<VReg>;
     fn input_regs(&self) -> Vec<Reg>;
