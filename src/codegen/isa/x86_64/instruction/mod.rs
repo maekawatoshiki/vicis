@@ -130,6 +130,10 @@ impl ID for InstructionData {
             }
         }
     }
+
+    fn is_copy(&self) -> bool {
+        matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
+    }
 }
 
 impl Operand {

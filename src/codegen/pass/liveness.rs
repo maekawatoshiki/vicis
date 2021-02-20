@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData},
+        instruction::{Instruction, InstructionData, InstructionId},
         Function,
     },
     isa::TargetIsa,
@@ -11,10 +11,13 @@ use crate::codegen::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;
 
-pub struct Liveness {
+pub struct Liveness<T: TargetIsa> {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
     pub vreg_lrs_map: FxHashMap<VReg, LiveRanges>,
     pub reg_lrs_map: FxHashMap<RegUnit, LiveRanges>,
+    pub vreg_to_defs: FxHashMap<VReg, FxHashSet<InstructionId<T::InstData>>>,
+    pub vreg_to_uses: FxHashMap<VReg, FxHashSet<InstructionId<T::InstData>>>,
+    // pub vreg_to_use_insts
 }
 
 #[derive(Debug, Clone)]
@@ -96,21 +99,23 @@ impl Eq for ProgramPoint {}
 //     todo!()
 // }
 
-impl Liveness {
+impl<T: TargetIsa> Liveness<T> {
     pub fn new() -> Self {
         Self {
             block_data: FxHashMap::default(),
             vreg_lrs_map: FxHashMap::default(),
             reg_lrs_map: FxHashMap::default(),
+            vreg_to_defs: FxHashMap::default(),
+            vreg_to_uses: FxHashMap::default(),
         }
     }
 
-    pub fn analyze_function<T: TargetIsa>(&mut self, func: &Function<T>) {
+    pub fn analyze_function(&mut self, func: &Function<T>) {
         // Analyze live-in and live-out virutal registers
         self.set_def(func);
         self.visit(func);
 
-        println!("{:#?}", self.block_data);
+        debug!(&self.block_data);
 
         // Compute program points
         self.compute_program_points(func);
@@ -118,7 +123,7 @@ impl Liveness {
 
     ////////
 
-    pub fn compute_program_points<T: TargetIsa>(&mut self, func: &Function<T>) {
+    pub fn compute_program_points(&mut self, func: &Function<T>) {
         let mut block_num = 0;
         for block_id in func.layout.block_iter() {
             const STEP: u32 = 16;
@@ -235,22 +240,22 @@ impl Liveness {
 
     ////////
 
-    fn set_def<T: TargetIsa>(&mut self, func: &Function<T>) {
+    fn set_def(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
             self.block_data.entry(block_id).or_insert(BlockData::new());
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
-                self.set_def_on_inst::<T>(inst, block_id);
+                self.set_def_on_inst(inst, block_id);
             }
         }
     }
 
-    fn set_def_on_inst<T: TargetIsa>(
-        &mut self,
-        inst: &Instruction<T::InstData>,
-        block_id: BasicBlockId,
-    ) {
+    fn set_def_on_inst(&mut self, inst: &Instruction<T::InstData>, block_id: BasicBlockId) {
         for output in inst.data.output_vregs() {
+            self.vreg_to_defs
+                .entry(output)
+                .or_insert(FxHashSet::default())
+                .insert(inst.id.unwrap());
             self.block_data
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
@@ -266,7 +271,7 @@ impl Liveness {
         }
     }
 
-    fn visit<T: TargetIsa>(&mut self, func: &Function<T>) {
+    fn visit(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
@@ -275,13 +280,17 @@ impl Liveness {
         }
     }
 
-    fn visit_inst<T: TargetIsa>(
+    fn visit_inst(
         &mut self,
         func: &Function<T>,
         inst: &Instruction<T::InstData>,
         block_id: BasicBlockId,
     ) {
         for input in inst.data.input_vregs() {
+            self.vreg_to_uses
+                .entry(input)
+                .or_insert(FxHashSet::default())
+                .insert(inst.id.unwrap());
             self.propagate_vreg(func, input, block_id);
         }
         for input in inst.data.input_regs() {
@@ -289,12 +298,7 @@ impl Liveness {
         }
     }
 
-    fn propagate_vreg<T: TargetIsa>(
-        &mut self,
-        func: &Function<T>,
-        input: VReg,
-        block_id: BasicBlockId,
-    ) {
+    fn propagate_vreg(&mut self, func: &Function<T>, input: VReg, block_id: BasicBlockId) {
         {
             let data = self.block_data.get_mut(&block_id).unwrap();
 
@@ -320,12 +324,7 @@ impl Liveness {
         }
     }
 
-    fn propagate_reg<T: TargetIsa>(
-        &mut self,
-        func: &Function<T>,
-        input: RegUnit,
-        block_id: BasicBlockId,
-    ) {
+    fn propagate_reg(&mut self, func: &Function<T>, input: RegUnit, block_id: BasicBlockId) {
         {
             let data = self.block_data.get_mut(&block_id).unwrap();
 

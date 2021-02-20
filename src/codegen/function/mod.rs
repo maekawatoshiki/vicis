@@ -72,7 +72,7 @@ impl<T: TargetIsa> fmt::Debug for Function<T> {
                 writeln!(f, "B{:?}:", block_id.index())?;
                 for inst_id in self.layout.inst_iter(block_id) {
                     let inst = self.data.inst_ref(inst_id);
-                    writeln!(f, "    {:#?}", inst)?;
+                    writeln!(f, "    id{}: {:?}", inst_id.index(), inst.data)?;
                 }
             }
             write!(f, "}}\n")?;

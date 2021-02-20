@@ -7,6 +7,7 @@ use crate::ir::{
 };
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
+use std::fmt;
 
 pub struct Module<T: TargetIsa> {
     pub name: String,
@@ -18,4 +19,28 @@ pub struct Module<T: TargetIsa> {
     pub types: Types,
     // TODO: Metadata
     pub isa: T,
+}
+
+impl<T: TargetIsa> fmt::Debug for Module<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
+        writeln!(f, "target datalayout = \"{}\"", self.target.datalayout())?;
+        writeln!(f, "target triple = \"{}\"", self.target.triple())?;
+        writeln!(f)?;
+        for (_, gv) in &self.global_variables {
+            writeln!(f, "{}", gv.to_string(&self.types))?;
+        }
+        writeln!(f)?;
+        for (_, func) in &self.functions {
+            writeln!(f, "{:?}", func)?;
+        }
+        for (id, attrs) in &self.attributes {
+            write!(f, "attributes #{} = {{ ", id)?;
+            for attr in attrs {
+                write!(f, "{:?} ", attr)?;
+            }
+            writeln!(f, "}}")?
+        }
+        Ok(())
+    }
 }

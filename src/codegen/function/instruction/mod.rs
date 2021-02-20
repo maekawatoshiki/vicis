@@ -9,6 +9,7 @@ pub trait InstructionData: Clone {
     fn input_regs(&self) -> Vec<Reg>;
     fn output_regs(&self) -> Vec<Reg>;
     fn rewrite(&mut self, vreg: VReg, reg: Reg);
+    fn is_copy(&self) -> bool;
 }
 
 #[derive(Debug, Clone)]

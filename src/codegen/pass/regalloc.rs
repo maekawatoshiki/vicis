@@ -18,8 +18,11 @@ pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) -> Result<()> {
 
 // Linear-scan
 pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
-    let mut liveness = liveness::Liveness::new();
+    let mut liveness = liveness::Liveness::<T>::new();
     liveness.analyze_function(function);
+    debug!(&function);
+    debug!(&liveness.vreg_to_defs);
+    debug!(&liveness.vreg_to_uses);
 
     let mut all_vregs = FxHashSet::default();
 

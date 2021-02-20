@@ -77,6 +77,14 @@ impl Target {
             datalayout: "".to_string(),
         }
     }
+
+    pub fn triple(&self) -> &str {
+        self.triple.as_str()
+    }
+
+    pub fn datalayout(&self) -> &str {
+        self.datalayout.as_str()
+    }
 }
 
 impl fmt::Debug for Module {
