@@ -1,11 +1,14 @@
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{InstructionData as ID, InstructionInfo as II},
+        instruction::{Instruction, InstructionData as ID, InstructionInfo as II},
         slot::SlotId,
+        Function,
     },
+    isa::TargetIsa,
     register::{Reg, VReg},
 };
+use crate::ir::types::Type;
 // use crate::ir::instruction::InstructionId;
 
 pub struct InstructionInfo;
@@ -69,6 +72,31 @@ pub enum OperandData {
 
 impl II for InstructionInfo {
     type Data = InstructionData;
+
+    fn store_vreg_to_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self::Data> {
+        let ty = f.vregs.type_for(vreg);
+        assert_eq!(&*f.types.get(ty), &Type::Int(32));
+        Instruction::new(
+            InstructionData {
+                opcode: Opcode::MOVmr32,
+                operands: vec![
+                    Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::Slot(slot)),
+                    Operand::new(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::new(OperandData::None),
+                    Operand::input(vreg.into()),
+                ],
+            },
+            block,
+        )
+    }
 }
 
 impl ID for InstructionData {

@@ -1,5 +1,6 @@
 use crate::codegen::{
-    function::basic_block::BasicBlockId,
+    function::{basic_block::BasicBlockId, slot::SlotId, Function},
+    isa::TargetIsa,
     register::{Reg, VReg},
 };
 use id_arena::Id;
@@ -18,7 +19,12 @@ pub trait InstructionData: Clone + fmt::Debug {
 
 pub trait InstructionInfo {
     type Data: InstructionData;
-    // fn store_vreg_to_slot()
+    fn store_vreg_to_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self::Data>;
     // fn load_from_slot()
 }
 

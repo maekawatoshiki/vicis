@@ -1,6 +1,10 @@
 use super::liveness::Liveness;
 use crate::{
-    codegen::{function::Function, isa::TargetIsa, register::VReg},
+    codegen::{
+        function::{instruction::InstructionInfo, Function},
+        isa::TargetIsa,
+        register::VReg,
+    },
     ir::types::Type,
 };
 
@@ -31,7 +35,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
 
         let ty = self.function.vregs.type_for(vreg);
         assert!(&*self.function.types.get(ty) == &Type::Int(32));
-        let _new_slot = self
+        let slot = self
             .function
             .slots
             .add_slot(ty, T::type_size(&self.function.types, ty));
@@ -39,23 +43,12 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
         // Most cases
         if defs.len() == 1 {
             let def_id = *defs.iter().next().unwrap();
-            let _def_block = self.function.data.instructions[def_id].parent;
-
-            // let inst = self.function.data.create_inst(Instruction::new(
-            //     InstructionData {
-            //         opcode: Opcode::SUBr64i32,
-            //         operands: vec![
-            //             Operand::input_output(OperandData::Reg(GR64::RSP.into())),
-            //             Operand::input(OperandData::Int32(adj)),
-            //         ],
-            //     },
-            //     entry,
-            // ));
-
-            // self.function
-            //     .layout
-            //     .insert_inst_after(def_id, inst, def_block);
-            // insert spill after def_id
+            let def_block = self.function.data.instructions[def_id].parent;
+            let inst = T::InstInfo::store_vreg_to_slot(self.function, vreg, slot, def_block);
+            let inst = self.function.data.create_inst(inst);
+            self.function
+                .layout
+                .insert_inst_after(def_id, inst, def_block);
         }
 
         // Two addr instruction
