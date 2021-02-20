@@ -28,36 +28,36 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     // insert prologue
     if let Some(entry) = function.layout.first_block {
         if adj > 0 {
-            let sub = function.data.create_inst(Instruction {
-                id: None,
-                data: InstructionData {
+            let sub = function.data.create_inst(Instruction::new(
+                InstructionData {
                     opcode: Opcode::SUBr64i32,
                     operands: vec![
                         Operand::input_output(OperandData::Reg(GR64::RSP.into())),
                         Operand::input(OperandData::Int32(adj)),
                     ],
                 },
-            });
+                entry,
+            ));
             function.layout.insert_inst_at_start(sub, entry);
         }
-        let mov = function.data.create_inst(Instruction {
-            id: None,
-            data: InstructionData {
+        let mov = function.data.create_inst(Instruction::new(
+            InstructionData {
                 opcode: Opcode::MOVrr64,
                 operands: vec![
                     Operand::output(OperandData::Reg(GR64::RBP.into())),
                     Operand::input(OperandData::Reg(GR64::RSP.into())),
                 ],
             },
-        });
+            entry,
+        ));
         function.layout.insert_inst_at_start(mov, entry);
-        let push64 = function.data.create_inst(Instruction {
-            id: None,
-            data: InstructionData {
+        let push64 = function.data.create_inst(Instruction::new(
+            InstructionData {
                 opcode: Opcode::PUSH64,
                 operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
             },
-        });
+            entry,
+        ));
         function.layout.insert_inst_at_start(push64, entry);
     }
 
@@ -74,25 +74,25 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     }
     for (block, ret_id) in epilogues {
         if adj > 0 {
-            let add = function.data.create_inst(Instruction {
-                id: None,
-                data: InstructionData {
+            let add = function.data.create_inst(Instruction::new(
+                InstructionData {
                     opcode: Opcode::ADDr64i32,
                     operands: vec![
                         Operand::output(OperandData::Reg(GR64::RSP.into())),
                         Operand::input(OperandData::Int32(adj)),
                     ],
                 },
-            });
+                block,
+            ));
             function.layout.insert_inst_before(ret_id, add, block);
         }
-        let pop64 = function.data.create_inst(Instruction {
-            id: None,
-            data: InstructionData {
+        let pop64 = function.data.create_inst(Instruction::new(
+            InstructionData {
                 opcode: Opcode::POP64,
                 operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
             },
-        });
+            block,
+        ));
         function.layout.insert_inst_before(ret_id, pop64, block);
     }
 }

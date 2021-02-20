@@ -41,18 +41,21 @@ pub fn lower_load(
         let src_ty = tys[0];
         if matches!(&*ctx.types.get(src_ty), Type::Int(32)) {
             let output = new_empty_inst_output(ctx, tys[0], id);
-            ctx.inst_seq.push(MachInstruction::new(InstructionData {
-                opcode: Opcode::MOVrm32,
-                operands: vec![
-                    MOperand::output(output.into()),
-                    MOperand::new(OperandData::MemStart),
-                    MOperand::new(OperandData::Slot(slot)),
-                    MOperand::new(OperandData::None),
-                    MOperand::input(OperandData::None),
-                    MOperand::input(OperandData::None),
-                    MOperand::new(OperandData::None),
-                ],
-            }));
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVrm32,
+                    operands: vec![
+                        MOperand::output(output.into()),
+                        MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::Slot(slot)),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::new(OperandData::None),
+                    ],
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
             return Ok(());
         }
     }
@@ -131,14 +134,16 @@ fn lower_load_gep(
     let src_ty = tys[0];
     match &*ctx.types.get(src_ty) {
         Type::Int(32) => {
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
                     opcode: Opcode::MOVrm32,
                     operands: vec![MOperand::output(OperandData::VReg(output))]
                         .into_iter()
                         .chain(mem.into_iter())
                         .collect(),
-                })]);
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
         }
         _ => return Err(LoweringError::Todo.into()),
     }

@@ -49,8 +49,8 @@ pub fn lower_store(
     match (dst_slot, inst, imm) {
         (Some(slot), Some(id), None) => {
             let inst = get_or_generate_inst_output(ctx, tys[0], id)?;
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
                     opcode: Opcode::MOVmr32,
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
@@ -61,12 +61,14 @@ pub fn lower_store(
                         MOperand::new(OperandData::None),
                         MOperand::input(inst.into()),
                     ],
-                })]);
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
             return Ok(());
         }
         (Some(slot), None, Some(ConstantInt::Int32(imm))) => {
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
                     opcode: Opcode::MOVmi32,
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
@@ -77,7 +79,9 @@ pub fn lower_store(
                         MOperand::new(OperandData::None),
                         MOperand::input(imm.into()),
                     ],
-                })]);
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
             return Ok(());
         }
         _ => return Err(LoweringError::Todo.into()),
@@ -157,25 +161,29 @@ fn lower_store_gep(
     let src_ty = tys[0];
     match ctx.ir_data.value_ref(src) {
         Const(Int(Int32(int))) => {
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
                     opcode: Opcode::MOVmi32,
                     operands: mem
                         .into_iter()
                         .chain(vec![MOperand::input(int.into())].into_iter())
                         .collect(),
-                })]);
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
         }
         Value::Instruction(id) => {
             let src = get_or_generate_inst_output(ctx, src_ty, *id)?;
-            ctx.inst_seq
-                .append(&mut vec![MachInstruction::new(InstructionData {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
                     opcode: Opcode::MOVmr32,
                     operands: mem
                         .into_iter()
                         .chain(vec![MOperand::input(src.into())].into_iter())
                         .collect(),
-                })]);
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
         }
         _ => return Err(LoweringError::Todo.into()),
     }

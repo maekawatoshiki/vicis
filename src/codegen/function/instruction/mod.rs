@@ -1,4 +1,7 @@
-use crate::codegen::register::{Reg, VReg};
+use crate::codegen::{
+    function::basic_block::BasicBlockId,
+    register::{Reg, VReg},
+};
 use id_arena::Id;
 
 pub type InstructionId<Data> = Id<Instruction<Data>>;
@@ -16,10 +19,15 @@ pub trait InstructionData: Clone {
 pub struct Instruction<Data: InstructionData> {
     pub id: Option<InstructionId<Data>>,
     pub data: Data,
+    pub parent: BasicBlockId,
 }
 
 impl<Data: InstructionData> Instruction<Data> {
-    pub fn new(data: Data) -> Self {
-        Self { id: None, data }
+    pub fn new(data: Data, parent: BasicBlockId) -> Self {
+        Self {
+            id: None,
+            data,
+            parent,
+        }
     }
 }

@@ -42,17 +42,26 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
             let maybe_term = function.layout.last_inst_of(block).unwrap();
             // assert!(matches!(arg, OperandData::Int32(_)));
             let copy = match arg {
-                OperandData::Int32(_) => Instruction::new(InstructionData {
-                    opcode: Opcode::MOVri32,
-                    operands: vec![Operand::output(OperandData::Reg(output)), Operand::new(arg)],
-                }),
-                OperandData::Reg(_) => Instruction::new(InstructionData {
-                    opcode: Opcode::MOVrr32,
-                    operands: vec![
-                        Operand::output(OperandData::Reg(output)),
-                        Operand::input(arg),
-                    ],
-                }),
+                OperandData::Int32(_) => Instruction::new(
+                    InstructionData {
+                        opcode: Opcode::MOVri32,
+                        operands: vec![
+                            Operand::output(OperandData::Reg(output)),
+                            Operand::new(arg),
+                        ],
+                    },
+                    block,
+                ),
+                OperandData::Reg(_) => Instruction::new(
+                    InstructionData {
+                        opcode: Opcode::MOVrr32,
+                        operands: vec![
+                            Operand::output(OperandData::Reg(output)),
+                            Operand::input(arg),
+                        ],
+                    },
+                    block,
+                ),
                 _ => todo!(),
             };
             let copy = function.data.create_inst(copy);
