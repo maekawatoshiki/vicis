@@ -2,10 +2,10 @@ use crate::codegen::{
     function::Function,
     isa::x86_64::{
         instruction::{Opcode, Operand, OperandData},
+        register::reg_to_str,
         X86_64,
     },
     module::Module,
-    register::Reg,
 };
 use std::fmt;
 
@@ -132,22 +132,6 @@ impl fmt::Display for OperandData {
             Self::GlobalAddress(name) => write!(f, "offset {}", name),
             Self::None => write!(f, "none"),
         }
-    }
-}
-
-fn reg_to_str(r: &Reg) -> &'static str {
-    let gr32 = [
-        "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8", "r9d", "r10d", "r11d",
-        "r12d", "r13d", "r14d", "r15d",
-    ];
-    let gr64 = [
-        "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12",
-        "r13", "r14", "r15",
-    ];
-    match r {
-        Reg(0, i) => gr32[*i as usize],
-        Reg(1, i) => gr64[*i as usize],
-        e => todo!("{:?}", e),
     }
 }
 

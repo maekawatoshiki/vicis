@@ -5,15 +5,15 @@ use crate::codegen::{
         slot::SlotId,
         Function,
     },
-    isa::TargetIsa,
+    isa::{x86_64::register::reg_to_str, TargetIsa},
     register::{Reg, VReg},
 };
 use crate::ir::types::Type;
-// use crate::ir::instruction::InstructionId;
+use std::fmt;
 
 pub struct InstructionInfo;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct InstructionData {
     pub opcode: Opcode,
     pub operands: Vec<Operand>,
@@ -49,7 +49,7 @@ pub enum Opcode {
     Phi,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Operand {
     pub data: OperandData,
     pub input: bool,
@@ -57,7 +57,7 @@ pub struct Operand {
     pub implicit: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum OperandData {
     Reg(Reg),
     VReg(VReg),
@@ -265,5 +265,61 @@ impl Into<OperandData> for i32 {
 impl Into<OperandData> for &i32 {
     fn into(self) -> OperandData {
         OperandData::Int32(*self)
+    }
+}
+
+impl fmt::Debug for InstructionData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?} ", self.opcode)?;
+        for (i, op) in self.operands.iter().enumerate() {
+            write!(f, "{:?}", op)?;
+            if i < self.operands.len() - 1 {
+                write!(f, ", ")?
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Operand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut flags = vec![];
+        // if self.input {
+        //     flags.push("use")
+        // }
+        if self.output {
+            flags.push("def")
+        }
+        if self.implicit {
+            flags.push("imp")
+        }
+        write!(f, "{:?}", self.data)?;
+        if flags.len() > 0 {
+            write!(f, "<")?;
+            for (i, flag) in flags.iter().enumerate() {
+                write!(f, "{}", flag)?;
+                if i < flags.len() - 1 {
+                    write!(f, ", ")?
+                }
+            }
+            write!(f, ">")?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for OperandData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
+            Self::VReg(vr) => write!(f, "%{}", vr.0),
+            Self::Int32(i) => write!(f, "{}", i),
+            Self::MemStart => write!(f, "$MemStart$"),
+            Self::Slot(slot) => write!(f, "slot.{}", slot.index()),
+            Self::Block(id) => write!(f, "block.{}", id.index()),
+            Self::Label(name) => write!(f, "{}", name),
+            Self::GlobalAddress(name) => write!(f, "{}", name),
+            Self::None => write!(f, "none"),
+        }
     }
 }
