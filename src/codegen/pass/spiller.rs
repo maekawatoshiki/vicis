@@ -35,6 +35,11 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
         self.insert_reload(vreg, slot, new_vregs);
 
         // create live ranges for new virtual registers
+        for &mut new_vreg in new_vregs {
+            self.liveness.compute_live_ranges(self.function, new_vreg)
+        }
+
+        self.liveness.remove_vreg(vreg);
     }
 
     fn insert_spill(&mut self, vreg: VReg, slot: SlotId, new_vregs: &mut Vec<VReg>) {

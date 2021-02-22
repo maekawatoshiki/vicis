@@ -136,6 +136,27 @@ impl<T: TargetIsa> Liveness<T> {
         self.compute_program_points(func);
     }
 
+    pub fn compute_live_ranges(&mut self, func: &Function<T>, vreg: VReg) {
+        let users = func.data.vreg_users.get(vreg);
+        for user in users {}
+    }
+
+    pub fn remove_vreg(&mut self, vreg: VReg) {
+        self.remove_vreg_live_ranges(vreg);
+        self.remove_vreg_from_block_data(vreg);
+    }
+
+    fn remove_vreg_from_block_data(&mut self, vreg: VReg) {
+        for (_block_id, block_data) in &mut self.block_data {
+            block_data.vreg_live_in.remove(&vreg);
+            block_data.vreg_live_out.remove(&vreg);
+        }
+    }
+
+    fn remove_vreg_live_ranges(&mut self, vreg: VReg) {
+        self.vreg_lrs_map.remove(&vreg);
+    }
+
     ////////
 
     pub fn compute_program_points(&mut self, func: &Function<T>) {
