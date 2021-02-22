@@ -1,5 +1,8 @@
 use crate::{
-    codegen::call_conv::CallConvKind,
+    codegen::{
+        call_conv::CallConvKind,
+        function::instruction::{InstructionData as ID, InstructionId},
+    },
     ir::types::{TypeId, Types},
 };
 use rustc_hash::FxHashMap;
@@ -22,6 +25,17 @@ pub struct VRegData {
     pub vreg: VReg,
     pub ty: TypeId,
     // ...
+}
+
+pub struct VRegUsers<Data: ID> {
+    pub vreg_to_insts: FxHashMap<VReg, Vec<VRegUser<Data>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VRegUser<Data: ID> {
+    pub inst_id: InstructionId<Data>,
+    pub read: bool,
+    pub write: bool,
 }
 
 pub trait RegisterInfo {
@@ -49,11 +63,17 @@ impl VRegs {
         }
     }
 
+    // TODO: Change name
     pub fn add_vreg_data(&mut self, ty: TypeId) -> VReg {
         let key = VReg(self.cur);
         self.map.insert(key, VRegData { vreg: key, ty });
         self.cur += 1;
         key
+    }
+
+    pub fn create_from(&mut self, vreg: VReg) -> VReg {
+        let ty = self.map[&vreg].ty;
+        self.add_vreg_data(ty)
     }
 
     pub fn type_for(&self, vreg: VReg) -> TypeId {
@@ -62,5 +82,42 @@ impl VRegs {
 
     pub fn change_ty(&mut self, vreg: VReg, ty: TypeId) {
         self.map.get_mut(&vreg).unwrap().ty = ty
+    }
+}
+
+impl<Data: ID> VRegUsers<Data> {
+    pub fn new() -> Self {
+        Self {
+            vreg_to_insts: FxHashMap::default(),
+        }
+    }
+
+    pub fn add_use(&mut self, vreg: VReg, inst_id: InstructionId<Data>, read: bool, write: bool) {
+        self.vreg_to_insts
+            .entry(vreg)
+            .or_insert(vec![])
+            .push(VRegUser {
+                inst_id,
+                read,
+                write,
+            })
+    }
+
+    pub fn get(&self, vreg: VReg) -> &Vec<VRegUser<Data>> {
+        &self.vreg_to_insts[&vreg]
+    }
+
+    pub fn remove_use(
+        &mut self,
+        vreg: VReg,
+        inst_id: InstructionId<Data>,
+    ) -> Option<VRegUser<Data>> {
+        if let Some(idx) = self.vreg_to_insts[&vreg]
+            .iter()
+            .position(|u| u.inst_id == inst_id)
+        {
+            return Some(self.vreg_to_insts.get_mut(&vreg).unwrap().remove(idx));
+        }
+        None
     }
 }

@@ -4,7 +4,7 @@ pub mod instruction;
 pub mod layout;
 pub mod slot;
 
-use super::{call_conv::CallConvKind, isa::TargetIsa, register::VRegs};
+use super::{call_conv::CallConvKind, isa::TargetIsa};
 use crate::codegen::function::instruction::InstructionInfo;
 use crate::ir::{
     function::{Parameter, UnresolvedAttributeId},
@@ -25,7 +25,6 @@ pub struct Function<T: TargetIsa> {
     pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
     pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
     pub slots: slot::Slots<T>,
-    pub vregs: VRegs,
     pub types: Types,
     pub is_prototype: bool,
     pub call_conv: CallConvKind,

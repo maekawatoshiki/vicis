@@ -60,10 +60,6 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
-    pub fn last_inst_of(&self, block: BasicBlockId) -> Option<InstructionId<InstData>> {
-        self.basic_blocks[&block].last_inst
-    }
-
     pub fn next_block_of(&self, block: BasicBlockId) -> Option<BasicBlockId> {
         self.basic_blocks[&block].next
     }
@@ -86,6 +82,18 @@ impl<InstData: InstructionData> Layout<InstData> {
         if self.first_block.is_none() {
             self.first_block = Some(block)
         }
+    }
+
+    pub fn last_inst_of(&self, block: BasicBlockId) -> Option<InstructionId<InstData>> {
+        self.basic_blocks[&block].last_inst
+    }
+
+    pub fn prev_inst_of(&self, inst: InstructionId<InstData>) -> Option<InstructionId<InstData>> {
+        self.instructions[&inst].prev
+    }
+
+    pub fn next_inst_of(&self, inst: InstructionId<InstData>) -> Option<InstructionId<InstData>> {
+        self.instructions[&inst].next
     }
 
     pub fn insert_inst_at_start(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {

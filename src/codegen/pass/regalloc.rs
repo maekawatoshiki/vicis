@@ -3,6 +3,7 @@ use crate::codegen::{
     isa::TargetIsa,
     module::Module,
     pass::liveness,
+    pass::spiller,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
 use anyhow::Result;
@@ -21,8 +22,10 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     let mut liveness = liveness::Liveness::<T>::new();
     liveness.analyze_function(function);
     debug!(&function);
-    debug!(&liveness.vreg_to_defs);
-    debug!(&liveness.vreg_to_uses);
+
+    // let mut new_vregs = vec![];
+    // spiller::Spiller::new(function, &mut liveness).spill(VReg(0), &mut new_vregs);
+    // debug!(&function);
 
     let mut all_vregs = FxHashSet::default();
 
@@ -52,7 +55,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
 
     while let Some(vreg) = worklist.pop_front() {
         let availables =
-            T::RegClass::for_type(&function.types, function.vregs.type_for(vreg)).gpr_list();
+            T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
         for reg in availables {
             let reg_unit = T::RegInfo::to_reg_unit(reg);
             let lrs1 = &liveness.vreg_lrs_map[&vreg];

@@ -1,13 +1,19 @@
-use crate::codegen::function::{
-    basic_block::{BasicBlock, BasicBlockId},
-    instruction::{Instruction, InstructionData, InstructionId},
+use crate::codegen::{
+    function::{
+        basic_block::{BasicBlock, BasicBlockId},
+        instruction::{Instruction, InstructionData, InstructionId},
+    },
+    register::{VRegUsers, VRegs},
 };
 use id_arena::Arena;
+use rustc_hash::FxHashMap;
 
 pub struct Data<InstData: InstructionData> {
     // pub values: Arena<Value>,
     pub instructions: Arena<Instruction<InstData>>,
     pub basic_blocks: Arena<BasicBlock>,
+    pub vregs: VRegs,
+    pub vreg_users: VRegUsers<InstData>,
 }
 
 impl<InstData: InstructionData> Data<InstData> {
@@ -16,6 +22,8 @@ impl<InstData: InstructionData> Data<InstData> {
             // values: Arena::new(),
             instructions: Arena::new(),
             basic_blocks: Arena::new(),
+            vregs: VRegs::new(),
+            vreg_users: VRegUsers::new(),
         }
     }
 
@@ -24,10 +32,24 @@ impl<InstData: InstructionData> Data<InstData> {
     }
 
     pub fn create_inst(&mut self, mut inst: Instruction<InstData>) -> InstructionId<InstData> {
+        // TODO: FIXME: Refine code
+        struct ReadWrite(bool, bool);
+        let mut m = FxHashMap::default();
+        for v in inst.data.input_vregs() {
+            let a = m.entry(v).or_insert(ReadWrite(false, false));
+            a.0 = true;
+        }
+        for v in inst.data.output_vregs() {
+            let a = m.entry(v).or_insert(ReadWrite(false, false));
+            a.1 = true;
+        }
         let id = self.instructions.alloc_with_id(|id| {
             inst.id = Some(id);
             inst
         });
+        for (v, ReadWrite(read, write)) in m {
+            self.vreg_users.add_use(v, id, read, write)
+        }
         id
     }
 

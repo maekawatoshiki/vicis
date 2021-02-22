@@ -15,9 +15,7 @@ pub struct Liveness<T: TargetIsa> {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
     pub vreg_lrs_map: FxHashMap<VReg, LiveRanges>,
     pub reg_lrs_map: FxHashMap<RegUnit, LiveRanges>,
-    pub vreg_to_defs: FxHashMap<VReg, FxHashSet<InstructionId<<T::InstInfo as II>::Data>>>,
-    pub vreg_to_uses: FxHashMap<VReg, FxHashSet<InstructionId<<T::InstInfo as II>::Data>>>,
-    // pub vreg_to_use_insts
+    pub inst_to_pp: FxHashMap<InstructionId<<T::InstInfo as II>::Data>, ProgramPoint>,
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +41,8 @@ pub struct BlockData {
 
 #[derive(Debug, Clone, Copy)]
 pub struct ProgramPoint(pub u32, pub u32);
+
+const STEP: u32 = 16;
 
 impl PartialOrd for ProgramPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -84,6 +84,22 @@ impl PartialEq for ProgramPoint {
 
 impl Eq for ProgramPoint {}
 
+impl ProgramPoint {
+    pub fn between(prev: Self, next: Self) -> Option<Self> {
+        if prev.0 != next.0 {
+            return None;
+        }
+        if prev.1 > next.1 {
+            return None;
+        }
+        if next.1 - prev.1 <= 1 {
+            return None;
+        }
+        let new = (next.1 + prev.1) / 2;
+        Some(Self(prev.0, new))
+    }
+}
+
 // pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) {
 //     for (_, func) in &mut module.functions {
 //         run_on_function(func);
@@ -105,8 +121,7 @@ impl<T: TargetIsa> Liveness<T> {
             block_data: FxHashMap::default(),
             vreg_lrs_map: FxHashMap::default(),
             reg_lrs_map: FxHashMap::default(),
-            vreg_to_defs: FxHashMap::default(),
-            vreg_to_uses: FxHashMap::default(),
+            inst_to_pp: FxHashMap::default(),
         }
     }
 
@@ -126,7 +141,6 @@ impl<T: TargetIsa> Liveness<T> {
     pub fn compute_program_points(&mut self, func: &Function<T>) {
         let mut block_num = 0;
         for block_id in func.layout.block_iter() {
-            const STEP: u32 = 16;
             let mut inst_num = 0u32;
             let mut local_vreg_lr_map = FxHashMap::default();
             let mut local_reg_lr_map = FxHashMap::default();
@@ -155,6 +169,9 @@ impl<T: TargetIsa> Liveness<T> {
 
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
+
+                self.inst_to_pp
+                    .insert(inst_id, ProgramPoint(block_num, inst_num));
 
                 // inputs
                 for input in inst.data.input_vregs() {
@@ -256,10 +273,6 @@ impl<T: TargetIsa> Liveness<T> {
         block_id: BasicBlockId,
     ) {
         for output in inst.data.output_vregs() {
-            self.vreg_to_defs
-                .entry(output)
-                .or_insert(FxHashSet::default())
-                .insert(inst.id.unwrap());
             self.block_data
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
@@ -291,10 +304,6 @@ impl<T: TargetIsa> Liveness<T> {
         block_id: BasicBlockId,
     ) {
         for input in inst.data.input_vregs() {
-            self.vreg_to_uses
-                .entry(input)
-                .or_insert(FxHashSet::default())
-                .insert(inst.id.unwrap());
             self.propagate_vreg(func, input, block_id);
         }
         for input in inst.data.input_regs() {

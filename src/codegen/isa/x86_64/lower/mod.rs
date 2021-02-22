@@ -52,7 +52,7 @@ impl LowerTrait<X86_64> for Lower {
             debug!(reg);
             // Copy reg to new vreg
             assert!(*ctx.types.get(*ty) == Type::Int(32));
-            let output = ctx.vregs.add_vreg_data(*ty);
+            let output = ctx.mach_data.vregs.add_vreg_data(*ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrr32,
@@ -391,7 +391,7 @@ fn get_or_generate_inst_output(
 
     if ctx.ir_data.inst_ref(id).parent != ctx.cur_block {
         // The instruction indexed as `id` must be placed in another basic block
-        let v = ctx.vregs.add_vreg_data(ty);
+        let v = ctx.mach_data.vregs.add_vreg_data(ty);
         ctx.inst_id_to_vreg.insert(id, v);
         return Ok(v);
     }
@@ -405,7 +405,7 @@ fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: Inst
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
         return *vreg;
     }
-    let vreg = ctx.vregs.add_vreg_data(ty);
+    let vreg = ctx.mach_data.vregs.add_vreg_data(ty);
     ctx.inst_id_to_vreg.insert(id, vreg);
     vreg
 }
@@ -432,7 +432,7 @@ fn val_to_operand_data(
                 .all(|arg| matches!(arg, ConstantData::Int(ConstantInt::Int64(0))));
             assert!(all_indices_0);
             let src = OperandData::GlobalAddress(args[0].as_global_ref().as_string().clone());
-            let dst = ctx.vregs.add_vreg_data(ty);
+            let dst = ctx.mach_data.vregs.add_vreg_data(ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVri32, // TODO: MOVri64 is correct
@@ -449,7 +449,7 @@ fn val_to_operand_data(
 fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> Result<VReg> {
     match val_to_operand_data(ctx, ty, val)? {
         OperandData::Int32(i) => {
-            let output = ctx.vregs.add_vreg_data(ty);
+            let output = ctx.mach_data.vregs.add_vreg_data(ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVri32,

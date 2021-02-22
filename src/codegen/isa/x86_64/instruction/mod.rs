@@ -1,12 +1,12 @@
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData as ID, InstructionInfo as II},
+        instruction::{Instruction, InstructionData as ID, InstructionId, InstructionInfo as II},
         slot::SlotId,
         Function,
     },
     isa::{x86_64::register::reg_to_str, TargetIsa},
-    register::{Reg, VReg},
+    register::{Reg, VReg, VRegUsers},
 };
 use crate::ir::types::Type;
 use std::fmt;
@@ -79,7 +79,7 @@ impl II for InstructionInfo {
         slot: SlotId,
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
-        let ty = f.vregs.type_for(vreg);
+        let ty = f.data.vregs.type_for(vreg);
         assert_eq!(&*f.types.get(ty), &Type::Int(32));
         Instruction::new(
             InstructionData {
@@ -164,6 +164,23 @@ impl ID for InstructionData {
         for operand in &mut self.operands {
             match operand.data {
                 OperandData::VReg(vr) if vr == vreg => operand.data = OperandData::Reg(reg),
+                _ => {}
+            }
+        }
+    }
+
+    fn replace_vreg(
+        &mut self,
+        self_id: InstructionId<Self>,
+        users: &mut VRegUsers<Self>,
+        from: VReg,
+        to: VReg,
+    ) {
+        let u = users.remove_use(from, self_id).unwrap();
+        users.add_use(to, self_id, u.read, u.write);
+        for operand in &mut self.operands {
+            match operand.data {
+                OperandData::VReg(r) if r == from => operand.data = OperandData::VReg(to),
                 _ => {}
             }
         }

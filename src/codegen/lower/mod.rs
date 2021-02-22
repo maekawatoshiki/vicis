@@ -10,7 +10,7 @@ use super::{
     },
     isa::TargetIsa,
     module::Module as MachModule,
-    register::{VReg, VRegs},
+    register::VReg,
 };
 use crate::ir::{
     function::{
@@ -41,7 +41,6 @@ pub struct LoweringContext<'a, T: TargetIsa> {
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
     pub inst_seq: &'a mut Vec<MachInstruction<<T::InstInfo as II>::Data>>,
     pub types: &'a Types,
-    pub vregs: &'a mut VRegs,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub call_conv: CallConvKind,
@@ -107,7 +106,6 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
     let mut inst_id_to_slot_id = FxHashMap::default();
     let mut inst_id_to_vreg = FxHashMap::default();
     let mut arg_idx_to_vreg = FxHashMap::default();
-    let mut vregs = VRegs::new();
     let call_conv = T::default_call_conv();
 
     for (i, block_id) in function.layout.block_iter().enumerate() {
@@ -124,7 +122,6 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     inst_seq: &mut inst_seq,
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
-                    vregs: &mut vregs,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
                     block_map: &block_map,
                     call_conv,
@@ -159,7 +156,6 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     inst_seq: &mut inst_seq,
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
-                    vregs: &mut vregs,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
                     block_map: &block_map,
                     call_conv,
@@ -184,7 +180,6 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
         data,
         layout,
         slots,
-        vregs,
         types: function.types,
         is_prototype: function.is_prototype,
         isa,
