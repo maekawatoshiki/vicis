@@ -32,7 +32,12 @@ pub trait InstructionInfo {
         slot: SlotId,
         block: BasicBlockId,
     ) -> Instruction<Self::Data>;
-    // fn load_from_slot()
+    fn load_from_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self::Data>;
 }
 
 #[derive(Debug, Clone)]

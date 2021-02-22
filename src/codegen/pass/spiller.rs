@@ -100,7 +100,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
                 use_block = inst.parent;
                 inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
             }
-            let inst = T::InstInfo::store_vreg_to_slot(self.function, new_vreg, slot, use_block);
+            let inst = T::InstInfo::load_from_slot(self.function, new_vreg, slot, use_block);
             let inst = self.function.data.create_inst(inst);
             self.insert_inst_before(use_id, inst, use_block);
         }

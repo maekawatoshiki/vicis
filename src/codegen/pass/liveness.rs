@@ -138,7 +138,43 @@ impl<T: TargetIsa> Liveness<T> {
 
     pub fn compute_live_ranges(&mut self, func: &Function<T>, vreg: VReg) {
         let users = func.data.vreg_users.get(vreg);
-        for user in users {}
+        let mut def_pp = None;
+        let mut use_pp = None;
+        for user in users {
+            let pp = self.inst_to_pp[&user.inst_id];
+
+            if user.write {
+                if def_pp.is_none() {
+                    def_pp = Some(pp);
+                    continue;
+                }
+                if let Some(def_pp) = &mut def_pp {
+                    if &pp < def_pp {
+                        *def_pp = pp
+                    }
+                    continue;
+                }
+            }
+
+            if user.read {
+                if use_pp.is_none() {
+                    use_pp = Some(pp);
+                    continue;
+                }
+                if let Some(use_pp) = &mut use_pp {
+                    if *use_pp < pp {
+                        *use_pp = pp
+                    }
+                    continue;
+                }
+            }
+        }
+
+        let lrs = LiveRanges(vec![LiveRange {
+            start: def_pp.unwrap(),
+            end: use_pp.unwrap(),
+        }]);
+        self.vreg_lrs_map.insert(vreg, lrs);
     }
 
     pub fn remove_vreg(&mut self, vreg: VReg) {

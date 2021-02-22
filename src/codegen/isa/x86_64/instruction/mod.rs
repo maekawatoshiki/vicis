@@ -97,6 +97,31 @@ impl II for InstructionInfo {
             block,
         )
     }
+
+    fn load_from_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self::Data> {
+        let ty = f.data.vregs.type_for(vreg);
+        assert_eq!(&*f.types.get(ty), &Type::Int(32));
+        Instruction::new(
+            InstructionData {
+                opcode: Opcode::MOVrm32,
+                operands: vec![
+                    Operand::output(vreg.into()),
+                    Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::Slot(slot)),
+                    Operand::new(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::new(OperandData::None),
+                ],
+            },
+            block,
+        )
+    }
 }
 
 impl ID for InstructionData {
