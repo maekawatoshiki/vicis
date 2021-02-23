@@ -3,7 +3,7 @@ use crate::codegen::{
     isa::TargetIsa,
     module::Module,
     pass::liveness,
-    pass::spiller,
+    // pass::spiller,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
 use anyhow::Result;
@@ -32,11 +32,8 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
-            for input in inst.data.input_vregs() {
-                all_vregs.insert(input);
-            }
-            for output in inst.data.output_vregs() {
-                all_vregs.insert(output);
+            for r in inst.data.all_vregs() {
+                all_vregs.insert(r);
             }
         }
     }
@@ -78,12 +75,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref_mut(inst_id);
             // println!("{:?}", inst.data);
-            for vreg in inst
-                .data
-                .input_vregs()
-                .into_iter()
-                .chain(inst.data.output_vregs().into_iter())
-            {
+            for vreg in inst.data.all_vregs() {
                 if let Some(reg) = assigned_regs.get(&vreg) {
                     // println!("{:?} => {:?}", vreg, reg);
                     inst.data.rewrite(vreg, *reg);

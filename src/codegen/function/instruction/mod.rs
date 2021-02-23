@@ -11,8 +11,10 @@ pub type InstructionId<Data> = Id<Instruction<Data>>;
 pub trait InstructionData: Clone + fmt::Debug {
     fn input_vregs(&self) -> Vec<VReg>;
     fn output_vregs(&self) -> Vec<VReg>;
+    fn all_vregs(&self) -> Vec<VReg>;
     fn input_regs(&self) -> Vec<Reg>;
     fn output_regs(&self) -> Vec<Reg>;
+    fn all_regs(&self) -> Vec<Reg>;
     fn rewrite(&mut self, vreg: VReg, reg: Reg);
     fn replace_vreg(
         &mut self,

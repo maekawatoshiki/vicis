@@ -36,12 +36,10 @@ impl<InstData: InstructionData> Data<InstData> {
         struct ReadWrite(bool, bool);
         let mut m = FxHashMap::default();
         for v in inst.data.input_vregs() {
-            let a = m.entry(v).or_insert(ReadWrite(false, false));
-            a.0 = true;
+            m.entry(v).or_insert(ReadWrite(false, false)).0 = true;
         }
         for v in inst.data.output_vregs() {
-            let a = m.entry(v).or_insert(ReadWrite(false, false));
-            a.1 = true;
+            m.entry(v).or_insert(ReadWrite(false, false)).1 = true;
         }
         let id = self.instructions.alloc_with_id(|id| {
             inst.id = Some(id);

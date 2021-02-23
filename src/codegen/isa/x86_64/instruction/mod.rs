@@ -155,6 +155,20 @@ impl ID for InstructionData {
         vrs
     }
 
+    fn all_vregs(&self) -> Vec<VReg> {
+        let mut list = vec![];
+        for operand in &self.operands {
+            if let Operand {
+                data: OperandData::VReg(r),
+                ..
+            } = operand
+            {
+                list.push(*r)
+            }
+        }
+        list
+    }
+
     fn input_regs(&self) -> Vec<Reg> {
         let mut rs = vec![];
         for operand in &self.operands {
@@ -183,6 +197,20 @@ impl ID for InstructionData {
             }
         }
         rs
+    }
+
+    fn all_regs(&self) -> Vec<Reg> {
+        let mut list = vec![];
+        for operand in &self.operands {
+            if let Operand {
+                data: OperandData::Reg(r),
+                ..
+            } = operand
+            {
+                list.push(*r)
+            }
+        }
+        list
     }
 
     fn rewrite(&mut self, vreg: VReg, reg: Reg) {
