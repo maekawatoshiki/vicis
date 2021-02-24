@@ -3,7 +3,7 @@ use crate::{
     codegen::{
         function::{
             basic_block::BasicBlockId,
-            instruction::{InstructionId, InstructionInfo as II},
+            instruction::{InstructionData as ID, InstructionId, InstructionInfo as II},
             slot::SlotId,
             Function,
         },
@@ -73,7 +73,24 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
         }
 
         // Two addr instruction
-        if defs.len() == 2 {}
+        if defs.len() == 2 {
+            let mut def_id = None;
+            let mut def_block = None;
+            for &id in &defs {
+                let inst = &mut self.function.data.instructions[id];
+                if !inst.data.is_copy() {
+                    def_id = Some(id);
+                    def_block = Some(inst.parent);
+                }
+                inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
+            }
+            let def_id = def_id.unwrap();
+            let def_block = def_block.unwrap();
+            let inst = T::InstInfo::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
+            let inst = self.function.data.create_inst(inst);
+            self.insert_inst_after(def_id, inst, def_block);
+            return;
+        }
 
         panic!("invalid")
     }

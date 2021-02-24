@@ -24,7 +24,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     debug!(&function);
 
     // let mut new_vregs = vec![];
-    // spiller::Spiller::new(function, &mut liveness).spill(VReg(0), &mut new_vregs);
+    // spiller::Spiller::new(function, &mut liveness).spill(VReg(1), &mut new_vregs);
     // debug!(&function);
 
     let mut all_vregs = FxHashSet::default();
