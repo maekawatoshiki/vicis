@@ -40,10 +40,14 @@ pub fn parse_constant_int<'a>(
     types: &Types,
     ty: TypeId,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    let (source, num) = preceded(spaces, digit1)(source)?;
+    let (source, minus) = preceded(spaces, opt(char('-')))(source)?;
+    let sign = minus.map_or(1, |_| -1);
+    let (source, num) = digit1(source)?;
     let val = match &*types.get(ty) {
-        Type::Int(32) => ConstantData::Int(ConstantInt::Int32(num.parse::<i32>().unwrap())),
-        Type::Int(64) => ConstantData::Int(ConstantInt::Int64(num.parse::<i64>().unwrap())),
+        Type::Int(32) => ConstantData::Int(ConstantInt::Int32(sign * num.parse::<i32>().unwrap())),
+        Type::Int(64) => ConstantData::Int(ConstantInt::Int64(
+            sign as i64 * num.parse::<i64>().unwrap(),
+        )),
         _ => todo!(),
     };
     Ok((source, val))
