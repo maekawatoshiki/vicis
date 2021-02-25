@@ -9,6 +9,7 @@ use std::fmt;
 pub type InstructionId<Data> = Id<Instruction<Data>>;
 
 pub trait InstructionData: Clone + fmt::Debug {
+    // TODO(FIXME): Too many methods?
     fn input_vregs(&self) -> Vec<VReg>;
     fn output_vregs(&self) -> Vec<VReg>;
     fn all_vregs(&self) -> Vec<VReg>;
@@ -24,6 +25,7 @@ pub trait InstructionData: Clone + fmt::Debug {
         to: VReg,
     );
     fn is_copy(&self) -> bool;
+    fn is_call(&self) -> bool;
 }
 
 pub trait InstructionInfo {

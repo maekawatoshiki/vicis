@@ -338,16 +338,19 @@ fn lower_call(
         },
         ctx.block_map[&ctx.cur_block],
     ));
-    ctx.inst_seq.push(MachInstruction::new(
-        InstructionData {
-            opcode: Opcode::MOVrr32,
-            operands: vec![
-                MOperand::output(output.into()),
-                MOperand::input(result_reg.into()),
-            ],
-        },
-        ctx.block_map[&ctx.cur_block],
-    ));
+
+    if ctx.ir_data.users_of(id).len() > 0 {
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::MOVrr32,
+                operands: vec![
+                    MOperand::output(output.into()),
+                    MOperand::input(result_reg.into()),
+                ],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+    }
 
     Ok(())
 }

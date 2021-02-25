@@ -433,6 +433,15 @@ impl LiveRanges {
         false
     }
 
+    pub fn interfere_with_single_range(&self, other: &LiveRange) -> bool {
+        for x in &self.0 {
+            if x.interfere(other) {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn merge(&mut self, other: &Self) {
         if other.0.len() == 0 {
             return;

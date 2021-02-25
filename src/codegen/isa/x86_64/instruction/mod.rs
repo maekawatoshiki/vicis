@@ -242,6 +242,10 @@ impl ID for InstructionData {
     fn is_copy(&self) -> bool {
         matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
     }
+
+    fn is_call(&self) -> bool {
+        matches!(self.opcode, Opcode::CALL)
+    }
 }
 
 impl Operand {

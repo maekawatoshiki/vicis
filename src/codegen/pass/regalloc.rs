@@ -3,7 +3,7 @@ use crate::codegen::{
     isa::TargetIsa,
     module::Module,
     pass::liveness,
-    // pass::spiller,
+    pass::spiller,
     register::{Reg, RegisterClass, RegisterInfo, VReg},
 };
 use anyhow::Result;
@@ -23,10 +23,6 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     liveness.analyze_function(function);
     debug!(&function);
 
-    // let mut new_vregs = vec![];
-    // spiller::Spiller::new(function, &mut liveness).spill(VReg(1), &mut new_vregs);
-    // debug!(&function);
-
     let mut all_vregs = FxHashSet::default();
 
     for block_id in function.layout.block_iter() {
@@ -38,7 +34,16 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
         }
     }
 
+    // Insert spill and reload code around call site
+    for vreg in collect_vregs_alive_around_call(function, &liveness, &all_vregs) {
+        let mut new_vregs = vec![];
+        spiller::Spiller::new(function, &mut liveness).spill(vreg, &mut new_vregs);
+        all_vregs.remove(&vreg);
+        all_vregs.extend(new_vregs.into_iter())
+    }
+
     debug!(&all_vregs);
+    debug!(&function);
 
     let mut worklist: Vec<VReg> = all_vregs.into_iter().collect();
     worklist.sort_by(|a, b| {
@@ -87,4 +92,31 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     debug!(liveness.block_data);
     debug!(liveness.vreg_lrs_map);
     debug!(liveness.reg_lrs_map);
+}
+
+pub fn collect_vregs_alive_around_call<T: TargetIsa>(
+    function: &mut Function<T>,
+    liveness: &liveness::Liveness<T>,
+    all_vregs: &FxHashSet<VReg>,
+) -> Vec<VReg> {
+    let mut output = vec![];
+    for block_id in function.layout.block_iter() {
+        for inst_id in function.layout.inst_iter(block_id) {
+            let inst = function.data.inst_ref(inst_id);
+            if !inst.data.is_call() {
+                continue;
+            }
+            for vreg in all_vregs {
+                let vreg_lrs = &liveness.vreg_lrs_map[vreg];
+                let call_lr = liveness::LiveRange {
+                    start: liveness.inst_to_pp[&inst_id],
+                    end: liveness.inst_to_pp[&inst_id],
+                };
+                if vreg_lrs.interfere_with_single_range(&call_lr) {
+                    output.push(*vreg);
+                }
+            }
+        }
+    }
+    output
 }
