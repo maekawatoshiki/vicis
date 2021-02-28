@@ -13,16 +13,16 @@ use std::cmp::Ordering;
 
 pub struct Liveness<T: TargetIsa> {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
-    pub vreg_lrs_map: FxHashMap<VReg, LiveRanges>,
-    pub reg_lrs_map: FxHashMap<RegUnit, LiveRanges>,
+    pub vreg_lrs_map: FxHashMap<VReg, LiveRange>,
+    pub reg_lrs_map: FxHashMap<RegUnit, LiveRange>,
     pub inst_to_pp: FxHashMap<InstructionId<<T::InstInfo as II>::Data>, ProgramPoint>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LiveRanges(pub Vec<LiveRange>);
+pub struct LiveRange(pub Vec<LiveSegment>);
 
 #[derive(Debug, Clone)]
-pub struct LiveRange {
+pub struct LiveSegment {
     pub start: ProgramPoint,
     pub end: ProgramPoint,
 }
@@ -170,7 +170,7 @@ impl<T: TargetIsa> Liveness<T> {
             }
         }
 
-        let lrs = LiveRanges(vec![LiveRange {
+        let lrs = LiveRange(vec![LiveSegment {
             start: def_pp.unwrap(),
             end: use_pp.unwrap(),
         }]);
@@ -206,7 +206,7 @@ impl<T: TargetIsa> Liveness<T> {
             for &live_in in &self.block_data[&block_id].vreg_live_in {
                 local_vreg_lr_map.insert(
                     live_in,
-                    LiveRange {
+                    LiveSegment {
                         start: ProgramPoint(block_num, 0),
                         end: ProgramPoint(block_num, 0),
                     },
@@ -215,7 +215,7 @@ impl<T: TargetIsa> Liveness<T> {
             for &live_in in &self.block_data[&block_id].reg_live_in {
                 local_reg_lr_map.insert(
                     live_in,
-                    LiveRanges(vec![LiveRange {
+                    LiveRange(vec![LiveSegment {
                         start: ProgramPoint(block_num, 0),
                         end: ProgramPoint(block_num, 0),
                     }]),
@@ -251,7 +251,7 @@ impl<T: TargetIsa> Liveness<T> {
                 for output in inst.data.output_vregs() {
                     local_vreg_lr_map
                         .entry(output)
-                        .or_insert(LiveRange {
+                        .or_insert(LiveSegment {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
                         })
@@ -260,9 +260,9 @@ impl<T: TargetIsa> Liveness<T> {
                 for output in inst.data.output_regs() {
                     local_reg_lr_map
                         .entry(T::RegInfo::to_reg_unit(output))
-                        .or_insert(LiveRanges(vec![]))
+                        .or_insert(LiveRange(vec![]))
                         .0
-                        .push(LiveRange {
+                        .push(LiveSegment {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
                         })
@@ -290,14 +290,14 @@ impl<T: TargetIsa> Liveness<T> {
             for (vreg, local_lr) in local_vreg_lr_map {
                 self.vreg_lrs_map
                     .entry(vreg)
-                    .or_insert(LiveRanges(vec![]))
+                    .or_insert(LiveRange(vec![]))
                     .0
                     .push(local_lr)
             }
             for (reg, local_lr) in local_reg_lr_map {
                 self.reg_lrs_map
                     .entry(reg)
-                    .or_insert(LiveRanges(vec![]))
+                    .or_insert(LiveRange(vec![]))
                     .0
                     .extend(local_lr.0.into_iter())
             }
@@ -308,8 +308,8 @@ impl<T: TargetIsa> Liveness<T> {
 
     ///////////
 
-    // pub fn get_or_create_live_ranges(&mut self, vreg: VReg) -> &mut LiveRanges {
-    //     self.lrs_map.entry(vreg).or_insert(LiveRanges(vec![]))
+    // pub fn get_or_create_live_ranges(&mut self, vreg: VReg) -> &mut LiveRange {
+    //     self.lrs_map.entry(vreg).or_insert(LiveRange(vec![]))
     // }
 
     ////////
@@ -421,7 +421,7 @@ impl<T: TargetIsa> Liveness<T> {
     }
 }
 
-impl LiveRanges {
+impl LiveRange {
     pub fn interfere(&self, other: &Self) -> bool {
         for x in &self.0 {
             for y in &other.0 {
@@ -433,7 +433,7 @@ impl LiveRanges {
         false
     }
 
-    pub fn interfere_with_single_range(&self, other: &LiveRange) -> bool {
+    pub fn interfere_with_single_range(&self, other: &LiveSegment) -> bool {
         for x in &self.0 {
             if x.interfere(other) {
                 return true;
@@ -465,14 +465,14 @@ impl LiveRanges {
                 }
                 if x.start.0 == y.start.0 {
                     if x.interfere(y) {
-                        new.push(LiveRange {
+                        new.push(LiveSegment {
                             start: ::std::cmp::min(x.start, y.start),
                             end: ::std::cmp::max(x.end, y.end),
                         });
                     } else {
                         if x.start.1 < y.start.1 {
                             if x.end.1 == y.start.1 {
-                                new.push(LiveRange {
+                                new.push(LiveSegment {
                                     start: x.start,
                                     end: y.end,
                                 });
@@ -482,7 +482,7 @@ impl LiveRanges {
                             }
                         } else {
                             if y.end.1 == x.start.1 {
-                                new.push(LiveRange {
+                                new.push(LiveSegment {
                                     start: y.start,
                                     end: x.end,
                                 });
@@ -515,7 +515,11 @@ impl LiveRanges {
     }
 }
 
-impl LiveRange {
+impl LiveSegment {
+    pub fn new_point(pp: ProgramPoint) -> Self {
+        Self { start: pp, end: pp }
+    }
+
     pub fn interfere(&self, other: &Self) -> bool {
         self.start < other.end && self.end > other.start
     }

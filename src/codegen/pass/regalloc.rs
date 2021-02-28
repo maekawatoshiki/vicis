@@ -64,7 +64,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
             let lrs2 = liveness
                 .reg_lrs_map
                 .entry(reg_unit)
-                .or_insert(liveness::LiveRanges(vec![]));
+                .or_insert(liveness::LiveRange(vec![]));
             // println!("{:?}", vreg);
             if !lrs1.interfere(lrs2) {
                 // assign reg for vreg
@@ -106,12 +106,9 @@ pub fn collect_vregs_alive_around_call<T: TargetIsa>(
             if !inst.data.is_call() {
                 continue;
             }
+            let call_lr = liveness::LiveSegment::new_point(liveness.inst_to_pp[&inst_id]);
             for vreg in all_vregs {
                 let vreg_lrs = &liveness.vreg_lrs_map[vreg];
-                let call_lr = liveness::LiveRange {
-                    start: liveness.inst_to_pp[&inst_id],
-                    end: liveness.inst_to_pp[&inst_id],
-                };
                 if vreg_lrs.interfere_with_single_range(&call_lr) {
                     output.push(*vreg);
                 }
