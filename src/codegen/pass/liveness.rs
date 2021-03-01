@@ -433,7 +433,7 @@ impl LiveRange {
         false
     }
 
-    pub fn interfere_with_single_range(&self, other: &LiveSegment) -> bool {
+    pub fn interfere_with_segment(&self, other: &LiveSegment) -> bool {
         for x in &self.0 {
             if x.interfere(other) {
                 return true;
@@ -442,76 +442,10 @@ impl LiveRange {
         false
     }
 
+    // Assume self doesn't interfere with other
     pub fn merge(&mut self, other: &Self) {
-        if other.0.len() == 0 {
-            return;
-        }
-
-        if self.0.len() == 0 {
-            *self = other.clone();
-            return;
-        }
-
-        let mut new = vec![];
-
-        let mut z = vec![];
-        let mut yi = 0;
-        for x in &self.0 {
-            while yi < other.0.len() {
-                let y = &other.0[yi];
-                if x.start.0 < y.start.0 {
-                    new.push(y.clone());
-                    break;
-                }
-                if x.start.0 == y.start.0 {
-                    if x.interfere(y) {
-                        new.push(LiveSegment {
-                            start: ::std::cmp::min(x.start, y.start),
-                            end: ::std::cmp::max(x.end, y.end),
-                        });
-                    } else {
-                        if x.start.1 < y.start.1 {
-                            if x.end.1 == y.start.1 {
-                                new.push(LiveSegment {
-                                    start: x.start,
-                                    end: y.end,
-                                });
-                            } else {
-                                new.push(x.clone());
-                                new.push(y.clone())
-                            }
-                        } else {
-                            if y.end.1 == x.start.1 {
-                                new.push(LiveSegment {
-                                    start: y.start,
-                                    end: x.end,
-                                });
-                            } else {
-                                new.push(y.clone());
-                                new.push(x.clone());
-                            }
-                        }
-                    }
-                    yi += 1;
-                    break;
-                }
-                if x.start.0 > y.start.0 {
-                    new.push(x.clone());
-                    z.push(y.clone());
-                    yi += 1;
-                    continue;
-                }
-            }
-        }
-
-        for (i, z) in z.into_iter().enumerate() {
-            new.insert(i, z)
-        }
-        if yi < other.0.len() - 1 {
-            new.append(&mut other.0[yi..].to_vec())
-        }
-
-        self.0 = new;
+        self.0.append(&mut other.0.clone());
+        self.0.sort_by(|x, y| x.start.cmp(&y.start));
     }
 }
 

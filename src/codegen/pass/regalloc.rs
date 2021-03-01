@@ -109,7 +109,7 @@ pub fn collect_vregs_alive_around_call<T: TargetIsa>(
             let call_lr = liveness::LiveSegment::new_point(liveness.inst_to_pp[&inst_id]);
             for vreg in all_vregs {
                 let vreg_lrs = &liveness.vreg_lrs_map[vreg];
-                if vreg_lrs.interfere_with_single_range(&call_lr) {
+                if vreg_lrs.interfere_with_segment(&call_lr) {
                     output.push(*vreg);
                 }
             }
