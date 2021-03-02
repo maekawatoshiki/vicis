@@ -29,15 +29,16 @@ pub struct LiveSegment {
 
 #[derive(Debug)]
 pub struct BlockData {
-    vreg_def: FxHashSet<VReg>,
-    vreg_live_in: FxHashSet<VReg>,
-    vreg_live_out: FxHashSet<VReg>,
-    reg_def: FxHashSet<RegUnit>,
-    reg_live_in: FxHashSet<RegUnit>,
-    reg_live_out: FxHashSet<RegUnit>,
+    def: FxHashSet<Reg>,
+    live_in: FxHashSet<Reg>,
+    live_out: FxHashSet<Reg>,
 }
 
-// pub type ProgramPointId = Id<ProgramPoint>;
+#[derive(Debug, PartialEq, Hash, Eq, Copy, Clone)]
+enum Reg {
+    Phys(RegUnit),
+    Virt(VReg),
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct ProgramPoint(pub u32, pub u32);
@@ -100,27 +101,12 @@ impl ProgramPoint {
     }
 }
 
-// pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) {
-//     for (_, func) in &mut module.functions {
-//         run_on_function(func);
-//     }
-// }
-
-// pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) -> Liveness {
-//     // for block_id in function.layout.block_iter() {
-//     //     for inst_id in function.layout.inst_iter(block_id) {
-//     //         let inst = function.data.inst_ref(inst_id);
-//     //     }
-//     // }
-//     todo!()
-// }
-
 impl<T: TargetIsa> Liveness<T> {
     pub fn new() -> Self {
         Self {
             block_data: FxHashMap::default(),
-            vreg_lrs_map: FxHashMap::default(),
             reg_lrs_map: FxHashMap::default(),
+            vreg_lrs_map: FxHashMap::default(),
             inst_to_pp: FxHashMap::default(),
         }
     }
@@ -184,8 +170,8 @@ impl<T: TargetIsa> Liveness<T> {
 
     fn remove_vreg_from_block_data(&mut self, vreg: VReg) {
         for (_block_id, block_data) in &mut self.block_data {
-            block_data.vreg_live_in.remove(&vreg);
-            block_data.vreg_live_out.remove(&vreg);
+            block_data.live_in.remove(&Reg::Virt(vreg));
+            block_data.live_out.remove(&Reg::Virt(vreg));
         }
     }
 
@@ -203,23 +189,27 @@ impl<T: TargetIsa> Liveness<T> {
             let mut local_reg_lr_map = FxHashMap::default();
 
             // live-in
-            for &live_in in &self.block_data[&block_id].vreg_live_in {
-                local_vreg_lr_map.insert(
-                    live_in,
-                    LiveSegment {
-                        start: ProgramPoint(block_num, 0),
-                        end: ProgramPoint(block_num, 0),
-                    },
-                );
-            }
-            for &live_in in &self.block_data[&block_id].reg_live_in {
-                local_reg_lr_map.insert(
-                    live_in,
-                    LiveRange(vec![LiveSegment {
-                        start: ProgramPoint(block_num, 0),
-                        end: ProgramPoint(block_num, 0),
-                    }]),
-                );
+            for &live_in in &self.block_data[&block_id].live_in {
+                match live_in {
+                    Reg::Virt(live_in) => {
+                        local_vreg_lr_map.insert(
+                            live_in,
+                            LiveSegment {
+                                start: ProgramPoint(block_num, 0),
+                                end: ProgramPoint(block_num, 0),
+                            },
+                        );
+                    }
+                    Reg::Phys(live_in) => {
+                        local_reg_lr_map.insert(
+                            live_in,
+                            LiveRange(vec![LiveSegment {
+                                start: ProgramPoint(block_num, 0),
+                                end: ProgramPoint(block_num, 0),
+                            }]),
+                        );
+                    }
+                }
             }
 
             inst_num += STEP;
@@ -272,18 +262,22 @@ impl<T: TargetIsa> Liveness<T> {
             }
 
             // live-out
-            for live_out in &self.block_data[&block_id].vreg_live_out {
-                local_vreg_lr_map.get_mut(live_out).unwrap().end =
-                    ProgramPoint(block_num, inst_num);
-            }
-            for live_out in &self.block_data[&block_id].reg_live_out {
-                local_reg_lr_map
-                    .get_mut(live_out)
-                    .unwrap()
-                    .0
-                    .last_mut()
-                    .unwrap()
-                    .end = ProgramPoint(block_num, inst_num);
+            for live_out in &self.block_data[&block_id].live_out {
+                match live_out {
+                    Reg::Virt(live_out) => {
+                        local_vreg_lr_map.get_mut(live_out).unwrap().end =
+                            ProgramPoint(block_num, inst_num);
+                    }
+                    Reg::Phys(live_out) => {
+                        local_reg_lr_map
+                            .get_mut(live_out)
+                            .unwrap()
+                            .0
+                            .last_mut()
+                            .unwrap()
+                            .end = ProgramPoint(block_num, inst_num);
+                    }
+                }
             }
 
             // merge local lr_map into lrs_map
@@ -333,15 +327,15 @@ impl<T: TargetIsa> Liveness<T> {
             self.block_data
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
-                .vreg_def
-                .insert(output);
+                .def
+                .insert(Reg::Virt(output));
         }
         for output in inst.data.output_regs() {
             self.block_data
                 .entry(block_id)
                 .or_insert_with(|| BlockData::new())
-                .reg_def
-                .insert(T::RegInfo::to_reg_unit(output));
+                .def
+                .insert(Reg::Phys(T::RegInfo::to_reg_unit(output)));
         }
     }
 
@@ -361,22 +355,22 @@ impl<T: TargetIsa> Liveness<T> {
         block_id: BasicBlockId,
     ) {
         for input in inst.data.input_vregs() {
-            self.propagate_vreg(func, input, block_id);
+            self.propagate_reg(func, Reg::Virt(input), block_id);
         }
         for input in inst.data.input_regs() {
-            self.propagate_reg(func, T::RegInfo::to_reg_unit(input), block_id);
+            self.propagate_reg(func, Reg::Phys(T::RegInfo::to_reg_unit(input)), block_id);
         }
     }
 
-    fn propagate_vreg(&mut self, func: &Function<T>, input: VReg, block_id: BasicBlockId) {
+    fn propagate_reg(&mut self, func: &Function<T>, input: Reg, block_id: BasicBlockId) {
         {
             let data = self.block_data.get_mut(&block_id).unwrap();
 
-            if data.vreg_def.contains(&input) {
+            if data.def.contains(&input) {
                 return;
             }
 
-            if !data.vreg_live_in.insert(input) {
+            if !data.live_in.insert(input) {
                 return;
             }
         }
@@ -386,33 +380,7 @@ impl<T: TargetIsa> Liveness<T> {
                 .block_data
                 .get_mut(pred_id)
                 .unwrap()
-                .vreg_live_out
-                .insert(input)
-            {
-                self.propagate_vreg(func, input, *pred_id);
-            }
-        }
-    }
-
-    fn propagate_reg(&mut self, func: &Function<T>, input: RegUnit, block_id: BasicBlockId) {
-        {
-            let data = self.block_data.get_mut(&block_id).unwrap();
-
-            if data.reg_def.contains(&input) {
-                return;
-            }
-
-            if !data.reg_live_in.insert(input) {
-                return;
-            }
-        }
-
-        for pred_id in &func.data.basic_blocks[block_id].preds {
-            if self
-                .block_data
-                .get_mut(pred_id)
-                .unwrap()
-                .reg_live_out
+                .live_out
                 .insert(input)
             {
                 self.propagate_reg(func, input, *pred_id);
@@ -462,12 +430,9 @@ impl LiveSegment {
 impl BlockData {
     pub fn new() -> Self {
         BlockData {
-            vreg_def: FxHashSet::default(),
-            reg_def: FxHashSet::default(),
-            vreg_live_in: FxHashSet::default(),
-            vreg_live_out: FxHashSet::default(),
-            reg_live_in: FxHashSet::default(),
-            reg_live_out: FxHashSet::default(),
+            def: FxHashSet::default(),
+            live_in: FxHashSet::default(),
+            live_out: FxHashSet::default(),
         }
     }
 }
