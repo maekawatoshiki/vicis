@@ -39,15 +39,17 @@ pub fn lower_store(
 
     let mut imm = None;
     let mut inst = None;
+    let mut arg = None;
 
     match ctx.ir_data.value_ref(args[0]) {
         Value::Constant(ConstantData::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
-        _ => {}
+        Value::Argument(idx) => arg = ctx.arg_idx_to_vreg.get(idx).map(|x| *x),
+        _ => return Err(LoweringError::Todo.into()),
     }
 
-    match (dst_slot, inst, imm) {
-        (Some(slot), Some(id), None) => {
+    match (dst_slot, inst, arg, imm) {
+        (Some(slot), Some(id), None, None) => {
             let inst = get_or_generate_inst_output(ctx, tys[0], id)?;
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
@@ -66,7 +68,7 @@ pub fn lower_store(
             )]);
             return Ok(());
         }
-        (Some(slot), None, Some(ConstantInt::Int32(imm))) => {
+        (Some(slot), None, None, Some(ConstantInt::Int32(imm))) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVmi32,
@@ -78,6 +80,24 @@ pub fn lower_store(
                         MOperand::input(OperandData::None),
                         MOperand::new(OperandData::None),
                         MOperand::input(imm.into()),
+                    ],
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
+            return Ok(());
+        }
+        (Some(slot), None, Some(arg), None) => {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVmr32,
+                    operands: vec![
+                        MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::Slot(slot)),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::input(OperandData::None),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(arg.into()),
                     ],
                 },
                 ctx.block_map[&ctx.cur_block],

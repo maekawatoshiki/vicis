@@ -27,6 +27,8 @@ pub enum Opcode {
     ADDri32,
     ADDrr32,
     SUBr64i32,
+    SUBri32,
+    SUBrr32,
     MOVrr32,
     MOVrr64,
     MOVri32,

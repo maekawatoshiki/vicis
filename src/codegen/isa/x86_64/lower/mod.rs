@@ -88,7 +88,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
             ref args,
             align,
         } => lower_store(ctx, tys, args, align),
-        Operand::IntBinary { ty, ref args, .. } => lower_add(ctx, inst.id.unwrap(), ty, args),
+        Operand::IntBinary { ty, ref args, .. } => {
+            lower_bin(ctx, inst.id.unwrap(), inst.opcode, ty, args)
+        }
         Operand::Cast { ref tys, arg } if inst.opcode == IrOpcode::Sext => {
             lower_sext(ctx, inst.id.unwrap(), tys, arg)
         }
@@ -138,9 +140,10 @@ fn lower_phi(
     Ok(())
 }
 
-fn lower_add(
+fn lower_bin(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
+    op: IrOpcode,
     ty: TypeId,
     args: &[ValueId],
 ) -> Result<()> {
@@ -163,7 +166,11 @@ fn lower_add(
         OperandData::Int32(rhs) => {
             insert_move(ctx);
             InstructionData {
-                opcode: Opcode::ADDri32,
+                opcode: match op {
+                    IrOpcode::Add => Opcode::ADDri32,
+                    IrOpcode::Sub => Opcode::SUBri32,
+                    _ => return Err(LoweringError::Todo.into()),
+                },
                 operands: vec![
                     MOperand::input_output(output.into()),
                     MOperand::new(rhs.into()),
@@ -173,7 +180,11 @@ fn lower_add(
         OperandData::VReg(rhs) => {
             insert_move(ctx);
             InstructionData {
-                opcode: Opcode::ADDrr32,
+                opcode: match op {
+                    IrOpcode::Add => Opcode::ADDrr32,
+                    IrOpcode::Sub => Opcode::SUBrr32,
+                    _ => return Err(LoweringError::Todo.into()),
+                },
                 operands: vec![
                     MOperand::input_output(output.into()),
                     MOperand::input(rhs.into()),

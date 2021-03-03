@@ -30,14 +30,18 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
         }
     }
 
-    for (_, func) in &module.functions {
-        print_function(f, func)?
+    for (i, (_, func)) in module.functions.iter().enumerate() {
+        print_function(f, func, i)?
     }
 
     Ok(())
 }
 
-pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -> fmt::Result {
+pub fn print_function(
+    f: &mut fmt::Formatter<'_>,
+    function: &Function<X86_64>,
+    fn_idx: usize,
+) -> fmt::Result {
     if function.is_prototype {
         return Ok(());
     }
@@ -46,7 +50,7 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
     writeln!(f, "{}:", function.name)?;
 
     for block in function.layout.block_iter() {
-        writeln!(f, ".LBL{}:", block.index())?;
+        writeln!(f, ".LBL{}_{}:", fn_idx, block.index())?;
         for inst in function.layout.inst_iter(block) {
             let inst = function.data.inst_ref(inst);
             write!(f, "  {} ", inst.data.opcode)?;
@@ -63,7 +67,7 @@ pub fn print_function(f: &mut fmt::Formatter<'_>, function: &Function<X86_64>) -
                     write!(f, "{}", mem_op(&inst.data.operands[i..i + 5]))?;
                     i += 5 - 1;
                 } else {
-                    write!(f, "{}", operand.data)?;
+                    write_operand(f, &operand.data, fn_idx)?;
                 }
                 if i < inst.data.operands.len() - 1 {
                     write!(f, ", ")?
@@ -94,7 +98,7 @@ impl fmt::Display for Opcode {
                 Self::ADDr64i32 => "add",
                 Self::ADDri32 => "add",
                 Self::ADDrr32 => "add",
-                Self::SUBr64i32 => "sub",
+                Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
                 Self::MOVrr32 => "mov",
                 Self::MOVrr64 => "mov",
                 Self::MOVri32 => "mov",
@@ -118,22 +122,36 @@ impl fmt::Display for Opcode {
     }
 }
 
-impl fmt::Display for OperandData {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
-            Self::VReg(r) => write!(f, "%{}", r.0),
-            // Self::Mem(mem) => write!(f, "{}", mem),
-            Self::Slot(slot) => write!(f, "{:?}", slot),
-            Self::Int32(i) => write!(f, "{}", i),
-            Self::Block(block) => write!(f, ".LBL{}", block.index()),
-            Self::Label(name) => write!(f, "{}", name),
-            Self::MemStart => Ok(()),
-            Self::GlobalAddress(name) => write!(f, "offset {}", name),
-            Self::None => write!(f, "none"),
-        }
+fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) -> fmt::Result {
+    match op {
+        OperandData::Reg(r) => write!(f, "{}", reg_to_str(r)),
+        OperandData::VReg(r) => write!(f, "%{}", r.0),
+        OperandData::Slot(slot) => write!(f, "{:?}", slot),
+        OperandData::Int32(i) => write!(f, "{}", i),
+        OperandData::Block(block) => write!(f, ".LBL{}_{}", fn_idx, block.index()),
+        OperandData::Label(name) => write!(f, "{}", name),
+        OperandData::MemStart => Ok(()),
+        OperandData::GlobalAddress(name) => write!(f, "offset {}", name),
+        OperandData::None => write!(f, "none"),
     }
 }
+
+// impl fmt::Display for OperandData {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         match self {
+//             Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
+//             Self::VReg(r) => write!(f, "%{}", r.0),
+//             // Self::Mem(mem) => write!(f, "{}", mem),
+//             Self::Slot(slot) => write!(f, "{:?}", slot),
+//             Self::Int32(i) => write!(f, "{}", i),
+//             Self::Block(block) => write!(f, ".LBL{}", block.index()),
+//             Self::Label(name) => write!(f, "{}", name),
+//             Self::MemStart => Ok(()),
+//             Self::GlobalAddress(name) => write!(f, "offset {}", name),
+//             Self::None => write!(f, "none"),
+//         }
+//     }
+// }
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {

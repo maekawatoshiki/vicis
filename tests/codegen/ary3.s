@@ -2,7 +2,7 @@
   .intel_syntax noprefix
   .globl main
 main:
-.LBL0:
+.LBL0_0:
   push rbp
   mov rbp, rsp
   sub rsp, 16

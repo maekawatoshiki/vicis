@@ -2,7 +2,7 @@
   .intel_syntax noprefix
   .globl f
 f:
-.LBL0:
+.LBL0_0:
   push rbp
   mov rbp, rsp
   mov eax, edi
@@ -10,7 +10,7 @@ f:
   ret 
   .globl main
 main:
-.LBL0:
+.LBL1_0:
   push rbp
   mov rbp, rsp
   mov edi, 1

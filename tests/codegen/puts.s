@@ -4,7 +4,7 @@
   .string "hello world\00"
   .globl main
 main:
-.LBL0:
+.LBL0_0:
   push rbp
   mov rbp, rsp
   sub rsp, 16
