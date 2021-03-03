@@ -24,7 +24,7 @@ jobs:
         ACCEPT_EULA: Y
       run:  |
             rustup override set nightly && \
-            # sudo -E apt-get update && \
+            sudo -E apt-get update && \
             # sudo -E dpkg --configure -a && \
             # sudo -E dpkg --remove containers-common && \
             # sudo -E apt-get upgrade -y && \
