@@ -18,6 +18,7 @@ pub struct Liveness<T: TargetIsa> {
     pub inst_to_pp: FxHashMap<InstructionId<<T::InstInfo as II>::Data>, ProgramPoint>,
 }
 
+// `LiveSegment`s are sorted in ascending order by `start`
 #[derive(Debug, Clone)]
 pub struct LiveRange(pub Vec<LiveSegment>);
 
@@ -161,6 +162,10 @@ impl<T: TargetIsa> Liveness<T> {
             end: use_pp.unwrap(),
         }]);
         self.vreg_lrs_map.insert(vreg, lrs);
+    }
+
+    pub fn vreg_range(&self, vreg: &VReg) -> Option<&LiveRange> {
+        self.vreg_lrs_map.get(vreg)
     }
 
     pub fn remove_vreg(&mut self, vreg: VReg) {
@@ -390,6 +395,10 @@ impl<T: TargetIsa> Liveness<T> {
 }
 
 impl LiveRange {
+    pub fn first_seg(&self) -> Option<&LiveSegment> {
+        self.0.get(0)
+    }
+
     pub fn interfere(&self, other: &Self) -> bool {
         for x in &self.0 {
             for y in &other.0 {

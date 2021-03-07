@@ -47,9 +47,13 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
 
     let mut worklist: Vec<VReg> = all_vregs.into_iter().collect();
     worklist.sort_by(|a, b| {
-        liveness.vreg_lrs_map[a].0[0]
+        liveness
+            .vreg_range(a)
+            .unwrap()
+            .first_seg()
+            .unwrap()
             .start
-            .cmp(&liveness.vreg_lrs_map[b].0[0].start)
+            .cmp(&liveness.vreg_range(b).unwrap().first_seg().unwrap().start)
     });
     let mut worklist: VecDeque<VReg> = worklist.into_iter().collect();
 
