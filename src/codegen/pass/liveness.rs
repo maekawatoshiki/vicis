@@ -168,6 +168,21 @@ impl<T: TargetIsa> Liveness<T> {
         self.vreg_lrs_map.get(vreg)
     }
 
+    pub fn interfere(&self, reg: RegUnit, vreg: VReg) -> bool {
+        let reg_lr = match self.reg_lrs_map.get(&reg) {
+            Some(lr) => lr,
+            None => return false,
+        };
+        let vreg_lr = &self.vreg_lrs_map[&vreg];
+        vreg_lr.interfere(reg_lr)
+    }
+
+    pub fn assign(&mut self, reg: RegUnit, vreg: VReg) {
+        let vreg_lr = &self.vreg_lrs_map[&vreg];
+        let reg_lr = self.reg_lrs_map.entry(reg).or_insert(LiveRange(vec![]));
+        reg_lr.merge(vreg_lr)
+    }
+
     pub fn remove_vreg(&mut self, vreg: VReg) {
         self.remove_vreg_live_ranges(vreg);
         self.remove_vreg_from_block_data(vreg);

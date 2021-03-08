@@ -46,6 +46,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     debug!(&function);
 
     let mut worklist: Vec<VReg> = all_vregs.into_iter().collect();
+    // sort by segment start
     worklist.sort_by(|a, b| {
         liveness
             .vreg_range(a)
@@ -64,16 +65,9 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
             T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
         for reg in availables {
             let reg_unit = T::RegInfo::to_reg_unit(reg);
-            let lrs1 = &liveness.vreg_lrs_map[&vreg];
-            let lrs2 = liveness
-                .reg_lrs_map
-                .entry(reg_unit)
-                .or_insert(liveness::LiveRange(vec![]));
-            // println!("{:?}", vreg);
-            if !lrs1.interfere(lrs2) {
-                // assign reg for vreg
+            if !liveness.interfere(reg_unit, vreg) {
                 assigned_regs.insert(vreg, reg);
-                lrs2.merge(lrs1);
+                liveness.assign(reg_unit, vreg);
                 break;
             }
         }
