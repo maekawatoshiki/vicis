@@ -9,8 +9,7 @@ main:
   mov rbp, rsp
   sub rsp, 16
   mov dword ptr [rbp-4], 0
-  mov rax, offset .str
-  mov rdi, rax
+  mov rdi, offset .str
   call puts
   mov eax, 0
   add rsp, 16

@@ -16,14 +16,12 @@ fibo:
   mov dword ptr [rbp-4], 1
   jmp .LBL0_3
 .LBL0_2:
-  mov eax, dword ptr [rbp-12]
-  sub eax, 1
-  mov edi, eax
+  mov edi, dword ptr [rbp-12]
+  sub edi, 1
   call fibo
   mov dword ptr [rbp-8], eax
-  mov eax, dword ptr [rbp-12]
-  sub eax, 2
-  mov edi, eax
+  mov edi, dword ptr [rbp-12]
+  sub edi, 2
   call fibo
   mov ecx, dword ptr [rbp-8]
   add ecx, eax

@@ -24,7 +24,6 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     debug!(&function);
 
     let mut all_vregs = FxHashSet::default();
-
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
@@ -41,6 +40,8 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
         all_vregs.remove(&vreg);
         all_vregs.extend(new_vregs.into_iter())
     }
+
+    let preferred = collect_preferred_registers(function, &all_vregs);
 
     debug!(&all_vregs);
     debug!(&function);
@@ -61,8 +62,13 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     while let Some(vreg) = worklist.pop_front() {
-        let availables =
+        let mut availables =
             T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
+
+        if let Some(preferred) = preferred.get(&vreg) {
+            availables.splice(0..0, preferred.clone());
+        }
+
         for reg in availables {
             let reg_unit = T::RegInfo::to_reg_unit(reg);
             if !liveness.interfere(reg_unit, vreg) {
@@ -114,4 +120,43 @@ pub fn collect_vregs_alive_around_call<T: TargetIsa>(
         }
     }
     output
+}
+
+pub fn collect_preferred_registers<T: TargetIsa>(
+    function: &mut Function<T>,
+    all_vregs: &FxHashSet<VReg>,
+) -> FxHashMap<VReg, Vec<Reg>> {
+    let mut preferred = FxHashMap::default();
+    for &vreg in all_vregs {
+        let rs = find_preferred_registers(function, vreg);
+        if rs.len() > 0 {
+            preferred.insert(vreg, rs);
+        }
+    }
+    preferred
+}
+
+pub fn find_preferred_registers<T: TargetIsa>(function: &Function<T>, vreg: VReg) -> Vec<Reg> {
+    let mut list = vec![];
+    let users = function.data.vreg_users.get(vreg);
+    for user in users {
+        let inst = function.data.inst_ref(user.inst_id);
+        if user.write {
+            continue;
+        }
+        if inst.data.is_copy() {
+            let regs = inst.data.output_regs();
+            if regs.len() > 0 {
+                list.insert(0, regs[0]);
+                continue;
+            }
+
+            let regs = inst.data.output_vregs();
+            if regs.len() > 0 {
+                let dst = regs[0]; // TODO: Why do we know the first element of `regs` is destination?
+                list.extend(find_preferred_registers(function, dst).into_iter());
+            }
+        }
+    }
+    list
 }
