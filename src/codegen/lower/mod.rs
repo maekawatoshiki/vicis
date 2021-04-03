@@ -24,7 +24,7 @@ use crate::ir::{
 };
 use anyhow::Result;
 use id_arena::Arena;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{error::Error, fmt};
 
 pub trait Lower<T: TargetIsa> {
@@ -42,6 +42,7 @@ pub struct LoweringContext<'a, T: TargetIsa> {
     pub inst_seq: &'a mut Vec<MachInstruction<<T::InstInfo as II>::Data>>,
     pub types: &'a Types,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
+    pub merged_inst: &'a mut FxHashSet<IrInstructionId>,
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub call_conv: CallConvKind,
     pub cur_block: IrBasicBlockId,
@@ -106,6 +107,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
     let mut inst_id_to_slot_id = FxHashMap::default();
     let mut inst_id_to_vreg = FxHashMap::default();
     let mut arg_idx_to_vreg = FxHashMap::default();
+    let mut merged_inst = FxHashSet::default();
     let call_conv = T::default_call_conv();
 
     for (i, block_id) in function.layout.block_iter().enumerate() {
@@ -123,6 +125,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
+                    merged_inst: &mut merged_inst,
                     block_map: &block_map,
                     call_conv,
                     cur_block: block_id,
@@ -156,6 +159,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
+                    merged_inst: &mut merged_inst,
                     block_map: &block_map,
                     call_conv,
                     cur_block: block_id,
@@ -184,6 +188,16 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
         isa,
         call_conv,
     })
+}
+
+impl<'a, T: TargetIsa> LoweringContext<'a, T> {
+    pub fn mark_as_merged(&mut self, inst: IrInstructionId) {
+        self.merged_inst.insert(inst);
+    }
+
+    pub fn is_merged(&self, inst: IrInstructionId) -> bool {
+        self.merged_inst.contains(&inst)
+    }
 }
 
 impl Error for LoweringError {}

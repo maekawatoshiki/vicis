@@ -206,6 +206,10 @@ fn lower_sext(
     tys: &[TypeId; 2],
     arg: ValueId,
 ) -> Result<()> {
+    if ctx.is_merged(id) {
+        return Ok(());
+    }
+
     let from = tys[0];
     let to = tys[1];
     assert_eq!(*ctx.types.get(from), Type::Int(32));

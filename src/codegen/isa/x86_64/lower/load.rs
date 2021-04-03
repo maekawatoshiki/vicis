@@ -24,13 +24,22 @@ pub fn lower_load(
 ) -> Result<()> {
     let mut slot = None;
 
+    // Very limited situation is supported now. TODO
+    let sext = ctx.ir_data.only_one_user_of(id).filter(|&id| {
+        let inst = ctx.ir_data.inst_ref(id);
+        let types = inst.operand.types();
+        inst.opcode == IrOpcode::Sext
+            && types[0] == ctx.types.base().i32()
+            && types[1] == ctx.types.base().i64()
+    });
+
     if let Value::Instruction(gep_id) = &ctx.ir_data.values[addr] {
         if let Some(slot_id) = ctx.inst_id_to_slot_id.get(gep_id) {
             slot = Some(*slot_id);
         } else {
             let opcode = ctx.ir_data.instructions[*gep_id].opcode;
             if opcode == IrOpcode::GetElementPtr {
-                return lower_load_gep(ctx, id, tys, *gep_id, _align);
+                return lower_load_gep(ctx, id, tys, *gep_id, _align, sext);
             }
         }
     } else {
@@ -39,20 +48,40 @@ pub fn lower_load(
 
     if let Some(slot) = slot {
         let src_ty = tys[0];
+        let mem = vec![
+            MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::Slot(slot)),
+            MOperand::new(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::new(OperandData::None),
+        ];
+
+        if let Some(u) = sext {
+            let output = new_empty_inst_output(ctx, ctx.types.base().i64(), u);
+            ctx.mark_as_merged(u);
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVSXDr64m32,
+                    operands: vec![MOperand::output(output.into())]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            return Ok(());
+        }
+
         if matches!(&*ctx.types.get(src_ty), Type::Int(32)) {
-            let output = new_empty_inst_output(ctx, tys[0], id);
+            let output = new_empty_inst_output(ctx, src_ty, id);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrm32,
-                    operands: vec![
-                        MOperand::output(output.into()),
-                        MOperand::new(OperandData::MemStart),
-                        MOperand::new(OperandData::Slot(slot)),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::new(OperandData::None),
-                    ],
+                    operands: vec![MOperand::output(output.into())]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
@@ -69,6 +98,7 @@ fn lower_load_gep(
     tys: &[TypeId],
     gep_id: InstructionId,
     _align: u32,
+    sext: Option<InstructionId>,
 ) -> Result<()> {
     use {Constant as Const, ConstantData::Int, ConstantInt::Int64, Value::Constant};
 
@@ -129,14 +159,15 @@ fn lower_load_gep(
         _ => return Err(LoweringError::Todo.into()),
     }
 
-    let output = new_empty_inst_output(ctx, tys[0], id);
+    let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
+    sext.map(|x| ctx.mark_as_merged(x));
 
     let src_ty = tys[0];
     match &*ctx.types.get(src_ty) {
         Type::Int(32) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVrm32,
+                    opcode: sext.map_or(Opcode::MOVrm32, |_| Opcode::MOVSXDr64m32),
                     operands: vec![MOperand::output(OperandData::VReg(output))]
                         .into_iter()
                         .chain(mem.into_iter())

@@ -105,7 +105,7 @@ impl fmt::Display for Opcode {
                 Self::MOVrm32 => "mov",
                 Self::MOVmi32 => "mov",
                 Self::MOVmr32 => "mov",
-                Self::MOVSXDr64r32 => "movsxd",
+                Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
                 Self::CMPri32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
@@ -155,7 +155,7 @@ fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) ->
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
-        Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 => "dword",
+        Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 | Opcode::MOVSXDr64m32 => "dword",
         _ => todo!(),
     }
 }
