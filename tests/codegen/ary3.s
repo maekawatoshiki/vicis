@@ -8,12 +8,10 @@ main:
   sub rsp, 16
   mov dword ptr [rbp-16], 0
   mov dword ptr [rbp-12], 0
-  mov eax, dword ptr [rbp-12]
-  movsxd rax, eax
+  movsxd rax, dword ptr [rbp-12]
   mov dword ptr [rbp-8+rax*4], 1
   mov dword ptr [rbp-12], 1
-  mov eax, dword ptr [rbp-12]
-  movsxd rax, eax
+  movsxd rax, dword ptr [rbp-12]
   mov dword ptr [rbp-8+rax*4], 2
   mov eax, 0
   add rsp, 16

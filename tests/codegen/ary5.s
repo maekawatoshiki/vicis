@@ -17,8 +17,7 @@ main:
   jmp .LBL0_4
 .LBL0_2:
   mov eax, dword ptr [rbp-52]
-  mov ecx, dword ptr [rbp-52]
-  movsxd rcx, ecx
+  movsxd rcx, dword ptr [rbp-52]
   add eax, 1
   mov dword ptr [rbp-48+rcx*4], eax
   jmp .LBL0_3
@@ -36,8 +35,7 @@ main:
   jl .LBL0_6
   jmp .LBL0_8
 .LBL0_6:
-  mov eax, dword ptr [rbp-8]
-  movsxd rax, eax
+  movsxd rax, dword ptr [rbp-8]
   mov eax, dword ptr [rbp-48+rax*4]
   mov ecx, dword ptr [rbp-4]
   add ecx, eax
