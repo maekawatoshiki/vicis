@@ -24,6 +24,13 @@ impl Name {
             _ => panic!(),
         }
     }
+
+    pub fn to_string(&self) -> Option<&String> {
+        match self {
+            Self::Name(name) => Some(name),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Debug for Name {
