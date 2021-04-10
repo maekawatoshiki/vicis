@@ -1,5 +1,6 @@
 pub mod parser;
 
+use crate::ir::module::name::Name;
 use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
@@ -23,7 +24,7 @@ pub struct TypesBase {
     int: Cache<u32>,
     pointer: Cache<(TypeId, u32)>,
     array: Cache<(TypeId, u32)>,
-    structs: Cache<String>,
+    structs: Cache<Name>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -58,7 +59,7 @@ pub struct FunctionType {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct StructType {
-    pub name: Option<String>,
+    pub name: Option<Name>,
     pub elems: Vec<TypeId>,
 }
 
@@ -79,7 +80,7 @@ impl Types {
         Ref::map(self.0.borrow(), |base| &base.arena[id])
     }
 
-    pub fn get_mut(&mut self, id: TypeId) -> RefMut<Type> {
+    pub fn get_mut(&self, id: TypeId) -> RefMut<Type> {
         RefMut::map(self.0.borrow_mut(), |base| &mut base.arena[id])
     }
 
@@ -175,17 +176,29 @@ impl TypesBase {
             })))
     }
 
+    pub fn empty_struct_named(&mut self, name: Name) -> TypeId {
+        *self
+            .structs
+            .entry(name.clone())
+            .or_insert(self.arena.alloc(Type::Struct(StructType {
+                name: Some(name),
+                elems: vec![],
+            })))
+    }
+
     pub fn anonymous_struct(&mut self, elems: Vec<TypeId>) -> TypeId {
         self.arena
             .alloc(Type::Struct(StructType { name: None, elems }))
     }
 
-    pub fn name_anonymous_struct(&mut self, ty: TypeId, name: String) {
-        match self.arena.get_mut(ty).unwrap() {
-            Type::Struct(StructType { name: name_, .. }) => *name_ = Some(name.clone()),
-            _ => panic!("not a struct type"),
+    pub fn get_struct(&self, name: &Name) -> Option<TypeId> {
+        self.structs.get(name).copied()
+    }
+
+    pub fn remove_struct(&mut self, ty: TypeId) {
+        if let Some(name) = self.arena[ty].as_struct().name.as_ref() {
+            self.structs.remove(name);
         }
-        self.structs.insert(name, ty);
     }
 
     pub fn element(&self, ty: TypeId) -> Option<TypeId> {
@@ -217,17 +230,24 @@ impl TypesBase {
                 format!("[{} x {}]", num_elements, self.to_string(*inner))
             }
             Type::Function(_) => "TODO".to_string(),
-            Type::Struct(StructType { elems, .. }) => {
-                let mut elems_str = "".to_string();
-                for (i, elem) in elems.iter().enumerate() {
-                    elems_str.push_str(self.to_string(*elem).as_str());
-                    if i != elems.len() - 1 {
-                        elems_str.push_str(", ");
-                    }
+            Type::Struct(ty) => {
+                if let Some(name) = ty.name.as_ref() {
+                    return format!("%{}", name);
                 }
-                format!("{{ {} }}", elems_str)
+                self.struct_definition_to_string(ty)
             }
         }
+    }
+
+    pub fn struct_definition_to_string(&self, ty: &StructType) -> String {
+        let mut elems_str = "".to_string();
+        for (i, elem) in ty.elems.iter().enumerate() {
+            elems_str.push_str(self.to_string(*elem).as_str());
+            if i != ty.elems.len() - 1 {
+                elems_str.push_str(", ");
+            }
+        }
+        format!("{{ {} }}", elems_str)
     }
 
     pub fn is_struct(&self, ty: TypeId) -> bool {
@@ -242,12 +262,25 @@ impl Type {
             _ => panic!(),
         }
     }
+
+    pub fn as_struct_mut(&mut self) -> &mut StructType {
+        match self {
+            Self::Struct(strct) => strct,
+            _ => panic!(),
+        }
+    }
 }
 
 impl fmt::Debug for Types {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (name, &id) in &self.base().structs {
-            write!(f, "%{} = type {}", name, self.to_string(id))?
+            writeln!(
+                f,
+                "%{} = type {}",
+                name,
+                self.base()
+                    .struct_definition_to_string(self.get(id).as_struct())
+            )?
         }
         Ok(())
     }

@@ -1,5 +1,5 @@
 use super::super::types::{TypeId, Types};
-use crate::ir::util::spaces;
+use crate::ir::{module::name, util::spaces};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -19,6 +19,14 @@ pub fn parse<'a>(
         parse_array(source, types)?
     } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
         parse_struct(source, types)?
+    } else if let Ok((source, name)) = preceded(spaces, preceded(char('%'), name::parse))(source) {
+        (
+            source,
+            types
+                .base()
+                .get_struct(&name)
+                .expect("struct type not declared"),
+        )
     } else {
         preceded(
             spaces,

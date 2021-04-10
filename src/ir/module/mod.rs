@@ -93,7 +93,7 @@ impl fmt::Debug for Module {
         writeln!(f, "target datalayout = \"{}\"", self.target.datalayout)?;
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
         writeln!(f)?;
-        writeln!(f, "{:?}", self.types)?;
+        write!(f, "{:?}", self.types)?;
         for (_, gv) in &self.global_variables {
             writeln!(f, "{}", gv.to_string(&self.types))?;
         }

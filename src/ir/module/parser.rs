@@ -74,16 +74,18 @@ fn parse_metadata<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a 
 fn parse_local_type<'a>(
     source: &'a str,
     types: &types::Types,
-) -> IResult<&'a str, (name::Name, types::TypeId), VerboseError<&'a str>> {
+) -> IResult<&'a str, (), VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let strukt = types.base_mut().empty_struct_named(name);
     let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
     let (source, ty) = types::parse(source, types)?;
     if types.base().is_struct(ty) {
-        if let Some(name) = name.to_string() {
-            types.base_mut().name_anonymous_struct(ty, name.to_owned());
-        }
+        let elems = types.get(ty).as_struct().elems.clone();
+        types.get_mut(strukt).as_struct_mut().elems = elems;
+    } else {
+        types.base_mut().remove_struct(strukt)
     }
-    Ok((source, (name, ty)))
+    Ok((source, ()))
 }
 
 pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'a str>>> {
@@ -120,7 +122,7 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'
             continue;
         }
 
-        if let Ok((source_, (_name, _ty))) = parse_local_type(source, &module.types) {
+        if let Ok((source_, _)) = parse_local_type(source, &module.types) {
             source = source_;
             continue;
         }

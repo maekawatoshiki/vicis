@@ -41,3 +41,12 @@ impl fmt::Debug for Name {
         }
     }
 }
+
+impl fmt::Display for Name {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Name(name) => write!(f, "{}", name),
+            Self::Number(num) => write!(f, "{}", num),
+        }
+    }
+}
