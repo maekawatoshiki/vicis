@@ -23,6 +23,7 @@ pub struct TypesBase {
     int: Cache<u32>,
     pointer: Cache<(TypeId, u32)>,
     array: Cache<(TypeId, u32)>,
+    structs: Cache<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -32,6 +33,7 @@ pub enum Type {
     Pointer(PointerType),
     Array(ArrayType),
     Function(FunctionType),
+    Struct(StructType),
     // TODO: Add more types
 }
 
@@ -52,6 +54,12 @@ pub struct FunctionType {
     pub ret: TypeId,
     pub params: Vec<TypeId>,
     pub is_var_arg: bool,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct StructType {
+    pub name: Option<String>,
+    pub elems: Vec<TypeId>,
 }
 
 impl Types {
@@ -105,6 +113,7 @@ impl TypesBase {
             int,
             pointer: Cache::default(),
             array: Cache::default(),
+            structs: Cache::default(),
         }
     }
 
@@ -140,33 +149,43 @@ impl TypesBase {
     }
 
     pub fn pointer(&mut self, inner: TypeId) -> TypeId {
-        self.pointer
+        *self
+            .pointer
             .entry((inner, 0))
             .or_insert(self.arena.alloc(Type::Pointer(PointerType {
                 inner,
                 addr_space: 0,
             })))
-            .clone()
     }
 
     pub fn pointer_in_addr_space(&mut self, inner: TypeId, addr_space: u32) -> TypeId {
-        self.pointer
-            .entry((inner, 0))
-            .or_insert(
-                self.arena
-                    .alloc(Type::Pointer(PointerType { inner, addr_space })),
-            )
-            .clone()
+        *self.pointer.entry((inner, 0)).or_insert(
+            self.arena
+                .alloc(Type::Pointer(PointerType { inner, addr_space })),
+        )
     }
 
     pub fn array(&mut self, inner: TypeId, num_elements: u32) -> TypeId {
-        self.array
+        *self
+            .array
             .entry((inner, num_elements))
             .or_insert(self.arena.alloc(Type::Array(ArrayType {
                 inner,
                 num_elements,
             })))
-            .clone()
+    }
+
+    pub fn anonymous_struct(&mut self, elems: Vec<TypeId>) -> TypeId {
+        self.arena
+            .alloc(Type::Struct(StructType { name: None, elems }))
+    }
+
+    pub fn name_anonymous_struct(&mut self, ty: TypeId, name: String) {
+        match self.arena.get_mut(ty).unwrap() {
+            Type::Struct(StructType { name: name_, .. }) => *name_ = Some(name.clone()),
+            _ => panic!("not a struct type"),
+        }
+        self.structs.insert(name, ty);
     }
 
     pub fn element(&self, ty: TypeId) -> Option<TypeId> {
@@ -176,6 +195,7 @@ impl TypesBase {
             Type::Pointer(PointerType { inner, .. }) => Some(inner),
             Type::Array(ArrayType { inner, .. }) => Some(inner),
             Type::Function(_) => None,
+            Type::Struct(_) => None,
         }
     }
 
@@ -197,13 +217,39 @@ impl TypesBase {
                 format!("[{} x {}]", num_elements, self.to_string(*inner))
             }
             Type::Function(_) => "TODO".to_string(),
+            Type::Struct(StructType { elems, .. }) => {
+                let mut elems_str = "".to_string();
+                for (i, elem) in elems.iter().enumerate() {
+                    elems_str.push_str(self.to_string(*elem).as_str());
+                    if i != elems.len() - 1 {
+                        elems_str.push_str(", ");
+                    }
+                }
+                format!("{{ {} }}", elems_str)
+            }
+        }
+    }
+
+    pub fn is_struct(&self, ty: TypeId) -> bool {
+        matches!(self.arena[ty], Type::Struct(_))
+    }
+}
+
+impl Type {
+    pub fn as_struct(&self) -> &StructType {
+        match self {
+            Self::Struct(strct) => strct,
+            _ => panic!(),
         }
     }
 }
 
 impl fmt::Debug for Types {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Types")
+        for (name, &id) in &self.base().structs {
+            write!(f, "%{} = type {}", name, self.to_string(id))?
+        }
+        Ok(())
     }
 }
 

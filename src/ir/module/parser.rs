@@ -78,6 +78,11 @@ fn parse_local_type<'a>(
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
     let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
     let (source, ty) = types::parse(source, types)?;
+    if types.base().is_struct(ty) {
+        if let Some(name) = name.to_string() {
+            types.base_mut().name_anonymous_struct(ty, name.to_owned());
+        }
+    }
     Ok((source, (name, ty)))
 }
 

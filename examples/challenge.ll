@@ -3,7 +3,7 @@ source_filename = "a.7rcbfp3g-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
-%abc = type i32
+%structure = type { i32, [123 x i64] }
 ; %"unwind::libunwind::_Unwind_Exception" = type { [0 x i64], i64, [0 x i64], void (i32, %"unwind::libunwind::_Unwind_Exception"*)*, [0 x i64], [6 x i64], [0 x i64] }
 ; %"unwind::libunwind::_Unwind_Context" = type { [0 x i8] }
 ; 

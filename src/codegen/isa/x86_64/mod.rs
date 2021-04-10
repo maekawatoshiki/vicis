@@ -44,6 +44,7 @@ impl TargetIsa for X86_64 {
                 num_elements,
             }) => Self::type_size(types, *inner) * num_elements,
             Type::Function(_) => 0,
+            Type::Struct(_) => todo!(),
         }
     }
 }

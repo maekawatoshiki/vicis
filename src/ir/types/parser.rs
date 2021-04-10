@@ -17,6 +17,8 @@ pub fn parse<'a>(
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
     let (source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
         parse_array(source, types)?
+    } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
+        parse_struct(source, types)?
     } else {
         preceded(
             spaces,
@@ -37,7 +39,7 @@ pub fn parse<'a>(
     Ok((source, base))
 }
 
-pub fn parse_array<'a>(
+fn parse_array<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
@@ -47,4 +49,21 @@ pub fn parse_array<'a>(
     let (source, _) = preceded(spaces, char(']'))(source)?;
     let ary_ty = types.base_mut().array(ty, n.parse::<u32>().unwrap());
     Ok((source, ary_ty))
+}
+
+fn parse_struct<'a>(
+    mut source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+    let mut elems = vec![];
+    loop {
+        let (source_, ty) = parse(source, types)?;
+        elems.push(ty);
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        let (source_, _) = preceded(spaces, char('}'))(source_)?;
+        return Ok((source_, types.base_mut().anonymous_struct(elems)));
+    }
 }
