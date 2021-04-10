@@ -2,9 +2,12 @@ use super::super::function;
 use super::Module;
 use super::{
     attributes::{parser::parse_attributes, Attribute},
-    global_variable,
+    global_variable, name,
 };
-use crate::ir::util::{spaces, string_literal};
+use crate::ir::{
+    types,
+    util::{spaces, string_literal},
+};
 use nom;
 use nom::{
     bytes::complete::{tag, take_until},
@@ -68,6 +71,16 @@ fn parse_metadata<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a 
     )(source)
 }
 
+fn parse_local_type<'a>(
+    source: &'a str,
+    types: &types::Types,
+) -> IResult<&'a str, (name::Name, types::TypeId), VerboseError<&'a str>> {
+    let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
+    let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
+    let (source, ty) = types::parse(source, types)?;
+    Ok((source, (name, ty)))
+}
+
 pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'a str>>> {
     let mut module = Module::new();
 
@@ -98,6 +111,11 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'
 
         if let Ok((source_, (id, attrs))) = parse_attribute_group(source) {
             module.attributes.insert(id, attrs);
+            source = source_;
+            continue;
+        }
+
+        if let Ok((source_, (_name, _ty))) = parse_local_type(source, &module.types) {
             source = source_;
             continue;
         }
