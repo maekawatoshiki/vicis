@@ -20,13 +20,7 @@ pub fn parse<'a>(
     } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
         parse_struct(source, types)?
     } else if let Ok((source, name)) = preceded(spaces, preceded(char('%'), name::parse))(source) {
-        (
-            source,
-            types
-                .base()
-                .get_struct(&name)
-                .expect("struct type not declared"),
-        )
+        (source, types.base_mut().named_type(name))
     } else {
         preceded(
             spaces,

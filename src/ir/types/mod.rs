@@ -5,7 +5,7 @@ use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
     cell::{Ref, RefCell, RefMut},
-    fmt,
+    fmt, mem,
     sync::Arc,
 };
 
@@ -20,14 +20,15 @@ pub struct Types(Arc<RefCell<TypesBase>>);
 
 pub struct TypesBase {
     arena: Arena<Type>,
+    named_types: Cache<Name>,
     void: TypeId,
     int: Cache<u32>,
     pointer: Cache<(TypeId, u32)>,
     array: Cache<(TypeId, u32)>,
-    structs: Cache<Name>,
+    structs: Cache<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Void,
     Int(u32),
@@ -59,7 +60,7 @@ pub struct FunctionType {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct StructType {
-    pub name: Option<Name>,
+    pub name: Option<String>,
     pub elems: Vec<TypeId>,
 }
 
@@ -110,6 +111,7 @@ impl TypesBase {
         .collect();
         Self {
             arena,
+            named_types: Cache::default(),
             void,
             int,
             pointer: Cache::default(),
@@ -118,35 +120,42 @@ impl TypesBase {
         }
     }
 
+    pub fn named_type(&mut self, name: Name) -> TypeId {
+        *self
+            .named_types
+            .entry(name)
+            .or_insert(self.arena.alloc(Type::Void))
+    }
+
     pub fn void(&self) -> TypeId {
-        self.void.clone()
+        self.void
     }
 
     pub fn int(&mut self, bits: u32) -> TypeId {
-        self.int
+        *self
+            .int
             .entry(bits)
             .or_insert(self.arena.alloc(Type::Int(bits)))
-            .clone()
     }
 
     pub fn i1(&self) -> TypeId {
-        self.int[&1].clone()
+        self.int[&1]
     }
 
     pub fn i8(&self) -> TypeId {
-        self.int[&8].clone()
+        self.int[&8]
     }
 
     pub fn i16(&self) -> TypeId {
-        self.int[&16].clone()
+        self.int[&16]
     }
 
     pub fn i32(&self) -> TypeId {
-        self.int[&32].clone()
+        self.int[&32]
     }
 
     pub fn i64(&self) -> TypeId {
-        self.int[&64].clone()
+        self.int[&64]
     }
 
     pub fn pointer(&mut self, inner: TypeId) -> TypeId {
@@ -176,7 +185,7 @@ impl TypesBase {
             })))
     }
 
-    pub fn empty_struct_named(&mut self, name: Name) -> TypeId {
+    pub fn empty_struct_named(&mut self, name: String) -> TypeId {
         *self
             .structs
             .entry(name.clone())
@@ -191,14 +200,25 @@ impl TypesBase {
             .alloc(Type::Struct(StructType { name: None, elems }))
     }
 
-    pub fn get_struct(&self, name: &Name) -> Option<TypeId> {
+    pub fn get_struct(&self, name: &str) -> Option<TypeId> {
         self.structs.get(name).copied()
     }
 
-    pub fn remove_struct(&mut self, ty: TypeId) {
-        if let Some(name) = self.arena[ty].as_struct().name.as_ref() {
-            self.structs.remove(name);
+    pub fn change_to_named_type(&mut self, ty: TypeId, name: Name) {
+        let named_ty = self.named_type(name.clone());
+
+        if self.is_struct(ty) {
+            let mut strukt = mem::replace(&mut self.arena[ty], Type::Void);
+            if let Some(name) = name.to_string() {
+                strukt.as_struct_mut().name = Some(name.to_owned());
+                self.structs.insert(name.to_owned(), named_ty);
+            }
+            self.arena[named_ty] = strukt;
+            return;
         }
+
+        let ty = self.arena[ty].clone();
+        self.arena[named_ty] = ty;
     }
 
     pub fn element(&self, ty: TypeId) -> Option<TypeId> {
@@ -273,13 +293,17 @@ impl Type {
 
 impl fmt::Debug for Types {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (name, &id) in &self.base().structs {
+        for (name, &id) in &self.base().named_types {
             writeln!(
                 f,
                 "%{} = type {}",
                 name,
-                self.base()
-                    .struct_definition_to_string(self.get(id).as_struct())
+                match &*self.get(id) {
+                    Type::Struct(ty) => {
+                        self.base().struct_definition_to_string(ty)
+                    }
+                    _ => self.to_string(id),
+                }
             )?
         }
         Ok(())

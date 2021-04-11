@@ -76,15 +76,10 @@ fn parse_local_type<'a>(
     types: &types::Types,
 ) -> IResult<&'a str, (), VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
-    let strukt = types.base_mut().empty_struct_named(name);
+    types.base_mut().named_type(name.clone()); // register a named type
     let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
     let (source, ty) = types::parse(source, types)?;
-    if types.base().is_struct(ty) {
-        let elems = types.get(ty).as_struct().elems.clone();
-        types.get_mut(strukt).as_struct_mut().elems = elems;
-    } else {
-        types.base_mut().remove_struct(strukt)
-    }
+    types.base_mut().change_to_named_type(ty, name);
     Ok((source, ()))
 }
 

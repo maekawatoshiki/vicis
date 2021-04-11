@@ -149,12 +149,16 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             } => {
                 write!(
                     self.fmt,
-                    "%{:?} = alloca {}, {} {}, align {}",
+                    "%{:?} = alloca {}, {} {}{}",
                     dest,
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
                     num_elements.to_string(types),
-                    align
+                    if *align > 0 {
+                        format!(", align {}", align)
+                    } else {
+                        "".to_string()
+                    }
                 )
             }
             Operand::Phi { ty, args, blocks } => {
