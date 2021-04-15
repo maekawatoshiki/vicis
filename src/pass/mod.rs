@@ -1,27 +1,26 @@
 pub mod analysis;
 
-use crate::ir::function::Function;
 use std::any::Any;
 
-pub trait FunctionAnalysisPass {
-    fn run_on(&self, _: &Function, _: &mut Box<dyn Any>) {}
+pub trait AnalysisPass<T> {
+    fn run_on(&self, _: &T, _: &mut Box<dyn Any>) {}
 }
 
-pub trait FunctionTransformPass {
-    fn run_on(&self, _: &mut Function, _: &mut Box<dyn Any>) {}
+pub trait TransformPass<T> {
+    fn run_on(&self, _: &mut T, _: &mut Box<dyn Any>) {}
 }
 
-pub enum FunctionPass {
-    Analysis(Box<dyn FunctionAnalysisPass>),
-    Transform(Box<dyn FunctionTransformPass>),
+pub enum Pass<T> {
+    Analysis(Box<dyn AnalysisPass<T>>),
+    Transform(Box<dyn TransformPass<T>>),
 }
 
-pub struct FunctionPassManager {
-    passes: Vec<FunctionPass>,
+pub struct PassManager<T> {
+    passes: Vec<Pass<T>>,
     results: Vec<Box<dyn Any>>,
 }
 
-impl FunctionPassManager {
+impl<T> PassManager<T> {
     pub fn new() -> Self {
         Self {
             passes: vec![],
@@ -29,51 +28,51 @@ impl FunctionPassManager {
         }
     }
 
-    pub fn add(&mut self, pass: FunctionPass) {
+    pub fn add(&mut self, pass: Pass<T>) {
         self.passes.push(pass)
     }
 
-    pub fn add_analysis<T: 'static + FunctionAnalysisPass>(&mut self, pass: T) {
-        self.passes.push(FunctionPass::Analysis(Box::new(pass)))
+    pub fn add_analysis<P: 'static + AnalysisPass<T>>(&mut self, pass: P) {
+        self.passes.push(Pass::Analysis(Box::new(pass)))
     }
 
-    pub fn add_transform<T: 'static + FunctionTransformPass>(&mut self, pass: T) {
-        self.passes.push(FunctionPass::Transform(Box::new(pass)))
+    pub fn add_transform<P: 'static + TransformPass<T>>(&mut self, pass: P) {
+        self.passes.push(Pass::Transform(Box::new(pass)))
     }
 
-    pub fn run_on(&mut self, func: &mut Function) {
+    pub fn run_on(&mut self, target: &mut T) {
         self.results.clear();
 
         for pass in &self.passes {
             let mut result: Box<dyn Any> = Box::new(());
             match pass {
-                FunctionPass::Analysis(analysis) => analysis.run_on(func, &mut result),
-                FunctionPass::Transform(transform) => transform.run_on(func, &mut result),
+                Pass::Analysis(analysis) => analysis.run_on(target, &mut result),
+                Pass::Transform(transform) => transform.run_on(target, &mut result),
             }
             self.results.push(result)
         }
     }
 
-    pub fn run_analyses_on(&mut self, func: &Function) {
+    pub fn run_analyses_on(&mut self, target: &T) {
         self.results.clear();
 
         for pass in &self.passes {
             let mut result: Box<dyn Any> = Box::new(());
             match pass {
-                FunctionPass::Analysis(analysis) => analysis.run_on(func, &mut result),
-                FunctionPass::Transform(_) => {}
+                Pass::Analysis(analysis) => analysis.run_on(target, &mut result),
+                Pass::Transform(_) => {}
             }
             self.results.push(result)
         }
     }
 
-    pub fn find_result<T: 'static>(&self) -> Option<&T> {
+    pub fn find_result<P: 'static>(&self) -> Option<&P> {
         self.results.iter().find_map(|result| result.downcast_ref())
     }
 }
 
-impl FunctionPass {
-    pub fn analysis<T: 'static + FunctionAnalysisPass>(pass: T) -> Self {
+impl<T> Pass<T> {
+    pub fn analysis<P: 'static + AnalysisPass<T>>(pass: P) -> Self {
         Self::Analysis(Box::new(pass))
     }
 }
@@ -81,12 +80,15 @@ impl FunctionPass {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ir::module::{parse_assembly, Module};
+    use crate::ir::{
+        function::Function,
+        module::{parse_assembly, Module},
+    };
 
     pub struct TestFunctionAnalysisPass {}
     pub struct TestFunctionAnalysisResult(String);
 
-    impl FunctionAnalysisPass for TestFunctionAnalysisPass {
+    impl AnalysisPass<Function> for TestFunctionAnalysisPass {
         fn run_on(&self, func: &Function, result: &mut Box<dyn Any>) {
             *result = Box::new(TestFunctionAnalysisResult(func.name.to_owned()));
         }
@@ -94,7 +96,7 @@ mod test {
 
     pub struct TestFunctionTransformPass {}
 
-    impl FunctionTransformPass for TestFunctionTransformPass {
+    impl TransformPass<Function> for TestFunctionTransformPass {
         fn run_on(&self, _func: &mut Function, _result: &mut Box<dyn Any>) {}
     }
 
@@ -116,7 +118,7 @@ define dso_local i32 @main() {
     fn analysis() {
         let module = test_module();
 
-        let mut pm = FunctionPassManager::new();
+        let mut pm = PassManager::new();
         pm.add_analysis(TestFunctionAnalysisPass {});
 
         for (_, func) in &module.functions {
@@ -133,7 +135,7 @@ define dso_local i32 @main() {
     fn analysis_transform() {
         let mut module = test_module();
 
-        let mut pm = FunctionPassManager::new();
+        let mut pm = PassManager::new();
         pm.add_analysis(TestFunctionAnalysisPass {});
         pm.add_transform(TestFunctionTransformPass {});
 
