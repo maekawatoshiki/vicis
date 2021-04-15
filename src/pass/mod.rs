@@ -1,6 +1,7 @@
 pub mod analysis;
 
-use std::any::Any;
+use rustc_hash::FxHashMap;
+use std::any::{Any, TypeId};
 
 pub trait AnalysisPass<T> {
     fn run_on(&self, _: &T, _: &mut Box<dyn Any>) {}
@@ -17,14 +18,14 @@ pub enum Pass<T> {
 
 pub struct PassManager<T> {
     passes: Vec<Pass<T>>,
-    results: Vec<Box<dyn Any>>,
+    results: FxHashMap<TypeId, Box<dyn Any>>,
 }
 
 impl<T> PassManager<T> {
     pub fn new() -> Self {
         Self {
             passes: vec![],
-            results: vec![],
+            results: FxHashMap::default(),
         }
     }
 
@@ -49,7 +50,7 @@ impl<T> PassManager<T> {
                 Pass::Analysis(analysis) => analysis.run_on(target, &mut result),
                 Pass::Transform(transform) => transform.run_on(target, &mut result),
             }
-            self.results.push(result)
+            self.results.insert((*result).type_id(), result);
         }
     }
 
@@ -62,12 +63,14 @@ impl<T> PassManager<T> {
                 Pass::Analysis(analysis) => analysis.run_on(target, &mut result),
                 Pass::Transform(_) => {}
             }
-            self.results.push(result)
+            self.results.insert((*result).type_id(), result);
         }
     }
 
-    pub fn find_result<P: 'static>(&self) -> Option<&P> {
-        self.results.iter().find_map(|result| result.downcast_ref())
+    pub fn get_result<P: 'static>(&self) -> Option<&P> {
+        self.results
+            .get(&TypeId::of::<P>())
+            .map_or(None, |result| result.downcast_ref())
     }
 }
 
@@ -126,7 +129,7 @@ define dso_local i32 @main() {
         }
 
         assert_eq!(
-            pm.find_result::<TestFunctionAnalysisResult>().unwrap().0,
+            pm.get_result::<TestFunctionAnalysisResult>().unwrap().0,
             "main"
         );
     }
@@ -144,7 +147,7 @@ define dso_local i32 @main() {
         }
 
         assert_eq!(
-            pm.find_result::<TestFunctionAnalysisResult>().unwrap().0,
+            pm.get_result::<TestFunctionAnalysisResult>().unwrap().0,
             "main"
         );
     }
