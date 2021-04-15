@@ -12,6 +12,10 @@ Manipulate LLVM-IR in Pure Rust
 - [ ] Implement interpreter and code generator for some architectures (WIP x86)
 - [ ] Write documents
 
+# Requirements
+
+- clang (>= 10.0.0 recommended) is used for tests
+
 # Example
 
 - Iterate over instructions
