@@ -66,6 +66,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             )?;
         }
 
+        if f.is_var_arg {
+            write!(self.fmt, ", ...")?;
+        }
+
         write!(self.fmt, ") ")?;
 
         for attr in &f.attributes {

@@ -6,7 +6,6 @@ use nom::{
     character::complete::{char, digit1},
     combinator::map,
     error::VerboseError,
-    multi::many0,
     sequence::preceded,
     IResult,
 };
@@ -15,7 +14,7 @@ pub fn parse<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
-    let (source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
+    let (mut source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
         parse_array(source, types)?
     } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
         parse_struct(source, types)?
@@ -34,10 +33,23 @@ pub fn parse<'a>(
         )(source)?
     };
 
-    let (source, ptrs) = many0(preceded(spaces, char('*')))(source)?;
-    for _ in 0..ptrs.len() {
-        base = types.base_mut().pointer(base);
+    loop {
+        if let Ok((source_, _ptr)) = preceded(spaces, char('*'))(source) {
+            base = types.base_mut().pointer(base);
+            source = source_;
+            continue;
+        }
+
+        if let Ok((source_, _ptr)) = preceded(spaces, char('('))(source) {
+            let (source_, base_) = parse_func_type(source_, types, base)?;
+            base = base_;
+            source = source_;
+            continue;
+        }
+
+        break;
     }
+
     Ok((source, base))
 }
 
@@ -68,4 +80,36 @@ fn parse_struct<'a>(
         let (source_, _) = preceded(spaces, char('}'))(source_)?;
         return Ok((source_, types.base_mut().anonymous_struct(elems)));
     }
+}
+
+fn parse_func_type<'a>(
+    mut source: &'a str,
+    types: &Types,
+    ret: TypeId,
+) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+    let mut params = vec![];
+    let mut is_var_arg = false;
+
+    loop {
+        if let Ok((source_, _)) = preceded(spaces, tag("..."))(source) {
+            is_var_arg = true;
+            source = source_;
+            break;
+        }
+
+        let (source_, param) = parse(source, types)?;
+        source = source_;
+        params.push(param);
+
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source) {
+            source = source_;
+            continue;
+        }
+
+        break;
+    }
+
+    let (source, _) = preceded(spaces, char(')'))(source)?;
+    let func_ty = types.base_mut().function(ret, params, is_var_arg);
+    Ok((source, func_ty))
 }

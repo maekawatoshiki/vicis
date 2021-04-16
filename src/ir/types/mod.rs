@@ -185,6 +185,15 @@ impl TypesBase {
             })))
     }
 
+    pub fn function(&mut self, ret: TypeId, params: Vec<TypeId>, is_var_arg: bool) -> TypeId {
+        // TODO: FIXME: Should cache function type?
+        self.arena.alloc(Type::Function(FunctionType {
+            ret,
+            params,
+            is_var_arg,
+        }))
+    }
+
     pub fn empty_struct_named(&mut self, name: String) -> TypeId {
         *self
             .structs
@@ -249,7 +258,35 @@ impl TypesBase {
             }) => {
                 format!("[{} x {}]", num_elements, self.to_string(*inner))
             }
-            Type::Function(_) => "TODO".to_string(),
+            Type::Function(FunctionType {
+                ret,
+                params,
+                is_var_arg,
+            }) => {
+                format!(
+                    "{} ({})",
+                    self.to_string(*ret),
+                    params
+                        .iter()
+                        .enumerate()
+                        .fold("".to_string(), |acc, (i, &param)| {
+                            format!(
+                                "{}{}{}",
+                                acc,
+                                self.to_string(param),
+                                if i == params.len() - 1 {
+                                    if *is_var_arg {
+                                        ", ..."
+                                    } else {
+                                        ""
+                                    }
+                                } else {
+                                    ", "
+                                }
+                            )
+                        })
+                )
+            }
             Type::Struct(ty) => {
                 if let Some(name) = ty.name.as_ref() {
                     return format!("%{}", name);

@@ -63,18 +63,26 @@ pub fn parse_argument<'a>(
 pub fn parse_argument_list<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, Vec<Parameter>, VerboseError<&'a str>> {
+) -> IResult<&'a str, (Vec<Parameter>, bool), VerboseError<&'a str>> {
     let (mut source, _) = tuple((spaces, char('(')))(source)?;
 
     if let Ok((source, _)) = tuple((spaces, char(')')))(source) {
-        return Ok((source, vec![]));
+        return Ok((source, (vec![], false)));
     }
 
     let mut params = vec![];
+    let mut is_var_arg = false;
     let mut index = 0;
 
     loop {
+        if let Ok((source_, _)) = tuple((spaces, tag("...")))(source) {
+            is_var_arg = true;
+            source = source_;
+            break;
+        }
+
         let (source_, param) = parse_argument(source, types, &mut index)?;
+        source = source_;
         params.push(param);
 
         if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
@@ -82,10 +90,11 @@ pub fn parse_argument_list<'a>(
             continue;
         }
 
-        if let Ok((source, _)) = tuple((spaces, char(')')))(source_) {
-            return Ok((source, params));
-        }
+        break;
     }
+
+    let (source, _) = tuple((spaces, char(')')))(source)?;
+    Ok((source, (params, is_var_arg)))
 }
 //
 pub fn parse_func_attrs<'a>(
@@ -157,7 +166,7 @@ pub fn parse<'a>(
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
-    let (source, params) = parse_argument_list(source, &types)?;
+    let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
     let (mut source, fn_attrs) = parse_func_attrs(source)?;
 
     let mut data = Data::new();
@@ -191,7 +200,7 @@ pub fn parse<'a>(
         source,
         Function {
             name: name.to_string(),
-            is_var_arg: false,
+            is_var_arg,
             result_ty,
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
