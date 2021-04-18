@@ -19,5 +19,5 @@ pub fn parse<'a>(source: &'a str) -> IResult<&'a str, Name, VerboseError<&'a str
 }
 
 pub fn identifier<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
-    take_while1(|c: char| c.is_alphanumeric() || c == '.')(source)
+    take_while1(|c: char| c.is_alphanumeric() || c == '.' || c == '_')(source)
 }

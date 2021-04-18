@@ -1,5 +1,5 @@
 use super::{ICmpCond, Instruction, InstructionId, Opcode, Operand};
-use crate::ir::function::parser::ParserContext;
+use crate::ir::function::parser::{parse_func_attrs, ParserContext};
 use crate::ir::{module::name, types, util::spaces, value};
 use nom::{
     branch::alt,
@@ -271,6 +271,7 @@ pub fn parse_call<'a, 'b>(
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = value::parse(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;
+    let (source, func_attrs) = parse_func_attrs(source)?;
     let mut tys = vec![ty];
     let mut args = vec![callee];
     for (t, a) in args_ {
@@ -279,7 +280,11 @@ pub fn parse_call<'a, 'b>(
     }
     let inst = Opcode::Call
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Call { tys, args });
+        .with_operand(Operand::Call {
+            tys,
+            args,
+            func_attrs,
+        });
     Ok((source, inst))
 }
 

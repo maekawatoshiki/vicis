@@ -4,11 +4,12 @@ pub use parser::parse;
 
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data},
-    module::name::Name,
+    module::{attributes::Attribute, name::Name},
     types::TypeId,
     types::Types,
     value::{ConstantData, ValueId},
 };
+use either::Either;
 use id_arena::Id;
 use std::{fmt, slice};
 
@@ -103,6 +104,7 @@ pub enum Operand {
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
         tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+        func_attrs: Vec<Either<Attribute, u32>>,
     },
     Br {
         block: BasicBlockId,
@@ -248,7 +250,7 @@ impl Instruction {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::Call { tys, args } => {
+            Operand::Call { tys, args, .. } => {
                 format!(
                     "%I{} = call {} {}({})",
                     self.id.unwrap().index(),

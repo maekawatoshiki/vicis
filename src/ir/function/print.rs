@@ -266,7 +266,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::Call { tys, args } => {
+            Operand::Call { tys, args, .. } => {
                 write!(
                     self.fmt,
                     "%{:?} = call {} {}({})",

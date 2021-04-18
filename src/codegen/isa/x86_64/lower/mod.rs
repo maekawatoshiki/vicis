@@ -96,7 +96,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         }
         Operand::Br { block } => lower_br(ctx, block),
         Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
-        Operand::Call { ref args, ref tys } => lower_call(ctx, inst.id.unwrap(), tys, args),
+        Operand::Call {
+            ref args, ref tys, ..
+        } => lower_call(ctx, inst.id.unwrap(), tys, args),
         Operand::Ret { val: None, .. } => Err(LoweringError::Todo.into()),
         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
         _ => Err(LoweringError::Todo.into()),

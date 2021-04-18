@@ -17,7 +17,7 @@ use either::Either;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alphanumeric1, char, digit1},
+    character::complete::{char, digit1},
     combinator::opt,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
@@ -96,7 +96,7 @@ pub fn parse_argument_list<'a>(
     let (source, _) = tuple((spaces, char(')')))(source)?;
     Ok((source, (params, is_var_arg)))
 }
-//
+
 pub fn parse_func_attrs<'a>(
     mut source: &'a str,
 ) -> IResult<&'a str, Vec<Either<attributes::Attribute, u32>>, VerboseError<&'a str>> {
@@ -165,7 +165,8 @@ pub fn parse<'a>(
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     let (source, result_ty) = types::parse(source, &types)?;
-    let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, alphanumeric1))(source)?;
+    let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, name::parse))(source)?;
+    let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
     let (mut source, fn_attrs) = parse_func_attrs(source)?;
 
