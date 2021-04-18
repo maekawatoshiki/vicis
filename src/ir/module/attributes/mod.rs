@@ -58,6 +58,7 @@ pub enum Attribute {
         kind: String,
         value: String,
     },
+    Ref(u32),
     // UnknownAttribute,
 }
 
@@ -113,6 +114,7 @@ impl fmt::Debug for Attribute {
                 write!(f, "\"{}\"", kind)
             }
             Attribute::StringAttribute { kind, value } => write!(f, "\"{}\"=\"{}\"", kind, value),
+            Attribute::Ref(i) => write!(f, "#{}", i),
             _ => todo!(),
         }
     }

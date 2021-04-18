@@ -13,13 +13,9 @@ use super::{
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::BasicBlock;
-use either::Either;
 use id_arena::Id;
 use instruction::InstructionId;
 use std::fmt;
-
-/// `Attribute Group`s may be attached to `Function`s in the form of `#0`
-pub type UnresolvedAttributeId = u32;
 
 pub type FunctionId = Id<Function>;
 
@@ -29,7 +25,7 @@ pub struct Function {
     pub(crate) result_ty: TypeId,
     pub(crate) params: Vec<Parameter>,
     pub(crate) preemption_specifier: PreemptionSpecifier,
-    pub(crate) attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
+    pub(crate) attributes: Vec<Attribute>,
     pub data: data::Data,
     pub layout: layout::Layout,
     pub types: Types,

@@ -7,7 +7,6 @@ use super::{
     instruction::{Instruction, InstructionId, Operand},
     Function,
 };
-use either::Either;
 use rustc_hash::FxHashMap;
 use std::fmt;
 
@@ -73,10 +72,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         write!(self.fmt, ") ")?;
 
         for attr in &f.attributes {
-            match attr {
-                Either::Left(attr) => write!(self.fmt, "{:?} ", attr)?,
-                Either::Right(id) => write!(self.fmt, "#{} ", id)?,
-            }
+            write!(self.fmt, "{:?}", attr)?
         }
 
         if f.is_prototype {

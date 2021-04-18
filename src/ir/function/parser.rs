@@ -13,7 +13,6 @@ use super::super::{
     util::spaces,
     value::{Value, ValueId},
 };
-use either::Either;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -99,16 +98,16 @@ pub fn parse_argument_list<'a>(
 
 pub fn parse_func_attrs<'a>(
     mut source: &'a str,
-) -> IResult<&'a str, Vec<Either<attributes::Attribute, u32>>, VerboseError<&'a str>> {
+) -> IResult<&'a str, Vec<attributes::Attribute>, VerboseError<&'a str>> {
     let mut attrs = vec![];
     loop {
         if let Ok((source_, num)) = preceded(spaces, preceded(char('#'), digit1))(source) {
-            attrs.push(Either::Right(num.parse::<u32>().unwrap()));
+            attrs.push(attributes::Attribute::Ref(num.parse::<u32>().unwrap()));
             source = source_;
             continue;
         }
         if let Ok((source_, attr)) = preceded(spaces, attributes::parser::parse_attribute)(source) {
-            attrs.push(Either::Left(attr));
+            attrs.push(attr);
             source = source_;
         }
         break;

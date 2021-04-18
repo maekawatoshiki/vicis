@@ -7,11 +7,10 @@ pub mod slot;
 use super::{call_conv::CallConvKind, isa::TargetIsa};
 use crate::codegen::function::instruction::InstructionInfo;
 use crate::ir::{
-    function::{Parameter, UnresolvedAttributeId},
+    function::Parameter,
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},
 };
-use either::Either;
 use instruction::InstructionId;
 use std::fmt;
 
@@ -21,7 +20,7 @@ pub struct Function<T: TargetIsa> {
     pub result_ty: TypeId,
     pub params: Vec<Parameter>,
     pub preemption_specifier: PreemptionSpecifier,
-    pub attributes: Vec<Either<Attribute, UnresolvedAttributeId>>,
+    pub attributes: Vec<Attribute>,
     pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
     pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
     pub slots: slot::Slots<T>,
@@ -61,10 +60,7 @@ impl<T: TargetIsa> fmt::Debug for Function<T> {
         }
         write!(f, ") ")?;
         for attr in &self.attributes {
-            match attr {
-                Either::Left(attr) => write!(f, "{:?} ", attr)?,
-                Either::Right(id) => write!(f, "#{} ", id)?,
-            }
+            write!(f, "{:?}", attr)?;
         }
 
         if self.is_prototype {
