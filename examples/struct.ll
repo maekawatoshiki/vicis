@@ -8,6 +8,7 @@ target triple = "x86_64-pc-linux-gnu"
 %b = type { i32, { i32 } }
 %c = type { %c*, i8 }
 %e = type i64
+%"あいうえお" = type { i32 }
 
 define dso_local i32 @main() {
   %1 = alloca %a
@@ -15,6 +16,7 @@ define dso_local i32 @main() {
   %3 = alloca %c
   %4 = alloca %d
   %5 = alloca %e
+  %6 = alloca %"あいうえお"
   ret i32 0
 }
 
