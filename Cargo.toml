@@ -17,8 +17,6 @@ keywords = ["llvm", "compiler"]
 nom = "= 6.0.1"
 rustc-hash = "= 1.1.0"
 id-arena = "= 2.2.1"
-either = "= 1.6.1"
 indicatif = "= 0.15.0"
 anyhow = "= 1.0.38"
 funty = "= 1.1.0"
-
