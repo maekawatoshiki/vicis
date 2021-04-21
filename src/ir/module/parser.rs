@@ -179,6 +179,7 @@ fn parse_all_examples() {
         }
         assert!(process::Command::new("clang")
             .args(&["/tmp/output.ll"])
+            .stderr(process::Stdio::null())
             .status()
             .unwrap()
             .success());

@@ -43,6 +43,11 @@ impl Data {
         self.values.alloc(inst)
     }
 
+    pub fn replace_inst(&mut self, from: InstructionId, to: Instruction) {
+        self.instructions[from].replace(to);
+        self.set_inst_users(from)
+    }
+
     pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
         &self.basic_blocks[id]
     }

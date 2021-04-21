@@ -374,17 +374,16 @@ pub fn parse<'a, 'b>(
     ]
     .iter()
     {
-        if let Ok((source, mut inst)) = f(source, ctx) {
+        if let Ok((source, inst)) = f(source, ctx) {
             if let Some(name) = name {
                 if let Some(inner) = ctx.name_to_value.get(&name) {
-                    if let value::Value::Instruction(id) = &ctx.data.values[*inner] {
-                        inst.dest = Some(name);
-                        ctx.data.instructions[*id].replace(inst);
-                        return Ok((source, *id));
+                    if let value::Value::Instruction(id) = ctx.data.values[*inner] {
+                        ctx.data.replace_inst(id, inst.with_dest(name));
+                        return Ok((source, id));
                     }
                 }
 
-                let id = ctx.data.create_inst(inst);
+                let id = ctx.data.create_inst(inst.with_dest(name.clone()));
                 ctx.name_to_value
                     .insert(name, ctx.data.create_value(value::Value::Instruction(id)));
                 return Ok((source, id));
