@@ -179,7 +179,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
         result_ty: function.result_ty,
         params: function.params,
         preemption_specifier: function.preemption_specifier,
-        attributes: function.attributes,
+        attributes: function.func_attrs,
         data,
         layout,
         slots,

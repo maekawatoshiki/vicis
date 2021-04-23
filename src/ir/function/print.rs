@@ -43,6 +43,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         }
 
         write!(self.fmt, "{:?} ", f.preemption_specifier)?;
+        for attr in &f.ret_attrs {
+            write!(self.fmt, "{:?} ", attr)?
+        }
         write!(self.fmt, "{} ", f.types.to_string(f.result_ty))?;
         write!(self.fmt, "@{}(", f.name)?;
 
@@ -71,7 +74,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
         write!(self.fmt, ") ")?;
 
-        for attr in &f.attributes {
+        for attr in &f.func_attrs {
             write!(self.fmt, "{:?} ", attr)?
         }
 

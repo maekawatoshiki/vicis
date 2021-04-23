@@ -5,6 +5,7 @@ use super::super::{
         instruction,
         instruction::{Opcode, Operand},
         layout::Layout,
+        param_attrs::parser::parse_param_attrs,
         Function, Parameter,
     },
     module::{attributes, name, preemption_specifier},
@@ -144,11 +145,12 @@ pub fn parse<'a>(
     let is_prototype = define_or_declare == "declare";
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source)?;
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, name::parse))(source)?;
     let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
-    let (mut source, fn_attrs) = attributes::parser::parse_attributes(source)?;
+    let (mut source, func_attrs) = attributes::parser::parse_attributes(source)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -185,7 +187,8 @@ pub fn parse<'a>(
             result_ty,
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
-            attributes: fn_attrs,
+            ret_attrs,
+            func_attrs,
             params,
             data,
             layout,
