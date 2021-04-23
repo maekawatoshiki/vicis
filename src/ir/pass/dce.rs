@@ -44,8 +44,8 @@ fn check_if_elimination_possible(
 ) {
     let no_users = data.users_of(inst).len() == 0;
     let inst = data.inst_ref(inst);
-    let do_not_eliminate =
-        matches!(inst.opcode, Opcode::Store | Opcode::Call) || inst.opcode.is_terminator();
+    let do_not_eliminate = matches!(inst.opcode, Opcode::Alloca | Opcode::Store | Opcode::Call)
+        || inst.opcode.is_terminator();
     if do_not_eliminate {
         return;
     }
