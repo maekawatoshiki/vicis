@@ -1,5 +1,8 @@
 use super::{ICmpCond, Instruction, InstructionId, Opcode, Operand};
-use crate::ir::function::parser::{parse_func_attrs, ParserContext};
+use crate::ir::{
+    function::{param_attrs::parser::parse_param_attrs, parser::ParserContext},
+    module::attributes::parser::parse_attributes,
+};
 use crate::ir::{module::name, types, util::spaces, value};
 use nom::{
     branch::alt,
@@ -269,10 +272,11 @@ pub fn parse_call<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("call"))(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = value::parse(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;
-    let (source, func_attrs) = parse_func_attrs(source)?;
+    let (source, func_attrs) = parse_attributes(source)?;
     let mut tys = vec![ty];
     let mut args = vec![callee];
     for (t, a) in args_ {
@@ -284,6 +288,7 @@ pub fn parse_call<'a, 'b>(
         .with_operand(Operand::Call {
             tys,
             args,
+            ret_attrs,
             func_attrs,
         });
     Ok((source, inst))

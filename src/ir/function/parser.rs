@@ -16,7 +16,7 @@ use super::super::{
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{char, digit1},
+    character::complete::char,
     combinator::opt,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
@@ -96,25 +96,6 @@ pub fn parse_argument_list<'a>(
     Ok((source, (params, is_var_arg)))
 }
 
-pub fn parse_func_attrs<'a>(
-    mut source: &'a str,
-) -> IResult<&'a str, Vec<attributes::Attribute>, VerboseError<&'a str>> {
-    let mut attrs = vec![];
-    loop {
-        if let Ok((source_, num)) = preceded(spaces, preceded(char('#'), digit1))(source) {
-            attrs.push(attributes::Attribute::Ref(num.parse::<u32>().unwrap()));
-            source = source_;
-            continue;
-        }
-        if let Ok((source_, attr)) = preceded(spaces, attributes::parser::parse_attribute)(source) {
-            attrs.push(attr);
-            source = source_;
-        }
-        break;
-    }
-    Ok((source, attrs))
-}
-
 pub fn parse_body<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -167,7 +148,7 @@ pub fn parse<'a>(
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, name::parse))(source)?;
     let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
-    let (mut source, fn_attrs) = parse_func_attrs(source)?;
+    let (mut source, fn_attrs) = attributes::parser::parse_attributes(source)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();

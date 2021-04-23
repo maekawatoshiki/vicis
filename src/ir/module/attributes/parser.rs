@@ -3,7 +3,7 @@ use crate::ir::util::{spaces, string_literal};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::char,
+    character::complete::{char, digit1},
     combinator::map,
     error::VerboseError,
     multi::many0,
@@ -80,6 +80,9 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
             map(string_literal, |kind| Attribute::StringAttribute {
                 kind: kind.to_string(),
                 value: "".to_string(),
+            }),
+            map(preceded(char('#'), digit1), |num: &str| {
+                Attribute::Ref(num.parse::<u32>().unwrap())
             }),
         )),
     ))(source)

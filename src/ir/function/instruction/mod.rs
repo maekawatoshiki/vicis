@@ -3,7 +3,7 @@ pub mod parser;
 pub use parser::parse;
 
 use crate::ir::{
-    function::{basic_block::BasicBlockId, data::Data},
+    function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, name::Name},
     types::TypeId,
     types::Types,
@@ -104,6 +104,7 @@ pub enum Operand {
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
         tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+        ret_attrs: Vec<ParameterAttribute>,
         func_attrs: Vec<Attribute>,
     },
     Br {
