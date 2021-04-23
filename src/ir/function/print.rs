@@ -72,7 +72,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         write!(self.fmt, ") ")?;
 
         for attr in &f.attributes {
-            write!(self.fmt, "{:?}", attr)?
+            write!(self.fmt, "{:?} ", attr)?
         }
 
         if f.is_prototype {
@@ -262,11 +262,20 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::Call { tys, args, .. } => {
+            Operand::Call {
+                tys,
+                args,
+                ret_attrs,
+                func_attrs,
+                ..
+            } => {
                 write!(
                     self.fmt,
-                    "%{:?} = call {} {}({})",
+                    "%{:?} = call {}{} {}({}) {}",
                     dest,
+                    ret_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
                     types.to_string(tys[0]),
                     self.value_to_string(data.value_ref(args[0]), types),
                     tys[1..]
@@ -281,7 +290,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 self.value_to_string(data.value_ref(*a), types),
                             )
                         })
-                        .trim_end_matches(", ")
+                        .trim_end_matches(", "),
+                    func_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
                 )
             }
             Operand::Br { block } => {
