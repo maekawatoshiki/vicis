@@ -11,7 +11,7 @@ define dso_local i32 @main() #0 {
   %3 = load i32, i32* %2, align 4
   %4 = sext i32 %3 to i64
   %5 = zext i32 %3 to i64
-  %6 = bitcast i32 %3 to i64
+  %6 = bitcast i64 %5 to i64
   ret i32 %3
 }
 

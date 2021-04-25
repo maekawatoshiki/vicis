@@ -161,7 +161,7 @@ fn parse_all_examples() {
         pb.set_message(name.as_str());
 
         let source = fs::read_to_string(name).unwrap();
-        let mut module = match parse(&source) {
+        let module = match parse(&source) {
             Ok(ok) => ok,
             Err(nom::Err::Error(e)) => {
                 println!("{}", convert_error(source.as_str(), e));
@@ -169,7 +169,7 @@ fn parse_all_examples() {
             }
             Err(e) => panic!("{:?}", e),
         };
-        crate::ir::pass::dce::run_on_module(&mut module);
+        // crate::ir::pass::dce::run_on_module(&mut module);
 
         println!("{:?}", module);
         {
