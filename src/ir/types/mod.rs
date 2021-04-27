@@ -241,6 +241,17 @@ impl TypesBase {
         }
     }
 
+    pub fn element_at(&self, ty: TypeId, i: usize) -> Option<TypeId> {
+        match self.arena[ty] {
+            Type::Void => None,
+            Type::Int(_) => None,
+            Type::Pointer(_) => None,
+            Type::Array(ArrayType { inner, .. }) => Some(inner),
+            Type::Function(_) => None,
+            Type::Struct(StructType { ref elems, .. }) => elems.get(i).copied(),
+        }
+    }
+
     pub fn to_string(&self, ty: TypeId) -> String {
         let ty = &self.arena[ty];
         match ty {

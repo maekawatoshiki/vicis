@@ -22,6 +22,7 @@ pub enum Value {
 pub enum ConstantData {
     Int(ConstantInt),
     Array(ConstantArray),
+    Struct(ConstantStruct),
     Expr(ConstantExpr), // TODO: Boxing?
     GlobalRef(Name),
 }
@@ -38,6 +39,12 @@ pub struct ConstantArray {
     pub elem_ty: TypeId,
     pub elems: Vec<ConstantData>,
     pub is_string: bool, // Int32(i32),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstantStruct {
+    pub elems_ty: Vec<TypeId>,
+    pub elems: Vec<ConstantData>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,6 +80,7 @@ impl ConstantData {
         match self {
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
+            Self::Struct(s) => s.to_string(types),
             Self::Expr(e) => e.to_string(types),
             Self::GlobalRef(name) => format!("@{:?}", name),
         }
@@ -153,6 +161,21 @@ impl ConstantArray {
                         types.to_string(self.elem_ty),
                         e.to_string(types)
                     )
+                })
+                .trim_end_matches(", ")
+        )
+    }
+}
+
+impl ConstantStruct {
+    pub fn to_string(&self, types: &Types) -> String {
+        format!(
+            "{{ {} }}",
+            self.elems
+                .iter()
+                .zip(self.elems_ty.iter())
+                .fold("".to_string(), |acc, (e, &et)| {
+                    format!("{}{} {}, ", acc, types.to_string(et), e.to_string(types))
                 })
                 .trim_end_matches(", ")
         )

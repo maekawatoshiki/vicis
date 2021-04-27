@@ -5,7 +5,7 @@ use super::{
         types,
         types::{Type, TypeId, Types},
         util::{spaces, string_literal},
-        value::{ConstantArray, ConstantData, ConstantExpr, ConstantInt, Value},
+        value::{ConstantArray, ConstantData, ConstantExpr, ConstantInt, ConstantStruct, Value},
     },
     ValueId,
 };
@@ -30,6 +30,9 @@ pub fn parse_constant<'a>(
         return Ok((source, id));
     }
     if let Ok((source, id)) = parse_constant_global_ref(source) {
+        return Ok((source, id));
+    }
+    if let Ok((source, id)) = parse_constant_struct(source, types) {
         return Ok((source, id));
     }
     parse_constant_expr(source, types)
@@ -124,11 +127,35 @@ pub fn parse_constant_getelementptr<'a, 'b>(
     }
 }
 
-pub fn parse_constant_global_ref<'a, 'b>(
+pub fn parse_constant_global_ref<'a>(
     source: &'a str,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('@'), name::parse))(source)?;
     Ok((source, ConstantData::GlobalRef(name)))
+}
+
+pub fn parse_constant_struct<'a>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    let (mut source, _) = preceded(spaces, char('{'))(source)?;
+    let mut elems = vec![];
+    let mut elems_ty = vec![];
+    loop {
+        let (source_, t) = types::parse(source, types)?;
+        let (source_, konst) = parse_constant(source_, types, t)?;
+        elems.push(konst);
+        elems_ty.push(t);
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
+            source = source_;
+            continue;
+        }
+        let (source_, _) = preceded(spaces, char('}'))(source_)?;
+        return Ok((
+            source_,
+            ConstantData::Struct(ConstantStruct { elems_ty, elems }),
+        ));
+    }
 }
 
 pub fn parse_local<'a, 'b>(
