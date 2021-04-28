@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
-    combinator::map,
+    combinator::{map, opt},
     error::VerboseError,
     multi::many0,
     sequence::{preceded, tuple},
@@ -21,7 +21,10 @@ pub fn parse_param_attr<'a>(
         map(tag("byval"), |_| ParameterAttribute::ByVal),
         map(tag("inalloca"), |_| ParameterAttribute::InAlloca),
         map(tag("sret"), |_| ParameterAttribute::SRet),
-        // map(tag("alignment"), |_| ParameterAttribute::SRet),
+        map(
+            tuple((tag("align"), spaces, opt(char('(')), digit1, opt(char(')')))),
+            |(_, _, _, num, _)| ParameterAttribute::Alignment(num.parse::<u64>().unwrap()),
+        ),
         map(tag("noalias"), |_| ParameterAttribute::NoAlias),
         map(tag("nocapture"), |_| ParameterAttribute::NoCapture),
         map(tag("nofree"), |_| ParameterAttribute::NoFree),
@@ -29,7 +32,18 @@ pub fn parse_param_attr<'a>(
         map(tag("returned"), |_| ParameterAttribute::Returned),
         map(tag("nonnull"), |_| ParameterAttribute::NonNull),
         // map(tag("dereferenceableornull"), |_| ParameterAttribute::SRet),
-        // map(tag("dereferenceable"), |_| ParameterAttribute::SRet),
+        map(
+            tuple((
+                tag("dereferenceable"),
+                spaces,
+                opt(char('(')),
+                digit1,
+                opt(char(')')),
+            )),
+            |(_, _, _, num, _): (_, _, _, &'a str, _)| {
+                ParameterAttribute::Dereferenceable(num.parse::<u64>().unwrap())
+            },
+        ),
         map(tag("swiftself"), |_| ParameterAttribute::SwiftSelf),
         map(tag("swifterror"), |_| ParameterAttribute::SwiftError),
         map(tag("immarg"), |_| ParameterAttribute::ImmArg),

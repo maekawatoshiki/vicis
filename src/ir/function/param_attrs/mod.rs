@@ -36,7 +36,7 @@ impl fmt::Debug for ParameterAttribute {
             Self::ByVal => write!(f, "byval"),
             Self::InAlloca => write!(f, "inalloca"),
             Self::SRet => write!(f, "sret"),
-            Self::Alignment(i) => write!(f, "align({})", i),
+            Self::Alignment(i) => write!(f, "align {}", i),
             Self::NoAlias => write!(f, "noalias"),
             Self::NoCapture => write!(f, "nocapture"),
             Self::NoFree => write!(f, "nofree"),
