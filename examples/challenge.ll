@@ -12,15 +12,13 @@ target triple = "x86_64-unknown-linux-gnu"
 ; ; Function Attrs: noinline nonlazybind uwtable
 define internal void @_ZN3std10sys_common9backtrace28__rust_begin_short_backtrace17ha5584650e12cc767E(void ()* nonnull %f) unnamed_addr #0 personality i32 (i32, i32, i64, %"unwind::libunwind::_Unwind_Exception"*, %"unwind::libunwind::_Unwind_Context"*)* @rust_eh_personality {
 start:
-  ret void
-
-; start:
-;   %0 = alloca { i8*, i32 }, align 8
-; ; call core::ops::function::FnOnce::call_once
-;   call void @_ZN4core3ops8function6FnOnce9call_once17h85d006317e515d1fE(void ()* nonnull %f)
-;   br label %bb1
-; 
-; bb1:                                              ; preds = %start
+  %0 = alloca { i8*, i32 }, align 8
+; call core::ops::function::FnOnce::call_once
+  call void @_ZN4core3ops8function6FnOnce9call_once17h85d006317e515d1fE(void ()* nonnull %f)
+  br label %bb1
+ 
+bb1:                                              ; preds = %start
+  ret void 
 ; ; invoke core::hint::black_box
 ;   invoke void @_ZN4core4hint9black_box17h4372703d764ed0e7E()
 ;           to label %bb2 unwind label %cleanup

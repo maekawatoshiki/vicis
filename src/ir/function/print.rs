@@ -119,7 +119,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
             for inst_id in f.layout.inst_iter(block_id) {
                 let inst = f.data.inst_ref(inst_id);
-                if inst.opcode.is_terminator() || inst.opcode.is_store() {
+                if inst.opcode.is_terminator()
+                    || inst.opcode.is_store()
+                    || (inst.operand.call_result_ty() == Some(f.types.base().void()))
+                {
                     continue;
                 }
                 if let Some(name) = &inst.dest {
@@ -286,14 +289,19 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             Operand::Call {
                 tys,
                 args,
+                param_attrs,
                 ret_attrs,
                 func_attrs,
                 ..
             } => {
                 write!(
                     self.fmt,
-                    "%{:?} = call {}{} {}({}) {}",
-                    dest,
+                    "{}call {}{} {}({}) {}",
+                    if tys[0] == types.base().void() {
+                        "".to_string()
+                    } else {
+                        format!("%{:?} = ", dest)
+                    },
                     ret_attrs
                         .iter()
                         .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
@@ -302,13 +310,17 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     tys[1..]
                         .iter()
                         .zip(args[1..].iter())
+                        .zip(param_attrs.iter())
                         .into_iter()
-                        .fold("".to_string(), |acc, (t, a)| {
+                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
                             format!(
-                                "{}{} {}, ",
+                                "{}{} {}{}, ",
                                 acc,
-                                types.to_string(*t),
-                                self.value_to_string(data.value_ref(*a), types),
+                                types.to_string(ty),
+                                attrs.iter().fold("".to_string(), |acc, attr| {
+                                    format!("{}{:?} ", acc, attr)
+                                }),
+                                self.value_to_string(data.value_ref(arg), types),
                             )
                         })
                         .trim_end_matches(", "),

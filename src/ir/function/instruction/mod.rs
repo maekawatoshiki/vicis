@@ -104,6 +104,7 @@ pub enum Operand {
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
         tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+        param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
         ret_attrs: Vec<ParameterAttribute>,
         func_attrs: Vec<Attribute>,
     },
@@ -386,6 +387,13 @@ impl Operand {
             Self::Br { block } => slice::from_ref(block),
             Self::CondBr { blocks, .. } => blocks,
             _ => &[],
+        }
+    }
+
+    pub fn call_result_ty(&self) -> Option<TypeId> {
+        match self {
+            Self::Call { tys, .. } => Some(tys[0]),
+            _ => None,
         }
     }
 }

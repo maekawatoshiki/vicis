@@ -1,6 +1,9 @@
 use super::{ICmpCond, Instruction, InstructionId, Opcode, Operand};
 use crate::ir::{
-    function::{param_attrs::parser::parse_param_attrs, parser::ParserContext},
+    function::{
+        param_attrs::{parser::parse_param_attrs, ParameterAttribute},
+        parser::ParserContext,
+    },
     module::attributes::parser::parse_attributes,
 };
 use crate::ir::{module::name, types, util::spaces, value};
@@ -215,7 +218,11 @@ pub fn parse_cast<'a, 'b>(
 pub fn parse_call_args<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<&'a str, Vec<(types::TypeId, value::ValueId)>, VerboseError<&'a str>> {
+) -> IResult<
+    &'a str,
+    Vec<(types::TypeId, Vec<ParameterAttribute>, value::ValueId)>,
+    VerboseError<&'a str>,
+> {
     let (mut source, _) = preceded(spaces, char('('))(source)?;
 
     if let Ok((source, _)) = preceded(spaces, char(')'))(source) {
@@ -225,8 +232,9 @@ pub fn parse_call_args<'a, 'b>(
     let mut args = vec![];
     loop {
         let (source_, ty) = types::parse(source, ctx.types)?;
+        let (source_, attrs) = parse_param_attrs(source_)?;
         let (source_, arg) = value::parse(source_, ctx, ty)?;
-        args.push((ty, arg));
+        args.push((ty, attrs, arg));
         if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
             source = source_;
             continue;
@@ -279,15 +287,18 @@ pub fn parse_call<'a, 'b>(
     let (source, func_attrs) = parse_attributes(source)?;
     let mut tys = vec![ty];
     let mut args = vec![callee];
-    for (t, a) in args_ {
-        tys.push(t);
-        args.push(a);
+    let mut param_attrs = vec![];
+    for (ty, attrs, arg) in args_ {
+        tys.push(ty);
+        args.push(arg);
+        param_attrs.push(attrs);
     }
     let inst = Opcode::Call
         .with_block(ctx.cur_block)
         .with_operand(Operand::Call {
             tys,
             args,
+            param_attrs,
             ret_attrs,
             func_attrs,
         });
