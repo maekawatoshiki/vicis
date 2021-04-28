@@ -11,7 +11,8 @@ pub use parser::parse;
 use super::{
     module::{
         attributes::Attribute, linkage::Linkage, name::Name,
-        preemption_specifier::PreemptionSpecifier, visibility::Visibility,
+        preemption_specifier::PreemptionSpecifier, unnamed_addr::UnnamedAddr,
+        visibility::Visibility,
     },
     types::{TypeId, Types},
 };
@@ -32,6 +33,7 @@ pub struct Function {
     pub(crate) linkage: Linkage,
     pub(crate) preemption_specifier: PreemptionSpecifier,
     pub(crate) visibility: Visibility,
+    pub(crate) unnamed_addr: Option<UnnamedAddr>,
     pub(crate) func_attrs: Vec<Attribute>,
     pub(crate) ret_attrs: Vec<param_attrs::ParameterAttribute>,
     pub data: data::Data,

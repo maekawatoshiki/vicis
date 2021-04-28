@@ -8,7 +8,7 @@ use super::super::{
         param_attrs::parser::parse_param_attrs,
         Function, Parameter,
     },
-    module::{attributes, linkage, name, preemption_specifier, visibility},
+    module::{attributes, linkage, name, preemption_specifier, unnamed_addr, visibility},
     types,
     types::Types,
     util::spaces,
@@ -154,6 +154,7 @@ pub fn parse<'a>(
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, name::parse))(source)?;
     let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
+    let (source, unnamed_addr) = opt(preceded(spaces, unnamed_addr::parse))(source)?;
     let (mut source, func_attrs) = attributes::parser::parse_attributes(source)?;
 
     let mut data = Data::new();
@@ -193,6 +194,7 @@ pub fn parse<'a>(
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
             visibility: visibility.unwrap_or(visibility::Visibility::Default),
+            unnamed_addr,
             ret_attrs,
             func_attrs,
             params,

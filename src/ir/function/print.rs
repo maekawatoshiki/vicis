@@ -79,6 +79,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
         write!(self.fmt, ") ")?;
 
+        if let Some(unnamed_addr) = f.unnamed_addr {
+            write!(self.fmt, "{:?} ", unnamed_addr)?
+        }
+
         for attr in &f.func_attrs {
             write!(self.fmt, "{:?} ", attr)?
         }
