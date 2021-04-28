@@ -11,7 +11,7 @@ pub use parser::parse;
 use super::{
     module::{
         attributes::Attribute, linkage::Linkage, name::Name,
-        preemption_specifier::PreemptionSpecifier,
+        preemption_specifier::PreemptionSpecifier, visibility::Visibility,
     },
     types::{TypeId, Types},
 };
@@ -19,6 +19,7 @@ use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::BasicBlock;
 use id_arena::Id;
 use instruction::InstructionId;
+use param_attrs::ParameterAttribute;
 use std::fmt;
 
 pub type FunctionId = Id<Function>;
@@ -30,6 +31,7 @@ pub struct Function {
     pub(crate) params: Vec<Parameter>,
     pub(crate) linkage: Linkage,
     pub(crate) preemption_specifier: PreemptionSpecifier,
+    pub(crate) visibility: Visibility,
     pub(crate) func_attrs: Vec<Attribute>,
     pub(crate) ret_attrs: Vec<param_attrs::ParameterAttribute>,
     pub data: data::Data,
@@ -42,7 +44,7 @@ pub struct Function {
 pub struct Parameter {
     pub name: Name,
     pub ty: TypeId,
-    // pub attributes:
+    pub attrs: Vec<ParameterAttribute>,
 }
 
 impl Function {

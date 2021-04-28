@@ -87,6 +87,11 @@ fn parse_func_type<'a>(
     types: &Types,
     ret: TypeId,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+    if let Ok((source, _)) = preceded(spaces, char(')'))(source) {
+        let func_ty = types.base_mut().function(ret, vec![], false);
+        return Ok((source, func_ty));
+    }
+
     let mut params = vec![];
     let mut is_var_arg = false;
 

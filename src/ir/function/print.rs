@@ -44,6 +44,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
         write!(self.fmt, "{:?} ", f.linkage)?;
         write!(self.fmt, "{:?} ", f.preemption_specifier)?;
+        write!(self.fmt, "{:?} ", f.visibility)?;
         for attr in &f.ret_attrs {
             write!(self.fmt, "{:?} ", attr)?
         }
@@ -52,6 +53,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
         for (i, param) in f.params.iter().enumerate() {
             write!(self.fmt, "{} ", f.types.to_string(param.ty))?;
+            for attr in &param.attrs {
+                write!(self.fmt, "{:?} ", attr)?;
+            }
             match param.name.to_string() {
                 Some(name) => {
                     write!(self.fmt, "%{}", name)?;

@@ -46,7 +46,7 @@ impl LowerTrait<X86_64> for Lower {
     fn copy_args_to_vregs(ctx: &mut LoweringContext<X86_64>, params: &[Parameter]) -> Result<()> {
         let mut gpr_used = 0;
         let args = RegInfo::arg_reg_list(&ctx.call_conv);
-        for (i, Parameter { name: _, ty }) in params.iter().enumerate() {
+        for (i, Parameter { name: _, ty, .. }) in params.iter().enumerate() {
             let reg = args[gpr_used].apply(&RegClass::for_type(ctx.types, *ty));
             gpr_used += 1;
             debug!(reg);
