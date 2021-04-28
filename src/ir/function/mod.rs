@@ -9,7 +9,10 @@ pub mod print;
 pub use parser::parse;
 
 use super::{
-    module::{attributes::Attribute, name::Name, preemption_specifier::PreemptionSpecifier},
+    module::{
+        attributes::Attribute, linkage::Linkage, name::Name,
+        preemption_specifier::PreemptionSpecifier,
+    },
     types::{TypeId, Types},
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
@@ -25,6 +28,7 @@ pub struct Function {
     pub(crate) is_var_arg: bool,
     pub(crate) result_ty: TypeId,
     pub(crate) params: Vec<Parameter>,
+    pub(crate) linkage: Linkage,
     pub(crate) preemption_specifier: PreemptionSpecifier,
     pub(crate) func_attrs: Vec<Attribute>,
     pub(crate) ret_attrs: Vec<param_attrs::ParameterAttribute>,

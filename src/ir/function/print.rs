@@ -42,6 +42,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             write!(self.fmt, "define ")?
         }
 
+        write!(self.fmt, "{:?} ", f.linkage)?;
         write!(self.fmt, "{:?} ", f.preemption_specifier)?;
         for attr in &f.ret_attrs {
             write!(self.fmt, "{:?} ", attr)?

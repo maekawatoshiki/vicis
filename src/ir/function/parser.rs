@@ -8,7 +8,7 @@ use super::super::{
         param_attrs::parser::parse_param_attrs,
         Function, Parameter,
     },
-    module::{attributes, name, preemption_specifier},
+    module::{attributes, linkage, name, preemption_specifier},
     types,
     types::Types,
     util::spaces,
@@ -143,6 +143,7 @@ pub fn parse<'a>(
     let (source, define_or_declare) =
         preceded(spaces, alt((tag("define"), tag("declare"))))(source)?;
     let is_prototype = define_or_declare == "declare";
+    let (source, linkage) = opt(preceded(spaces, linkage::parse))(source)?;
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     let (source, ret_attrs) = parse_param_attrs(source)?;
@@ -185,6 +186,7 @@ pub fn parse<'a>(
             name: name.to_string(),
             is_var_arg,
             result_ty,
+            linkage: linkage.unwrap_or(linkage::Linkage::External),
             preemption_specifier: preemption_specifier
                 .unwrap_or(preemption_specifier::PreemptionSpecifier::DsoPreemptable),
             ret_attrs,
