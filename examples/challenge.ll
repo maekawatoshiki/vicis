@@ -241,8 +241,8 @@ declare i32 @rust_eh_personality(i32, i32, i64, %"unwind::libunwind::_Unwind_Exc
 ; 
 ; ; std::rt::lang_start_internal
 ; ; Function Attrs: nonlazybind uwtable
-; declare i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull align 1, [3 x i64]* align 8 dereferenceable(24), i64, i8**) unnamed_addr #1
-; 
+declare i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull align 1, [3 x i64]* align 8 dereferenceable(24), i64, i8**) unnamed_addr #1
+ 
 ; ; Function Attrs: nonlazybind
 define i32 @main(i32 %0, i8** %1) unnamed_addr #4 {
 top: 

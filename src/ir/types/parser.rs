@@ -69,6 +69,10 @@ fn parse_struct<'a>(
     mut source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+    if let Ok((source, _)) = preceded(spaces, char('}'))(source) {
+        return Ok((source, types.base_mut().anonymous_struct(vec![])));
+    }
+
     let mut elems = vec![];
     loop {
         let (source_, ty) = parse(source, types)?;
