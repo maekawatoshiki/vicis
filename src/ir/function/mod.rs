@@ -15,6 +15,7 @@ use super::{
         visibility::Visibility,
     },
     types::{TypeId, Types},
+    value::ConstantData,
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::BasicBlock;
@@ -24,6 +25,8 @@ use param_attrs::ParameterAttribute;
 use std::fmt;
 
 pub type FunctionId = Id<Function>;
+
+pub type PersonalityFunc = (TypeId, ConstantData);
 
 pub struct Function {
     pub(crate) name: String,
@@ -36,6 +39,7 @@ pub struct Function {
     pub(crate) unnamed_addr: Option<UnnamedAddr>,
     pub(crate) func_attrs: Vec<Attribute>,
     pub(crate) ret_attrs: Vec<param_attrs::ParameterAttribute>,
+    pub(crate) personality: Option<PersonalityFunc>,
     pub data: data::Data,
     pub layout: layout::Layout,
     pub types: Types,

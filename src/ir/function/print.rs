@@ -87,6 +87,15 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             write!(self.fmt, "{:?} ", attr)?
         }
 
+        if let Some((ty, func)) = &f.personality {
+            write!(
+                self.fmt,
+                "personality {} {} ",
+                f.types.to_string(*ty),
+                func.to_string(&f.types)
+            )?
+        }
+
         if f.is_prototype {
             return writeln!(self.fmt);
         }

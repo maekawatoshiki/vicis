@@ -6,9 +6,11 @@ use super::super::{
         instruction::{Opcode, Operand},
         layout::Layout,
         param_attrs::parser::parse_param_attrs,
-        Function, Parameter,
+        Function, Parameter, PersonalityFunc,
     },
-    module::{attributes, linkage, name, preemption_specifier, unnamed_addr, visibility},
+    module::{
+        attributes, global_variable, linkage, name, preemption_specifier, unnamed_addr, visibility,
+    },
     types,
     types::Types,
     util::spaces,
@@ -138,6 +140,18 @@ pub fn parse_body<'a, 'b>(
     }
 }
 
+pub fn parse_personality<'a>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, Option<PersonalityFunc>, VerboseError<&'a str>> {
+    if let Ok((source, _)) = preceded(spaces, tag("personality"))(source) {
+        let (source, (ty, konst)) = global_variable::parse_global_type_and_const(source, types)?;
+        return Ok((source, Some((ty, konst))));
+    }
+
+    Ok((source, None))
+}
+
 pub fn parse<'a>(
     source: &'a str,
     types: Types,
@@ -155,7 +169,8 @@ pub fn parse<'a>(
     let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
     let (source, unnamed_addr) = opt(preceded(spaces, unnamed_addr::parse))(source)?;
-    let (mut source, func_attrs) = attributes::parser::parse_attributes(source)?;
+    let (source, func_attrs) = attributes::parser::parse_attributes(source)?;
+    let (mut source, personality) = parse_personality(source, &types)?;
 
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -202,6 +217,7 @@ pub fn parse<'a>(
             layout,
             types,
             is_prototype,
+            personality,
         },
     ))
 }

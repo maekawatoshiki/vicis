@@ -58,3 +58,12 @@ pub fn parse<'a>(
         },
     ))
 }
+
+pub fn parse_global_type_and_const<'a>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, (types::TypeId, value::ConstantData), VerboseError<&'a str>> {
+    let (source, ty) = types::parse(source, types)?;
+    let (source, konst) = value::parser::parse_constant(source, types, ty)?;
+    Ok((source, (ty, konst)))
+}
