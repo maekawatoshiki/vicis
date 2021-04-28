@@ -38,6 +38,7 @@ pub enum Opcode {
     Bitcast,
     GetElementPtr,
     Call,
+    Invoke,
     Br,
     CondBr,
     Ret,
@@ -107,6 +108,14 @@ pub enum Operand {
         param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
         ret_attrs: Vec<ParameterAttribute>,
         func_attrs: Vec<Attribute>,
+    },
+    Invoke {
+        args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
+        tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+        param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
+        ret_attrs: Vec<ParameterAttribute>,
+        func_attrs: Vec<Attribute>,
+        blocks: Vec<BasicBlockId>,
     },
     Br {
         block: BasicBlockId,
@@ -273,6 +282,7 @@ impl Instruction {
                         .trim_end_matches(", ")
                 )
             }
+            Operand::Invoke { .. } => todo!(),
             Operand::Br { block } => {
                 format!("br label %B{}", block.index())
             }
@@ -310,7 +320,7 @@ impl Opcode {
     }
 
     pub fn is_terminator(&self) -> bool {
-        matches!(self, Self::Ret | Self::Br | Self::CondBr)
+        matches!(self, Self::Ret | Self::Br | Self::CondBr | Self::Invoke)
     }
 
     pub fn is_load(&self) -> bool {
@@ -333,12 +343,17 @@ impl Opcode {
         self == &Self::Call
     }
 
+    pub fn is_invoke(&self) -> bool {
+        self == &Self::Invoke
+    }
+
     pub fn has_side_effects(&self) -> bool {
         self.is_load()
             || self.is_store()
             || self.is_alloca()
             || self.is_phi()
             || self.is_call()
+            || self.is_invoke()
             || self.is_terminator()
     }
 }
@@ -356,7 +371,7 @@ impl Operand {
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
             Self::GetElementPtr { args, .. } => args.as_slice(),
-            Self::Call { args, .. } => args.as_slice(),
+            Self::Call { args, .. } | Self::Invoke { args, .. } => args.as_slice(),
             Self::Br { .. } => &[],
             Self::CondBr { arg, .. } => slice::from_ref(arg),
             Self::Invalid => &[],
@@ -374,7 +389,7 @@ impl Operand {
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
             Self::GetElementPtr { tys, .. } => tys.as_slice(),
-            Self::Call { tys, .. } => tys.as_slice(),
+            Self::Call { tys, .. } | Self::Invoke { tys, .. } => tys.as_slice(),
             Self::Br { .. } => &[],
             Self::CondBr { .. } => &[],
             Self::Invalid => &[],
@@ -386,13 +401,14 @@ impl Operand {
             Self::Phi { blocks, .. } => blocks,
             Self::Br { block } => slice::from_ref(block),
             Self::CondBr { blocks, .. } => blocks,
+            Self::Invoke { blocks, .. } => blocks,
             _ => &[],
         }
     }
 
     pub fn call_result_ty(&self) -> Option<TypeId> {
         match self {
-            Self::Call { tys, .. } => Some(tys[0]),
+            Self::Call { tys, .. } | Self::Invoke { tys, .. } => Some(tys[0]),
             _ => None,
         }
     }
@@ -417,6 +433,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Bitcast => "bitcast",
                 Opcode::GetElementPtr => "getelementptr",
                 Opcode::Call => "call",
+                Opcode::Invoke => "invoke",
                 Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
                 Opcode::Invalid => "INVALID",

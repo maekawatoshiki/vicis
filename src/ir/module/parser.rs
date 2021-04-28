@@ -156,7 +156,6 @@ fn parse_all_examples() {
     let pb = ProgressBar::with_draw_target(files_count, ProgressDrawTarget::stdout());
     pb.set_style(ProgressStyle::default_bar().template("{bar:60} {pos:>4}/{len:>4} {msg}"));
     for path in paths {
-        println!("{:?}", path);
         let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
         pb.set_message(name.as_str());
 
@@ -171,7 +170,6 @@ fn parse_all_examples() {
         };
         // crate::ir::pass::dce::run_on_module(&mut module);
 
-        println!("{:?}", module);
         {
             let mut file = fs::File::create("/tmp/output.ll").unwrap();
             write!(file, "{:?}", module).unwrap();

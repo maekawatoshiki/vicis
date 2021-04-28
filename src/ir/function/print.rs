@@ -329,6 +329,51 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
                 )
             }
+            Operand::Invoke {
+                tys,
+                args,
+                param_attrs,
+                ret_attrs,
+                func_attrs,
+                blocks,
+            } => {
+                write!(
+                    self.fmt,
+                    "{}invoke {}{} {}({}) {}to label %{:?} unwind label %{:?}",
+                    if tys[0] == types.base().void() {
+                        "".to_string()
+                    } else {
+                        format!("%{:?} = ", dest)
+                    },
+                    ret_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
+                    types.to_string(tys[0]),
+                    self.value_to_string(data.value_ref(args[0]), types),
+                    tys[1..]
+                        .iter()
+                        .zip(args[1..].iter())
+                        .zip(param_attrs.iter())
+                        .into_iter()
+                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
+                            format!(
+                                "{}{} {}{}, ",
+                                acc,
+                                types.to_string(ty),
+                                attrs.iter().fold("".to_string(), |acc, attr| {
+                                    format!("{}{:?} ", acc, attr)
+                                }),
+                                self.value_to_string(data.value_ref(arg), types),
+                            )
+                        })
+                        .trim_end_matches(", "),
+                    func_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
+                    self.indexes[&Ids::Block(blocks[0])],
+                    self.indexes[&Ids::Block(blocks[1])],
+                )
+            }
             Operand::Br { block } => {
                 write!(
                     self.fmt,

@@ -305,6 +305,57 @@ pub fn parse_call<'a, 'b>(
     Ok((source, inst))
 }
 
+pub fn parse_invoke<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("invoke"))(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, callee) = value::parse(source, ctx, ty)?;
+    let (source, args_) = parse_call_args(source, ctx)?;
+    let (source, func_attrs) = parse_attributes(source)?;
+    let (source, (_, _, _, _, _, _, normal)) = tuple((
+        spaces,
+        tag("to"),
+        spaces,
+        tag("label"),
+        spaces,
+        char('%'),
+        name::parse,
+    ))(source)?;
+    let (source, (_, _, _, _, _, _, exception)) = tuple((
+        spaces,
+        tag("unwind"),
+        spaces,
+        tag("label"),
+        spaces,
+        char('%'),
+        name::parse,
+    ))(source)?;
+    let normal = ctx.get_or_create_named_block(normal);
+    let exception = ctx.get_or_create_named_block(exception);
+    let mut tys = vec![ty];
+    let mut args = vec![callee];
+    let mut param_attrs = vec![];
+    for (ty, attrs, arg) in args_ {
+        tys.push(ty);
+        args.push(arg);
+        param_attrs.push(attrs);
+    }
+    let inst = Opcode::Invoke
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Invoke {
+            tys,
+            args,
+            param_attrs,
+            ret_attrs,
+            func_attrs,
+            blocks: vec![normal, exception],
+        });
+    Ok((source, inst))
+}
+
 pub fn parse_br<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -386,6 +437,7 @@ pub fn parse<'a, 'b>(
         parse_cast,
         parse_getelementptr,
         parse_call,
+        parse_invoke,
         parse_br,
         parse_ret,
     ]
