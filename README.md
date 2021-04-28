@@ -1,6 +1,6 @@
 # Vicis
 
-[![CI](https://github.com/maekawatoshiki/vicis/workflows/Rust/badge.svg)](https://circleci.com/gh/maekawatoshiki/vicis)
+[![CI](https://github.com/maekawatoshiki/vicis/workflows/Rust/badge.svg)](https://github.com/maekawatoshiki/vicis/actions/workflows/rust.yml)
 [![codecov](https://codecov.io/gh/maekawatoshiki/vicis/branch/master/graph/badge.svg)](https://codecov.io/gh/maekawatoshiki/vicis)
 [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
@@ -14,7 +14,8 @@ Manipulate LLVM-IR in Pure Rust
 
 # Requirements
 
-- clang (>= 10.0.0 recommended) is used for tests
+- llvm (>= 10.0.0 recommended) is used for tests
+  - it's ironic :cry:
 
 # Example
 
