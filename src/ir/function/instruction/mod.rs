@@ -39,6 +39,7 @@ pub enum Opcode {
     GetElementPtr,
     Call,
     Invoke,
+    LandingPad,
     Br,
     CondBr,
     Ret,
@@ -116,6 +117,9 @@ pub enum Operand {
         ret_attrs: Vec<ParameterAttribute>,
         func_attrs: Vec<Attribute>,
         blocks: Vec<BasicBlockId>,
+    },
+    LandingPad {
+        ty: TypeId,
     },
     Br {
         block: BasicBlockId,
@@ -283,6 +287,7 @@ impl Instruction {
                 )
             }
             Operand::Invoke { .. } => todo!(),
+            Operand::LandingPad { .. } => todo!(),
             Operand::Br { block } => {
                 format!("br label %B{}", block.index())
             }
@@ -372,6 +377,7 @@ impl Operand {
             Self::Cast { arg, .. } => slice::from_ref(arg),
             Self::GetElementPtr { args, .. } => args.as_slice(),
             Self::Call { args, .. } | Self::Invoke { args, .. } => args.as_slice(),
+            Self::LandingPad { .. } => &[],
             Self::Br { .. } => &[],
             Self::CondBr { arg, .. } => slice::from_ref(arg),
             Self::Invalid => &[],
@@ -390,6 +396,7 @@ impl Operand {
             Self::Cast { tys, .. } => tys,
             Self::GetElementPtr { tys, .. } => tys.as_slice(),
             Self::Call { tys, .. } | Self::Invoke { tys, .. } => tys.as_slice(),
+            Self::LandingPad { ty } => slice::from_ref(ty),
             Self::Br { .. } => &[],
             Self::CondBr { .. } => &[],
             Self::Invalid => &[],
@@ -434,6 +441,7 @@ impl fmt::Debug for Opcode {
                 Opcode::GetElementPtr => "getelementptr",
                 Opcode::Call => "call",
                 Opcode::Invoke => "invoke",
+                Opcode::LandingPad => "landingpad",
                 Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
                 Opcode::Invalid => "INVALID",

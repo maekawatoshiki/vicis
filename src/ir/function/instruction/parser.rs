@@ -356,6 +356,19 @@ pub fn parse_invoke<'a, 'b>(
     Ok((source, inst))
 }
 
+pub fn parse_landingpad<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("landingpad"))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, _) = preceded(spaces, tag("cleanup"))(source)?;
+    let inst = Opcode::LandingPad
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::LandingPad { ty });
+    Ok((source, inst))
+}
+
 pub fn parse_br<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -438,6 +451,7 @@ pub fn parse<'a, 'b>(
         parse_getelementptr,
         parse_call,
         parse_invoke,
+        parse_landingpad,
         parse_br,
         parse_ret,
     ]

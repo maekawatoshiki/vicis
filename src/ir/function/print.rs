@@ -374,6 +374,18 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.indexes[&Ids::Block(blocks[1])],
                 )
             }
+            Operand::LandingPad { ty } => {
+                write!(
+                    self.fmt,
+                    "{}landingpad {} cleanup",
+                    if ty == &types.base().void() {
+                        "".to_string()
+                    } else {
+                        format!("%{:?} = ", dest)
+                    },
+                    types.to_string(*ty),
+                )
+            }
             Operand::Br { block } => {
                 write!(
                     self.fmt,

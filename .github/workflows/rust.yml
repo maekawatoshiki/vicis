@@ -30,7 +30,7 @@ jobs:
             # sudo -E apt-get upgrade -y && \
             sudo -E apt-get install -y zlib1g-dev apt-utils && \
             sudo -E apt-get install -y opt libedit-dev build-essential make && \
-            sudo -E apt-get install -y cmake g++ clang pkg-config jq && \
+            sudo -E apt-get install -y cmake llvm-10 pkg-config jq && \
             sudo -E apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev && \
             cargo install cargo-kcov && \
             cargo kcov --print-install-kcov-sh | sh

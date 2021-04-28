@@ -18,18 +18,19 @@ start:
   br label %bb1
  
 bb1:                                              ; preds = %start
-  ret void 
-; ; invoke core::hint::black_box
-;   invoke void @_ZN4core4hint9black_box17h4372703d764ed0e7E()
-;           to label %bb2 unwind label %cleanup
+; ret void ; TO AVOID ERR
+; invoke core::hint::black_box
+  invoke void @_ZN4core4hint9black_box17h4372703d764ed0e7E()
+          to label %bb2 unwind label %cleanup
+ 
+bb2:                                              ; preds = %bb1
+  ret void
 ; 
-; bb2:                                              ; preds = %bb1
-;   ret void
+bb3:                                              ; preds = %cleanup
+  br label %bb4
 ; 
-; bb3:                                              ; preds = %cleanup
-;   br label %bb4
-; 
-; bb4:                                              ; preds = %bb3
+bb4:                                              ; preds = %bb3
+  ret void
 ;   %1 = bitcast { i8*, i32 }* %0 to i8**
 ;   %2 = load i8*, i8** %1, align 8
 ;   %3 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
@@ -38,7 +39,9 @@ bb1:                                              ; preds = %start
 ;   %6 = insertvalue { i8*, i32 } %5, i32 %4, 1
 ;   resume { i8*, i32 } %6
 ; 
-; cleanup:                                          ; preds = %bb1
+cleanup:                                          ; preds = %bb1
+  %dummy = landingpad { i8*, i32 }
+          cleanup
 ;   %7 = landingpad { i8*, i32 }
 ;           cleanup
 ;   %8 = extractvalue { i8*, i32 } %7, 0
@@ -47,7 +50,7 @@ bb1:                                              ; preds = %start
 ;   store i8* %8, i8** %10, align 8
 ;   %11 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
 ;   store i32 %9, i32* %11, align 8
-;   br label %bb3
+  br label %bb3
 }
 ; 
 ; ; std::rt::lang_start
