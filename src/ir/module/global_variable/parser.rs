@@ -1,5 +1,5 @@
 use crate::ir::{
-    module::{global_variable::GlobalVariable, linkage, name},
+    module::{global_variable::GlobalVariable, linkage, name, unnamed_addr},
     types,
     types::Types,
     util::spaces,
@@ -30,10 +30,7 @@ pub fn parse<'a>(
     let (source, name) = preceded(spaces, preceded(char('@'), name::parse))(source)?;
     let (source, _) = preceded(spaces, char('='))(source)?;
     let (source, linkage) = opt(preceded(spaces, linkage::parse))(source)?;
-    let (source, unnamed_addr) = opt(preceded(
-        spaces,
-        alt((tag("unnamed_addr"), tag("local_unnamed_addr"))),
-    ))(source)?;
+    let (source, unnamed_addr) = opt(preceded(spaces, unnamed_addr::parse))(source)?;
     let (source, kind) = preceded(spaces, alt((tag("global"), tag("constant"))))(source)?;
     let (mut source, ty) = types::parse(source, types)?;
     let mut init = None;
@@ -53,7 +50,7 @@ pub fn parse<'a>(
         GlobalVariable {
             name,
             linkage,
-            is_local_unnamed_addr: unnamed_addr.unwrap_or("unnamed_addr") == "local_unnamed_addr",
+            unnamed_addr,
             is_constant: kind == "constant",
             ty,
             init,

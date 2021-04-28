@@ -3,7 +3,7 @@ mod parser;
 pub use parser::parse;
 
 use crate::ir::{
-    module::{linkage::Linkage, name::Name},
+    module::{linkage::Linkage, name::Name, unnamed_addr::UnnamedAddr},
     types::{TypeId, Types},
     value::ConstantData,
 };
@@ -11,7 +11,7 @@ use crate::ir::{
 pub struct GlobalVariable {
     pub name: Name,
     pub linkage: Option<Linkage>,
-    pub is_local_unnamed_addr: bool, // unnamed_addr or local_unnamed_addr
+    pub unnamed_addr: Option<UnnamedAddr>,
     pub is_constant: bool,
     pub ty: TypeId,
     pub init: Option<ConstantData>,
@@ -25,11 +25,8 @@ impl GlobalVariable {
             self.name,
             self.linkage
                 .map_or("".to_string(), |linkage| format!("{:?} ", linkage)),
-            if self.is_local_unnamed_addr {
-                "local_unnamed_addr "
-            } else {
-                "unnamed_addr "
-            },
+            self.unnamed_addr
+                .map_or("".to_string(), |u| format!("{:?} ", u)),
             if self.is_constant {
                 "constant "
             } else {
