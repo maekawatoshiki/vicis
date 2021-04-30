@@ -25,10 +25,10 @@ bb1:                                              ; preds = %start
  
 bb2:                                              ; preds = %bb1
   ret void
-; 
+ 
 bb3:                                              ; preds = %cleanup
   br label %bb4
-; 
+ 
 bb4:                                              ; preds = %bb3
   %1 = bitcast { i8*, i32 }* %0 to i8**
   %2 = load i8*, i8** %1, align 8
@@ -36,8 +36,7 @@ bb4:                                              ; preds = %bb3
   %4 = load i32, i32* %3, align 8
   %5 = insertvalue { i8*, i32 } undef, i8* %2, 0
   %6 = insertvalue { i8*, i32 } %5, i32 %4, 1
-  ret void
-;   resume { i8*, i32 } %6
+  resume { i8*, i32 } %6
  
 cleanup:                                          ; preds = %bb1
   %dummy = landingpad { i8*, i32 }

@@ -402,6 +402,19 @@ pub fn parse_landingpad<'a, 'b>(
     Ok((source, inst))
 }
 
+pub fn parse_resume<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("resume"))(source)?;
+    let (source, ty) = types::parse(source, ctx.types)?;
+    let (source, arg) = value::parse(source, ctx, ty)?;
+    let inst = Opcode::Resume
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Resume { ty, arg });
+    Ok((source, inst))
+}
+
 pub fn parse_br<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -486,6 +499,7 @@ pub fn parse<'a, 'b>(
         parse_call,
         parse_invoke,
         parse_landingpad,
+        parse_resume,
         parse_br,
         parse_ret,
     ]

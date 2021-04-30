@@ -407,6 +407,14 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     types.to_string(*ty),
                 )
             }
+            Operand::Resume { ty, arg } => {
+                write!(
+                    self.fmt,
+                    "resume {} {}",
+                    types.to_string(*ty),
+                    self.value_to_string(data.value_ref(*arg), types),
+                )
+            }
             Operand::Br { block } => {
                 write!(
                     self.fmt,
