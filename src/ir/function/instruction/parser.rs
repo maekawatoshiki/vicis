@@ -5,6 +5,7 @@ use crate::ir::{
         parser::ParserContext,
     },
     module::attributes::parser::parse_attributes,
+    util::string_literal,
 };
 use crate::ir::{module::name, types, util::spaces, value};
 use nom::{
@@ -353,7 +354,7 @@ pub fn parse_call<'a, 'b>(
     let (source, _) = preceded(spaces, tag("call"))(source)?;
     let (source, ret_attrs) = parse_param_attrs(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
-    let (source, callee) = value::parse(source, ctx, ty)?;
+    let (source, callee) = parse_callee(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;
     let (source, func_attrs) = parse_attributes(source)?;
     let mut tys = vec![ty];
@@ -374,6 +375,37 @@ pub fn parse_call<'a, 'b>(
             func_attrs,
         });
     Ok((source, inst))
+}
+
+pub fn parse_callee<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+    ty: types::TypeId,
+) -> IResult<&'a str, value::ValueId, VerboseError<&'a str>> {
+    if let Ok((source, asm)) = parse_call_asm(source) {
+        return Ok((source, ctx.data.create_value(value::Value::InlineAsm(asm))));
+    }
+
+    let (source, callee) = value::parse(source, ctx, ty)?;
+    Ok((source, callee))
+}
+
+pub fn parse_call_asm<'a, 'b>(
+    source: &'a str,
+) -> IResult<&'a str, value::InlineAsm, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("asm"))(source)?;
+    let (source, sideeffect) = opt(tuple((spaces, tag("sideeffect"))))(source)?;
+    let (source, constraints) = preceded(spaces, string_literal)(source)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let (source, body) = preceded(spaces, string_literal)(source)?;
+    Ok((
+        source,
+        value::InlineAsm {
+            constraints: constraints.to_owned(),
+            body: body.to_owned(),
+            sideeffect: sideeffect.is_some(),
+        },
+    ))
 }
 
 pub fn parse_invoke<'a, 'b>(

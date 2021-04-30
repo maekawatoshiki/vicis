@@ -174,7 +174,7 @@ start:
 define internal void @_ZN4core4hint9black_box17h4372703d764ed0e7E() unnamed_addr #2 {
 start:
   %dummy = alloca {}, align 1
-  ; call void asm sideeffect "", "r,~{memory},~{dirflag},~{fpsr},~{flags}"({}* %dummy), !srcloc !4
+  call void asm sideeffect "", "r,~{memory},~{dirflag},~{fpsr},~{flags}"({}* %dummy);, !srcloc !4
   ret void
 }
 

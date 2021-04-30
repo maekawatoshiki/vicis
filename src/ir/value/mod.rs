@@ -16,6 +16,7 @@ pub enum Value {
     Instruction(InstructionId),
     Argument(usize),
     Constant(ConstantData),
+    InlineAsm(InlineAsm),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -61,6 +62,13 @@ pub enum ConstantExpr {
     },
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct InlineAsm {
+    pub body: String,
+    pub constraints: String,
+    pub sideeffect: bool,
+}
+
 impl Value {
     pub fn as_inst(&self) -> &InstructionId {
         match self {
@@ -76,6 +84,18 @@ impl Value {
                 format!("%I{}", id.index())
             }
             Self::Argument(n) => format!("%A{}", n),
+            Self::InlineAsm(InlineAsm {
+                body,
+                constraints,
+                sideeffect,
+            }) => {
+                format!(
+                    "asm {}\"{}\", \"{}\"",
+                    if *sideeffect { "sideeffect " } else { "" },
+                    constraints,
+                    body
+                )
+            }
         }
     }
 }

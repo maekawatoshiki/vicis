@@ -1,7 +1,7 @@
 use super::{
     super::module::name::Name,
     super::types::Types,
-    super::value::Value,
+    super::value::{InlineAsm, Value},
     basic_block::BasicBlockId,
     data::Data,
     instruction::{Instruction, InstructionId, Opcode, Operand},
@@ -471,6 +471,18 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 format!("%{:?}", self.indexes[&Ids::Inst(*id)])
             }
             Value::Argument(n) => format!("%{:?}", self.indexes[&Ids::Arg(*n)]),
+            Value::InlineAsm(InlineAsm {
+                body,
+                constraints,
+                sideeffect,
+            }) => {
+                format!(
+                    "asm {}\"{}\", \"{}\"",
+                    if *sideeffect { "sideeffect " } else { "" },
+                    constraints,
+                    body
+                )
+            }
         }
     }
 
