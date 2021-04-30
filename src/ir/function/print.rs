@@ -226,6 +226,27 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     align
                 )
             }
+            Operand::InsertValue { tys, args } => {
+                write!(
+                    self.fmt,
+                    "%{:?} = insertvalue {} {}, {} {}, {}",
+                    dest,
+                    types.to_string(tys[0]),
+                    self.value_to_string(data.value_ref(args[0]), types),
+                    types.to_string(tys[1]),
+                    self.value_to_string(data.value_ref(args[1]), types),
+                    args[2..]
+                        .iter()
+                        .fold("".to_string(), |acc, &arg| {
+                            format!(
+                                "{}{}, ",
+                                acc,
+                                self.value_to_string(data.value_ref(arg), types)
+                            )
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
             Operand::IntBinary { ty, nuw, nsw, args } => {
                 write!(
                     self.fmt,

@@ -29,6 +29,7 @@ pub enum Opcode {
     Phi,
     Load,
     Store,
+    InsertValue,
     Add,
     Sub,
     Mul,
@@ -88,6 +89,10 @@ pub enum Operand {
         tys: [TypeId; 2],
         args: [ValueId; 2],
         align: u32,
+    },
+    InsertValue {
+        tys: [TypeId; 2],
+        args: Vec<ValueId>,
     },
     ICmp {
         ty: TypeId,
@@ -209,6 +214,7 @@ impl Instruction {
                     align
                 )
             }
+            Operand::InsertValue { .. } => todo!(),
             Operand::IntBinary { ty, nuw, nsw, args } => {
                 format!(
                     "%I{} = {:?}{}{} {} {}, {}",
@@ -372,6 +378,7 @@ impl Operand {
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
             Self::Load { addr, .. } => slice::from_ref(addr),
             Self::Store { args, .. } => args,
+            Self::InsertValue { args, .. } => args,
             Self::IntBinary { args, .. } => args,
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
@@ -391,6 +398,7 @@ impl Operand {
             Self::Ret { ty, .. } => slice::from_ref(ty),
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
+            Self::InsertValue { tys, .. } => tys,
             Self::IntBinary { ty, .. } => slice::from_ref(ty),
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
@@ -431,6 +439,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Phi => "phi",
                 Opcode::Load => "load",
                 Opcode::Store => "store",
+                Opcode::InsertValue => "insertvalue",
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",

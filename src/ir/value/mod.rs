@@ -20,6 +20,7 @@ pub enum Value {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConstantData {
+    Undef,
     Int(ConstantInt),
     Array(ConstantArray),
     Struct(ConstantStruct),
@@ -78,6 +79,7 @@ impl Value {
 impl ConstantData {
     pub fn to_string(&self, types: &Types) -> String {
         match self {
+            Self::Undef => "undef".to_string(),
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
             Self::Struct(s) => s.to_string(types),

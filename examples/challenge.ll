@@ -30,18 +30,18 @@ bb3:                                              ; preds = %cleanup
   br label %bb4
 ; 
 bb4:                                              ; preds = %bb3
+  %1 = bitcast { i8*, i32 }* %0 to i8**
+  %2 = load i8*, i8** %1, align 8
+  %3 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
+  %4 = load i32, i32* %3, align 8
+  %5 = insertvalue { i8*, i32 } undef, i8* %2, 0
+  %6 = insertvalue { i8*, i32 } %5, i32 %4, 1
   ret void
-;   %1 = bitcast { i8*, i32 }* %0 to i8**
-;   %2 = load i8*, i8** %1, align 8
-;   %3 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
-;   %4 = load i32, i32* %3, align 8
-;   %5 = insertvalue { i8*, i32 } undef, i8* %2, 0
-;   %6 = insertvalue { i8*, i32 } %5, i32 %4, 1
 ;   resume { i8*, i32 } %6
-; 
+ 
 cleanup:                                          ; preds = %bb1
   %dummy = landingpad { i8*, i32 }
-          cleanup
+             cleanup
 ;   %7 = landingpad { i8*, i32 }
 ;           cleanup
 ;   %8 = extractvalue { i8*, i32 } %7, 0
@@ -77,7 +77,6 @@ start:
 define internal i32 @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17h6b190936adb30851E"(i64** align 8 dereferenceable(8) %_1) unnamed_addr #2 {
 start:
   ret i32 0
-
 ; start:
 ;   %0 = bitcast i64** %_1 to void ()**
 ;   %_3 = load void ()*, void ()** %0, align 8, !nonnull !3
