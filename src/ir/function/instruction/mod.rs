@@ -30,6 +30,7 @@ pub enum Opcode {
     Load,
     Store,
     InsertValue,
+    ExtractValue,
     Add,
     Sub,
     Mul,
@@ -93,6 +94,10 @@ pub enum Operand {
     },
     InsertValue {
         tys: [TypeId; 2],
+        args: Vec<ValueId>,
+    },
+    ExtractValue {
+        ty: TypeId,
         args: Vec<ValueId>,
     },
     ICmp {
@@ -220,6 +225,7 @@ impl Instruction {
                 )
             }
             Operand::InsertValue { .. } => todo!(),
+            Operand::ExtractValue { .. } => todo!(),
             Operand::IntBinary { ty, nuw, nsw, args } => {
                 format!(
                     "%I{} = {:?}{}{} {} {}, {}",
@@ -385,6 +391,7 @@ impl Operand {
             Self::Load { addr, .. } => slice::from_ref(addr),
             Self::Store { args, .. } => args,
             Self::InsertValue { args, .. } => args,
+            Self::ExtractValue { args, .. } => args,
             Self::IntBinary { args, .. } => args,
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
@@ -406,6 +413,7 @@ impl Operand {
             Self::Load { tys, .. } => tys,
             Self::Store { .. } => &[],
             Self::InsertValue { tys, .. } => tys,
+            Self::ExtractValue { ty, .. } => slice::from_ref(ty),
             Self::IntBinary { ty, .. } => slice::from_ref(ty),
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
@@ -448,6 +456,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Load => "load",
                 Opcode::Store => "store",
                 Opcode::InsertValue => "insertvalue",
+                Opcode::ExtractValue => "extractvalue",
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",

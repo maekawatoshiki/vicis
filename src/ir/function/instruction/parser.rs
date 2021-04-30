@@ -159,6 +159,33 @@ pub fn parse_insertvalue<'a, 'b>(
     }
 }
 
+pub fn parse_extractvalue<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("extractvalue"))(source)?;
+    let (source, aggre_ty) = types::parse(source, ctx.types)?;
+    let (source, val) = value::parse(source, ctx, aggre_ty)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let mut args = vec![val];
+    let (mut source, idx) = value::parse(source, ctx, ctx.types.base().i32())?;
+    args.push(idx);
+    loop {
+        if let Ok((source_, _)) = preceded(spaces, char(','))(source) {
+            let (source_, idx) = value::parse(source_, ctx, ctx.types.base().i32())?;
+            args.push(idx);
+            source = source_;
+            continue;
+        }
+        return Ok((
+            source,
+            Opcode::ExtractValue
+                .with_block(ctx.cur_block)
+                .with_operand(Operand::ExtractValue { ty: aggre_ty, args }),
+        ));
+    }
+}
+
 pub fn parse_add_sub_mul<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -492,6 +519,7 @@ pub fn parse<'a, 'b>(
         parse_load,
         parse_store,
         parse_insertvalue,
+        parse_extractvalue,
         parse_add_sub_mul,
         parse_icmp,
         parse_cast,

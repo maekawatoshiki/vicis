@@ -247,6 +247,25 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
+            Operand::ExtractValue { ty, args } => {
+                write!(
+                    self.fmt,
+                    "%{:?} = extractvalue {} {}, {}",
+                    dest,
+                    types.to_string(*ty),
+                    self.value_to_string(data.value_ref(args[0]), types),
+                    args[1..]
+                        .iter()
+                        .fold("".to_string(), |acc, &arg| {
+                            format!(
+                                "{}{}, ",
+                                acc,
+                                self.value_to_string(data.value_ref(arg), types)
+                            )
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
             Operand::IntBinary { ty, nuw, nsw, args } => {
                 write!(
                     self.fmt,

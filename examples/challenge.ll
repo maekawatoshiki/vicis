@@ -8,8 +8,8 @@ target triple = "x86_64-unknown-linux-gnu"
 
 @vtable.0 = private unnamed_addr constant { void (i64**)*, i64, i64, i32 (i64**)*, i32 (i64**)*, i32 (i64**)* } { void (i64**)* @"_ZN4core3ptr85drop_in_place$LT$std..rt..lang_start$LT$$LP$$RP$$GT$..$u7b$$u7b$closure$u7d$$u7d$$GT$17h187641123d784ab0E", i64 8, i64 8, i32 (i64**)* @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17h6b190936adb30851E", i32 (i64**)* @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17h6b190936adb30851E", i32 (i64**)* @"_ZN4core3ops8function6FnOnce40call_once$u7b$$u7b$vtable.shim$u7d$$u7d$17ha65e3a1c62902303E" }, align 8
 
-; ; std::sys_common::backtrace::__rust_begin_short_backtrace
-; ; Function Attrs: noinline nonlazybind uwtable
+; std::sys_common::backtrace::__rust_begin_short_backtrace
+; Function Attrs: noinline nonlazybind uwtable
 define internal void @_ZN3std10sys_common9backtrace28__rust_begin_short_backtrace17ha5584650e12cc767E(void ()* nonnull %f) unnamed_addr #0 personality i32 (i32, i32, i64, %"unwind::libunwind::_Unwind_Exception"*, %"unwind::libunwind::_Unwind_Context"*)* @rust_eh_personality {
 start:
   %0 = alloca { i8*, i32 }, align 8
@@ -39,30 +39,26 @@ bb4:                                              ; preds = %bb3
   resume { i8*, i32 } %6
  
 cleanup:                                          ; preds = %bb1
-  %dummy = landingpad { i8*, i32 }
-             cleanup
-;   %7 = landingpad { i8*, i32 }
-;           cleanup
-;   %8 = extractvalue { i8*, i32 } %7, 0
-;   %9 = extractvalue { i8*, i32 } %7, 1
-;   %10 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 0
-;   store i8* %8, i8** %10, align 8
-;   %11 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
-;   store i32 %9, i32* %11, align 8
+  %7 = landingpad { i8*, i32 }
+          cleanup
+  %8 = extractvalue { i8*, i32 } %7, 0
+  %9 = extractvalue { i8*, i32 } %7, 1
+  %10 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 0
+  store i8* %8, i8** %10, align 8
+  %11 = getelementptr inbounds { i8*, i32 }, { i8*, i32 }* %0, i32 0, i32 1
+  store i32 %9, i32* %11, align 8
   br label %bb3
 }
-; 
-; ; std::rt::lang_start
-; ; Function Attrs: nonlazybind uwtable
+
+; std::rt::lang_start
+; Function Attrs: nonlazybind uwtable
 define hidden i64 @_ZN3std2rt10lang_start17h30aa91886661436eE(void ()* nonnull %main, i64 %argc, i8** %argv) unnamed_addr #1 {
 start:
+  %_7 = alloca i64*, align 8
+  %0 = bitcast i64** %_7 to void ()**
+  store void ()* %main, void ()** %0, align 8
+  %_4.0 = bitcast i64** %_7 to {}*
   ret i64 0
-
-; start:
-;   %_7 = alloca i64*, align 8
-;   %0 = bitcast i64** %_7 to void ()**
-;   store void ()* %main, void ()** %0, align 8
-;   %_4.0 = bitcast i64** %_7 to {}*
 ; ; call std::rt::lang_start_internal
 ;   %1 = call i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull align 1 %_4.0, [3 x i64]* align 8 dereferenceable(24) bitcast ({ void (i64**)*, i64, i64, i32 (i64**)*, i32 (i64**)*, i32 (i64**)* }* @vtable.0 to [3 x i64]*), i64 %argc, i8** %argv)
 ;   br label %bb1
@@ -70,9 +66,9 @@ start:
 ; bb1:                                              ; preds = %start
 ;   ret i64 %1
 }
-; 
-; ; std::rt::lang_start::{{closure}}
-; ; Function Attrs: inlinehint nonlazybind uwtable
+
+; std::rt::lang_start::{{closure}}
+; Function Attrs: inlinehint nonlazybind uwtable
 define internal i32 @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17h6b190936adb30851E"(i64** align 8 dereferenceable(8) %_1) unnamed_addr #2 {
 start:
   ret i32 0
