@@ -16,19 +16,18 @@ start:
 ; call core::ops::function::FnOnce::call_once
   call void @_ZN4core3ops8function6FnOnce9call_once17h85d006317e515d1fE(void ()* nonnull %f)
   br label %bb1
- 
+
 bb1:                                              ; preds = %start
-; ret void ; TO AVOID ERR
 ; invoke core::hint::black_box
   invoke void @_ZN4core4hint9black_box17h4372703d764ed0e7E()
           to label %bb2 unwind label %cleanup
- 
+
 bb2:                                              ; preds = %bb1
   ret void
- 
+
 bb3:                                              ; preds = %cleanup
   br label %bb4
- 
+
 bb4:                                              ; preds = %bb3
   %1 = bitcast { i8*, i32 }* %0 to i8**
   %2 = load i8*, i8** %1, align 8
@@ -37,7 +36,7 @@ bb4:                                              ; preds = %bb3
   %5 = insertvalue { i8*, i32 } undef, i8* %2, 0
   %6 = insertvalue { i8*, i32 } %5, i32 %4, 1
   resume { i8*, i32 } %6
- 
+
 cleanup:                                          ; preds = %bb1
   %7 = landingpad { i8*, i32 }
           cleanup
@@ -174,7 +173,7 @@ start:
 define internal void @_ZN4core4hint9black_box17h4372703d764ed0e7E() unnamed_addr #2 {
 start:
   %dummy = alloca {}, align 1
-  call void asm sideeffect "", "r,~{memory},~{dirflag},~{fpsr},~{flags}"({}* %dummy);, !srcloc !4
+  call void asm sideeffect "", "r,~{memory},~{dirflag},~{fpsr},~{flags}"({}* %dummy), !srcloc !4
   ret void
 }
 
@@ -217,7 +216,7 @@ declare i32 @rust_eh_personality(i32, i32, i64, %"unwind::libunwind::_Unwind_Exc
 ; std::rt::lang_start_internal
 ; Function Attrs: nonlazybind uwtable
 declare i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull align 1, [3 x i64]* align 8 dereferenceable(24), i64, i8**) unnamed_addr #1
- 
+
 ; Function Attrs: nonlazybind
 define i32 @main(i32 %0, i8** %1) unnamed_addr #4 {
 top:

@@ -88,16 +88,7 @@ pub fn parse_load<'a, 'b>(
             preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
         ),
     ))(source)?;
-    // TODO: FIXME: don't ignore !nonnull
-    let (source, _) = opt(tuple((
-        spaces,
-        char(','),
-        spaces,
-        tag("!nonnull"),
-        spaces,
-        char('!'),
-        digit1,
-    )))(source)?;
+    let (source, _) = opt(parse_metadata("!nonnull"))(source)?; // TODO: FIXME: don't ignore !nonnull
     let inst = Opcode::Load
         .with_block(ctx.cur_block)
         .with_operand(Operand::Load {
@@ -357,6 +348,7 @@ pub fn parse_call<'a, 'b>(
     let (source, callee) = parse_callee(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;
     let (source, func_attrs) = parse_attributes(source)?;
+    let (source, _) = opt(parse_metadata("!srcloc"))(source)?; // TODO: FIXME: don't ignore !srcloc
     let mut tys = vec![ty];
     let mut args = vec![callee];
     let mut param_attrs = vec![];
@@ -547,6 +539,23 @@ pub fn parse_ret<'a, 'b>(
             .with_block(ctx.cur_block)
             .with_operand(Operand::Ret { val, ty }),
     ))
+}
+
+fn parse_metadata<'a>(
+    name: &'static str,
+) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+    move |source: &'a str| {
+        let (source, (_, _, _, _, _, _, num)) = tuple((
+            spaces,
+            char(','),
+            spaces,
+            tag(name),
+            spaces,
+            char('!'),
+            digit1,
+        ))(source)?;
+        Ok((source, num))
+    }
 }
 
 /// Only parses `source` as Instruction. Doesn't append instruction to block.
