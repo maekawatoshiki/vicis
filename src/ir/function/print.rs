@@ -4,7 +4,7 @@ use super::{
     super::value::Value,
     basic_block::BasicBlockId,
     data::Data,
-    instruction::{Instruction, InstructionId, Operand},
+    instruction::{Instruction, InstructionId, Opcode, Operand},
     Function,
 };
 use rustc_hash::FxHashMap;
@@ -119,9 +119,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
 
             for inst_id in f.layout.inst_iter(block_id) {
                 let inst = f.data.inst_ref(inst_id);
-                if inst.opcode.is_terminator()
-                    || inst.opcode.is_store()
-                    || (inst.operand.call_result_ty() == Some(f.types.base().void()))
+                if matches!(
+                    inst.opcode,
+                    Opcode::Store | Opcode::Br | Opcode::CondBr | Opcode::Ret | Opcode::Resume
+                ) || (inst.operand.call_result_ty() == Some(f.types.base().void()))
                 {
                     continue;
                 }

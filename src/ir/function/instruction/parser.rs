@@ -87,6 +87,16 @@ pub fn parse_load<'a, 'b>(
             preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
         ),
     ))(source)?;
+    // TODO: FIXME: don't ignore !nonnull
+    let (source, _) = opt(tuple((
+        spaces,
+        char(','),
+        spaces,
+        tag("!nonnull"),
+        spaces,
+        char('!'),
+        digit1,
+    )))(source)?;
     let inst = Opcode::Load
         .with_block(ctx.cur_block)
         .with_operand(Operand::Load {
