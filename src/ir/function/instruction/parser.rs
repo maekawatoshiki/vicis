@@ -270,6 +270,7 @@ pub fn parse_cast<'a, 'b>(
             map(tag("sext"), |_| Opcode::Sext),
             map(tag("zext"), |_| Opcode::Zext),
             map(tag("bitcast"), |_| Opcode::Bitcast),
+            map(tag("trunc"), |_| Opcode::Trunc),
         )),
     )(source)?;
     let (source, from) = types::parse(source, ctx.types)?;

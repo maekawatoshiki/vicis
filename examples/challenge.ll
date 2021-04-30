@@ -221,13 +221,11 @@ declare i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull ali
 ; Function Attrs: nonlazybind
 define i32 @main(i32 %0, i8** %1) unnamed_addr #4 {
 top:
-  ret i32 0
-; top:
-;   %2 = sext i32 %0 to i64
-; ; call std::rt::lang_start
-;   %3 = call i64 @_ZN3std2rt10lang_start17h30aa91886661436eE(void ()* @_ZN1a4main17h6f955d164bd85f94E, i64 %2, i8** %1)
-;   %4 = trunc i64 %3 to i32
-;   ret i32 %4
+  %2 = sext i32 %0 to i64
+; call std::rt::lang_start
+  %3 = call i64 @_ZN3std2rt10lang_start17h30aa91886661436eE(void ()* @_ZN1a4main17h6f955d164bd85f94E, i64 %2, i8** %1)
+  %4 = trunc i64 %3 to i32
+  ret i32 %4
 }
 
 attributes #0 = { noinline nonlazybind uwtable "probe-stack"="inline-asm" "target-cpu"="x86-64" }
