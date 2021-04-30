@@ -55,6 +55,10 @@ pub enum ConstantExpr {
         tys: Vec<TypeId>,
         args: Vec<ConstantData>,
     },
+    Bitcast {
+        tys: [TypeId; 2],
+        arg: Box<ConstantData>,
+    },
 }
 
 impl Value {
@@ -203,6 +207,14 @@ impl ConstantExpr {
                             format!("{}{} {}, ", acc, types.to_string(*ty), arg.to_string(types))
                         })
                         .trim_end_matches(", ")
+                )
+            }
+            Self::Bitcast { tys, arg } => {
+                format!(
+                    "bitcast ({} {} to {})",
+                    types.to_string(tys[0]),
+                    arg.to_string(types),
+                    types.to_string(tys[1]),
                 )
             }
         }

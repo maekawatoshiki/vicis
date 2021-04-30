@@ -343,7 +343,10 @@ impl Opcode {
     }
 
     pub fn is_terminator(&self) -> bool {
-        matches!(self, Self::Ret | Self::Br | Self::CondBr | Self::Invoke)
+        matches!(
+            self,
+            Self::Ret | Self::Br | Self::CondBr | Self::Invoke | Self::Resume
+        )
     }
 
     pub fn is_load(&self) -> bool {

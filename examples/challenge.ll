@@ -58,13 +58,15 @@ start:
   %0 = bitcast i64** %_7 to void ()**
   store void ()* %main, void ()** %0, align 8
   %_4.0 = bitcast i64** %_7 to {}*
-  ret i64 0
-; ; call std::rt::lang_start_internal
-;   %1 = call i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE({}* nonnull align 1 %_4.0, [3 x i64]* align 8 dereferenceable(24) bitcast ({ void (i64**)*, i64, i64, i32 (i64**)*, i32 (i64**)*, i32 (i64**)* }* @vtable.0 to [3 x i64]*), i64 %argc, i8** %argv)
-;   br label %bb1
-; 
-; bb1:                                              ; preds = %start
-;   ret i64 %1
+; call std::rt::lang_start_internal
+  %1 = call i64 @_ZN3std2rt19lang_start_internal17hab5a8a909af4f90eE(
+      {}* nonnull align 1 %_4.0, 
+      [3 x i64]* align 8 dereferenceable(24) bitcast ({ void (i64**)*, i64, i64, i32 (i64**)*, i32 (i64**)*, i32 (i64**)* }* @vtable.0 to [3 x i64]*), 
+      i64 %argc, i8** %argv)
+  br label %bb1
+
+bb1:                                              ; preds = %start
+  ret i64 %1
 }
 
 ; std::rt::lang_start::{{closure}}

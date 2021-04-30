@@ -94,7 +94,10 @@ pub fn parse_constant_expr<'a, 'b>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    parse_constant_getelementptr(source, types)
+    if let Ok((source, konst)) = parse_constant_getelementptr(source, types) {
+        return Ok((source, konst));
+    }
+    parse_constant_bitcast(source, types)
 }
 
 pub fn parse_constant_getelementptr<'a, 'b>(
@@ -128,6 +131,26 @@ pub fn parse_constant_getelementptr<'a, 'b>(
             ));
         }
     }
+}
+
+pub fn parse_constant_bitcast<'a, 'b>(
+    source: &'a str,
+    types: &Types,
+) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("bitcast"))(source)?;
+    let (source, _) = preceded(spaces, char('('))(source)?;
+    let (source, from) = types::parse(source, types)?;
+    let (source, arg) = parse_constant(source, types, from)?;
+    let (source, _) = preceded(spaces, tag("to"))(source)?;
+    let (source, to) = types::parse(source, types)?;
+    let (source, _) = preceded(spaces, char(')'))(source)?;
+    return Ok((
+        source,
+        ConstantData::Expr(ConstantExpr::Bitcast {
+            tys: [from, to],
+            arg: Box::new(arg),
+        }),
+    ));
 }
 
 pub fn parse_constant_global_ref<'a>(
