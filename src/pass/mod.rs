@@ -74,6 +74,22 @@ impl<T> PassManager<T> {
     }
 }
 
+use crate::ir::{function::Function, module::Module};
+
+impl PassManager<Function> {
+    pub fn run_analyses_on_module(&mut self, module: &Module) {
+        for (_, func) in &module.functions {
+            self.run_analyses_on(func)
+        }
+    }
+
+    pub fn run_on_module(&mut self, module: &mut Module) {
+        for (_, func) in &mut module.functions {
+            self.run_on(func)
+        }
+    }
+}
+
 impl<T> Pass<T> {
     pub fn analysis<P: 'static + AnalysisPass<T>>(pass: P) -> Self {
         Self::Analysis(Box::new(pass))
@@ -124,9 +140,7 @@ define dso_local i32 @main() {
         let mut pm = PassManager::new();
         pm.add_analysis(TestFunctionAnalysisPass {});
 
-        for (_, func) in &module.functions {
-            pm.run_analyses_on(func);
-        }
+        pm.run_analyses_on_module(&module);
 
         assert_eq!(
             pm.get_result::<TestFunctionAnalysisResult>().unwrap().0,
@@ -142,9 +156,7 @@ define dso_local i32 @main() {
         pm.add_analysis(TestFunctionAnalysisPass {});
         pm.add_transform(TestFunctionTransformPass {});
 
-        for (_, func) in &mut module.functions {
-            pm.run_on(func);
-        }
+        pm.run_on_module(&mut module);
 
         assert_eq!(
             pm.get_result::<TestFunctionAnalysisResult>().unwrap().0,
