@@ -58,6 +58,10 @@ impl Function {
         &self.name
     }
 
+    pub fn params(&self) -> &[Parameter] {
+        &self.params
+    }
+
     pub fn is_var_arg(&self) -> bool {
         self.is_var_arg
     }
