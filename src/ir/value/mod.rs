@@ -23,6 +23,7 @@ pub enum Value {
 pub enum ConstantData {
     Undef,
     AggregateZero,
+    Null,
     Int(ConstantInt),
     Array(ConstantArray),
     Struct(ConstantStruct),
@@ -107,6 +108,7 @@ impl ConstantData {
         match self {
             Self::Undef => "undef".to_string(),
             Self::AggregateZero => "AggregateZero".to_string(),
+            Self::Null => "null".to_string(),
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
             Self::Struct(s) => s.to_string(types),

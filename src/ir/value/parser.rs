@@ -27,6 +27,9 @@ pub fn parse_constant<'a>(
     if let Ok((source, _)) = preceded(spaces, tag("undef"))(source) {
         return Ok((source, ConstantData::Undef));
     }
+    if let Ok((source, _)) = preceded(spaces, tag("null"))(source) {
+        return Ok((source, ConstantData::Null));
+    }
     if let Ok((source, id)) = parse_constant_int(source, types, ty) {
         return Ok((source, id));
     }
