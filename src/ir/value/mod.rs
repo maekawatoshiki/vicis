@@ -47,6 +47,7 @@ pub struct ConstantArray {
 pub struct ConstantStruct {
     pub elems_ty: Vec<TypeId>,
     pub elems: Vec<ConstantData>,
+    pub is_packed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -196,14 +197,16 @@ impl ConstantArray {
 impl ConstantStruct {
     pub fn to_string(&self, types: &Types) -> String {
         format!(
-            "{{ {} }}",
+            "{}{{ {} }}{}",
+            if self.is_packed { "<" } else { "" },
             self.elems
                 .iter()
                 .zip(self.elems_ty.iter())
                 .fold("".to_string(), |acc, (e, &et)| {
                     format!("{}{} {}, ", acc, types.to_string(et), e.to_string(types))
                 })
-                .trim_end_matches(", ")
+                .trim_end_matches(", "),
+            if self.is_packed { ">" } else { "" }
         )
     }
 }

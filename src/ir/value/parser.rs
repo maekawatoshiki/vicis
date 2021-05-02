@@ -10,6 +10,7 @@ use super::{
     ValueId,
 };
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
     combinator::{opt, recognize},
@@ -165,7 +166,8 @@ pub fn parse_constant_struct<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    let (mut source, _) = preceded(spaces, char('{'))(source)?;
+    let (mut source, is_packed) = preceded(spaces, alt((tag("{"), tag("<{"))))(source)?;
+    let is_packed = is_packed == "<{";
     let mut elems = vec![];
     let mut elems_ty = vec![];
     loop {
@@ -177,10 +179,14 @@ pub fn parse_constant_struct<'a>(
             source = source_;
             continue;
         }
-        let (source_, _) = preceded(spaces, char('}'))(source_)?;
+        let (source_, _) = preceded(spaces, tag(if is_packed { "}>" } else { "}" }))(source_)?;
         return Ok((
             source_,
-            ConstantData::Struct(ConstantStruct { elems_ty, elems }),
+            ConstantData::Struct(ConstantStruct {
+                elems_ty,
+                elems,
+                is_packed,
+            }),
         ));
     }
 }

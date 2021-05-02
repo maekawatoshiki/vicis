@@ -62,6 +62,7 @@ pub struct FunctionType {
 pub struct StructType {
     pub name: Option<String>,
     pub elems: Vec<TypeId>,
+    pub is_packed: bool,
 }
 
 impl Types {
@@ -194,19 +195,23 @@ impl TypesBase {
         }))
     }
 
-    pub fn empty_struct_named(&mut self, name: String) -> TypeId {
+    pub fn empty_struct_named(&mut self, name: String, is_packed: bool) -> TypeId {
         *self
             .structs
             .entry(name.clone())
             .or_insert(self.arena.alloc(Type::Struct(StructType {
                 name: Some(name),
                 elems: vec![],
+                is_packed,
             })))
     }
 
-    pub fn anonymous_struct(&mut self, elems: Vec<TypeId>) -> TypeId {
-        self.arena
-            .alloc(Type::Struct(StructType { name: None, elems }))
+    pub fn anonymous_struct(&mut self, elems: Vec<TypeId>, is_packed: bool) -> TypeId {
+        self.arena.alloc(Type::Struct(StructType {
+            name: None,
+            elems,
+            is_packed,
+        }))
     }
 
     pub fn get_struct(&self, name: &str) -> Option<TypeId> {
@@ -315,7 +320,12 @@ impl TypesBase {
                 elems_str.push_str(", ");
             }
         }
-        format!("{{ {} }}", elems_str)
+        format!(
+            "{}{{ {} }}{}",
+            if ty.is_packed { "<" } else { "" },
+            elems_str,
+            if ty.is_packed { ">" } else { "" }
+        )
     }
 
     pub fn is_struct(&self, ty: TypeId) -> bool {

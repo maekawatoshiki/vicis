@@ -17,7 +17,9 @@ pub fn parse<'a>(
     let (mut source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
         parse_array(source, types)?
     } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
-        parse_struct(source, types)?
+        parse_struct(source, types, false)?
+    } else if let Ok((source, _)) = preceded(spaces, tag("<{"))(source) {
+        parse_struct(source, types, true)?
     } else if let Ok((source, name)) = preceded(spaces, preceded(char('%'), name::parse))(source) {
         (source, types.base_mut().named_type(name))
     } else {
@@ -68,9 +70,10 @@ fn parse_array<'a>(
 fn parse_struct<'a>(
     mut source: &'a str,
     types: &Types,
+    is_packed: bool,
 ) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
-    if let Ok((source, _)) = preceded(spaces, char('}'))(source) {
-        return Ok((source, types.base_mut().anonymous_struct(vec![])));
+    if let Ok((source, _)) = preceded(spaces, tag(if is_packed { "}>" } else { "}" }))(source) {
+        return Ok((source, types.base_mut().anonymous_struct(vec![], is_packed)));
     }
 
     let mut elems = vec![];
@@ -81,8 +84,8 @@ fn parse_struct<'a>(
             source = source_;
             continue;
         }
-        let (source_, _) = preceded(spaces, char('}'))(source_)?;
-        return Ok((source_, types.base_mut().anonymous_struct(elems)));
+        let (source_, _) = preceded(spaces, tag(if is_packed { "}>" } else { "}" }))(source_)?;
+        return Ok((source_, types.base_mut().anonymous_struct(elems, is_packed)));
     }
 }
 
