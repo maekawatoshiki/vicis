@@ -32,12 +32,8 @@ pub fn parse<'a>(
     let (source, linkage) = opt(preceded(spaces, linkage::parse))(source)?;
     let (source, unnamed_addr) = opt(preceded(spaces, unnamed_addr::parse))(source)?;
     let (source, kind) = preceded(spaces, alt((tag("global"), tag("constant"))))(source)?;
-    let (mut source, ty) = types::parse(source, types)?;
-    let mut init = None;
-    if let Ok((source_, init_)) = value::parser::parse_constant(source, types, ty) {
-        init = Some(init_);
-        source = source_
-    }
+    let (source, ty) = types::parse(source, types)?;
+    let (source, init) = parse_init(source, types, ty)?;
     let (source, align) = opt(preceded(
         spaces,
         preceded(
@@ -57,6 +53,20 @@ pub fn parse<'a>(
             align: align.map_or(0, |align| align.parse::<u32>().unwrap()),
         },
     ))
+}
+
+pub fn parse_init<'a>(
+    source: &'a str,
+    types: &Types,
+    ty: types::TypeId,
+) -> IResult<&'a str, Option<value::ConstantData>, VerboseError<&'a str>> {
+    if let Ok((source, _)) = preceded(spaces, tag("zeroinitializer"))(source) {
+        return Ok((source, Some(value::ConstantData::AggregateZero)));
+    }
+    if let Ok((source, init)) = value::parser::parse_constant(source, types, ty) {
+        return Ok((source, Some(init)));
+    }
+    Ok((source, None))
 }
 
 pub fn parse_global_type_and_const<'a>(
