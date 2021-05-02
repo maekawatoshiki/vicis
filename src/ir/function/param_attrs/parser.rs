@@ -25,6 +25,7 @@ pub fn parse_param_attr<'a>(
             tuple((tag("align"), spaces, opt(char('(')), digit1, opt(char(')')))),
             |(_, _, _, num, _)| ParameterAttribute::Alignment(num.parse::<u64>().unwrap()),
         ),
+        map(tag("readonly"), |_| ParameterAttribute::ReadOnly),
         map(tag("noalias"), |_| ParameterAttribute::NoAlias),
         map(tag("nocapture"), |_| ParameterAttribute::NoCapture),
         map(tag("nofree"), |_| ParameterAttribute::NoFree),
