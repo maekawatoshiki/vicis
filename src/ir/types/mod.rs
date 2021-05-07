@@ -60,7 +60,7 @@ pub struct FunctionType {
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct StructType {
-    pub name: Option<String>,
+    pub name: Option<Name>,
     pub elems: Vec<TypeId>,
     pub is_packed: bool,
 }
@@ -200,7 +200,7 @@ impl TypesBase {
             .structs
             .entry(name.clone())
             .or_insert(self.arena.alloc(Type::Struct(StructType {
-                name: Some(name),
+                name: Some(Name::Name(name)),
                 elems: vec![],
                 is_packed,
             })))
@@ -224,7 +224,7 @@ impl TypesBase {
         if self.is_struct(ty) {
             let mut strukt = mem::replace(&mut self.arena[ty], Type::Void);
             if let Some(name) = name.to_string() {
-                strukt.as_struct_mut().name = Some(name.to_owned());
+                strukt.as_struct_mut().name = Some(Name::Name(name.to_owned()));
                 self.structs.insert(name.to_owned(), named_ty);
             }
             self.arena[named_ty] = strukt;

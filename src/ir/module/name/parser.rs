@@ -12,7 +12,7 @@ pub fn parse<'a>(source: &'a str) -> IResult<&'a str, Name, VerboseError<&'a str
             map(digit1, |i: &'a str| Name::Number(i.parse().unwrap())),
             map(identifier, |n: &'a str| Name::Name(n.to_string())),
             map(string_literal, |s: &'a str| {
-                Name::Name(format!(r#""{}""#, s.to_string()))
+                Name::Name(format!(r#"{}"#, s.to_string()))
             }),
         )),
     )(source)

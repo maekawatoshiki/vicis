@@ -36,7 +36,7 @@ impl Name {
 impl fmt::Debug for Name {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Name(name) => write!(f, "{}", name),
+            Self::Name(name) => to_escaped(f, name),
             Self::Number(num) => write!(f, "{}", num),
         }
     }
@@ -45,8 +45,18 @@ impl fmt::Debug for Name {
 impl fmt::Display for Name {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Name(name) => write!(f, "{}", name),
+            Self::Name(name) => to_escaped(f, name),
             Self::Number(num) => write!(f, "{}", num),
         }
+    }
+}
+
+fn to_escaped(f: &mut fmt::Formatter<'_>, s: &str) -> fmt::Result {
+    if s.find(|c: char| !(c.is_ascii_alphanumeric() || c == '.' || c == '_'))
+        .is_some()
+    {
+        write!(f, r#""{}""#, s)
+    } else {
+        write!(f, "{}", s)
     }
 }

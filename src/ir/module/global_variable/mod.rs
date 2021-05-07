@@ -21,7 +21,7 @@ pub struct GlobalVariable {
 impl GlobalVariable {
     pub fn to_string(&self, types: &Types) -> String {
         format!(
-            "@{:?} = {}{}{}{} {}, align {}",
+            "@{} = {}{}{}{} {}, align {}",
             self.name,
             self.linkage
                 .map_or("".to_string(), |linkage| format!("{:?} ", linkage)),
