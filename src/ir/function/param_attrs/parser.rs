@@ -1,5 +1,8 @@
 use super::ParameterAttribute;
-use crate::ir::util::{spaces, string_literal};
+use crate::ir::{
+    types,
+    util::{spaces, string_literal},
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -13,6 +16,7 @@ use nom::{
 
 pub fn parse_param_attr<'a>(
     source: &'a str,
+    types: &types::Types,
 ) -> IResult<&'a str, ParameterAttribute, VerboseError<&'a str>> {
     alt((
         map(tag("zeroext"), |_| ParameterAttribute::ZeroExt),
@@ -20,7 +24,17 @@ pub fn parse_param_attr<'a>(
         map(tag("inreg"), |_| ParameterAttribute::InReg),
         map(tag("byval"), |_| ParameterAttribute::ByVal),
         map(tag("inalloca"), |_| ParameterAttribute::InAlloca),
-        map(tag("sret"), |_| ParameterAttribute::SRet),
+        map(
+            tuple((
+                tag("sret"),
+                spaces,
+                char('('),
+                |source: &'a str| types::parser::parse(source, types),
+                char(')'),
+            )),
+            |(_, _, _, ty, _)| ParameterAttribute::SRet(Some(ty)),
+        ),
+        map(tag("sret"), |_| ParameterAttribute::SRet(None)),
         map(
             tuple((tag("align"), spaces, opt(char('(')), digit1, opt(char(')')))),
             |(_, _, _, num, _)| ParameterAttribute::Alignment(num.parse::<u64>().unwrap()),
@@ -63,6 +77,9 @@ pub fn parse_param_attr<'a>(
 
 pub fn parse_param_attrs<'a>(
     source: &'a str,
+    types: &types::Types,
 ) -> IResult<&'a str, Vec<ParameterAttribute>, VerboseError<&'a str>> {
-    many0(preceded(spaces, parse_param_attr))(source)
+    many0(preceded(spaces, |source: &'a str| {
+        parse_param_attr(source, types)
+    }))(source)
 }

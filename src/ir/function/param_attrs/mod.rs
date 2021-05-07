@@ -1,5 +1,6 @@
 pub mod parser;
 
+use crate::ir::types::TypeId;
 use std::fmt;
 
 #[derive(PartialEq, Eq, Clone)]
@@ -9,7 +10,7 @@ pub enum ParameterAttribute {
     InReg,
     ByVal,
     InAlloca,
-    SRet,
+    SRet(Option<TypeId>),
     Alignment(u64),
     ReadOnly,
     NoAlias,
@@ -36,7 +37,7 @@ impl fmt::Debug for ParameterAttribute {
             Self::InReg => write!(f, "inreg"),
             Self::ByVal => write!(f, "byval"),
             Self::InAlloca => write!(f, "inalloca"),
-            Self::SRet => write!(f, "sret"),
+            Self::SRet(_) => write!(f, "sret"),
             Self::Alignment(i) => write!(f, "align {}", i),
             Self::ReadOnly => write!(f, "readonly"),
             Self::NoAlias => write!(f, "noalias"),

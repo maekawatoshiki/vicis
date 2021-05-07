@@ -295,7 +295,7 @@ pub fn parse_call_args<'a, 'b>(
     let mut args = vec![];
     loop {
         let (source_, ty) = types::parse(source, ctx.types)?;
-        let (source_, attrs) = parse_param_attrs(source_)?;
+        let (source_, attrs) = parse_param_attrs(source_, ctx.types)?;
         let (source_, arg) = value::parse(source_, ctx, ty)?;
         args.push((ty, attrs, arg));
         if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
@@ -343,7 +343,7 @@ pub fn parse_call<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("call"))(source)?;
-    let (source, ret_attrs) = parse_param_attrs(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = parse_callee(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;
@@ -405,7 +405,7 @@ pub fn parse_invoke<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("invoke"))(source)?;
-    let (source, ret_attrs) = parse_param_attrs(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = value::parse(source, ctx, ty)?;
     let (source, args_) = parse_call_args(source, ctx)?;

@@ -49,7 +49,7 @@ pub fn parse_argument<'a>(
     index: &mut usize,
 ) -> IResult<&'a str, Parameter, VerboseError<&'a str>> {
     let (source, ty) = types::parse(source, types)?;
-    let (source, attrs) = parse_param_attrs(source)?;
+    let (source, attrs) = parse_param_attrs(source, types)?;
     let (source, name) = opt(preceded(spaces, preceded(char('%'), name::parse)))(source)?;
     Ok((
         source,
@@ -163,7 +163,7 @@ pub fn parse<'a>(
     let (source, preemption_specifier) =
         opt(preceded(spaces, preemption_specifier::parse))(source)?;
     let (source, visibility) = opt(preceded(spaces, visibility::parse))(source)?;
-    let (source, ret_attrs) = parse_param_attrs(source)?;
+    let (source, ret_attrs) = parse_param_attrs(source, &types)?;
     let (source, result_ty) = types::parse(source, &types)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, name::parse))(source)?;
     let name = name.to_string().cloned().unwrap();
