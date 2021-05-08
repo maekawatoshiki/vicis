@@ -1,3 +1,5 @@
+mod frame;
+
 use super::generic_value::GenericValue;
 use crate::ir::{
     function::{
@@ -10,6 +12,7 @@ use crate::ir::{
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 use rustc_hash::FxHashMap;
+use std::alloc;
 
 pub struct Interpreter<'a> {
     module: &'a Module,
@@ -22,11 +25,9 @@ impl<'a> Interpreter<'a> {
 
     pub fn run_function(&mut self, func_id: FunctionId) -> Option<GenericValue> {
         let func = &self.module.functions()[func_id];
-        let mut alloca_size = 0;
-        let mut mem: Vec<u8> = Vec::with_capacity(1024);
-        mem.resize(1024, 0);
-        let mem = mem.into_raw_parts().0;
-        let mut id_to_genvalue = FxHashMap::default();
+
+        let mut stack = frame::StackFrame::new(func);
+
         let mut block = func.layout.first_block?;
 
         'outer: loop {
@@ -40,14 +41,19 @@ impl<'a> Interpreter<'a> {
                     Operand::Alloca {
                         tys,
                         num_elements,
-                        align: _,
+                        align,
                     } => {
-                        id_to_genvalue
-                            .insert(inst_id, GenericValue::Ptr(unsafe { mem.add(alloca_size) }));
                         let alloc_ty = tys[0];
                         let alloc_sz = self.module.types.size_of(alloc_ty)
                             * num_elements.as_int().cast_to_usize();
-                        alloca_size += alloc_sz;
+                        let alloc_align = if align > &0 { *align } else { 8 } as usize;
+                        let ptr = unsafe {
+                            alloc::alloc(
+                                alloc::Layout::from_size_align(alloc_sz, alloc_align)
+                                    .expect("layout err"),
+                            )
+                        };
+                        stack.add_inst_val(inst_id, GenericValue::Ptr(ptr));
                     }
                     Operand::Store {
                         tys,
@@ -57,7 +63,7 @@ impl<'a> Interpreter<'a> {
                         let ty = tys[0];
                         let src = args[0];
                         let dst = args[1];
-                        let dst_addr = genvalue(&func.data, &id_to_genvalue, dst);
+                        let dst_addr = stack.get_val(dst).unwrap();
                         match func.data.value_ref(src) {
                             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => unsafe {
                                 *(dst_addr.to_ptr().unwrap() as *mut i32) = *i;
@@ -66,7 +72,7 @@ impl<'a> Interpreter<'a> {
                                 if matches!(&*func.types.get(ty), Type::Int(32)) =>
                             unsafe {
                                 *(dst_addr.to_ptr().unwrap() as *mut i32) =
-                                    id_to_genvalue[id].to_i32().unwrap();
+                                    stack.get_inst_val(*id).unwrap().to_i32().unwrap();
                             }
                             e => todo!("{:?}", e),
                         }
@@ -77,9 +83,9 @@ impl<'a> Interpreter<'a> {
                         align: _,
                     } => {
                         let ty = tys[0];
-                        let addr = genvalue(&func.data, &id_to_genvalue, *addr);
+                        let addr = stack.get_val(*addr).unwrap();
                         match &*func.types.get(ty) {
-                            Type::Int(32) => id_to_genvalue.insert(
+                            Type::Int(32) => stack.add_inst_val(
                                 inst_id,
                                 GenericValue::Int32(unsafe {
                                     *(addr.to_ptr().unwrap() as *const i32)
@@ -94,25 +100,25 @@ impl<'a> Interpreter<'a> {
                         nuw: _,
                         args,
                     } => {
-                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
-                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
+                        let x = stack.get_val(args[0]).unwrap();
+                        let y = stack.get_val(args[1]).unwrap();
                         match inst.opcode {
-                            Opcode::Add => id_to_genvalue.insert(inst_id, add(x, y).unwrap()),
-                            Opcode::Sub => id_to_genvalue.insert(inst_id, sub(x, y).unwrap()),
+                            Opcode::Add => stack.add_inst_val(inst_id, add(x, y).unwrap()),
+                            Opcode::Sub => stack.add_inst_val(inst_id, sub(x, y).unwrap()),
                             _ => todo!(),
                         };
                     }
                     Operand::ICmp { ty: _, args, cond } => {
-                        let x = genvalue(&func.data, &id_to_genvalue, args[0]);
-                        let y = genvalue(&func.data, &id_to_genvalue, args[1]);
+                        let x = stack.get_val(args[0]).unwrap();
+                        let y = stack.get_val(args[1]).unwrap();
                         let res = match cond {
                             ICmpCond::Slt => slt(x, y).unwrap(),
                             _ => todo!(),
                         };
-                        id_to_genvalue.insert(inst_id, res);
+                        stack.add_inst_val(inst_id, res);
                     }
                     Operand::CondBr { arg, blocks } => {
-                        let arg = genvalue(&func.data, &id_to_genvalue, *arg);
+                        let arg = stack.get_val(*arg).unwrap();
                         if matches!(arg, GenericValue::Int1(true)) {
                             block = blocks[0];
                         } else {
@@ -129,7 +135,7 @@ impl<'a> Interpreter<'a> {
                         ty: _,
                         val: Some(val),
                     } => {
-                        let val = genvalue(&func.data, &id_to_genvalue, *val);
+                        let val = stack.get_val(*val).unwrap();
                         return Some(val);
                     }
                     _ => todo!("{:?}", inst.opcode),
@@ -145,18 +151,6 @@ impl<'a> Interpreter<'a> {
         }
 
         panic!("reached end of function without terminator");
-    }
-}
-
-fn genvalue(
-    data: &Data,
-    id_to_genvalue: &FxHashMap<InstructionId, GenericValue>,
-    id: ValueId,
-) -> GenericValue {
-    match data.value_ref(id) {
-        Value::Instruction(id) => id_to_genvalue[id],
-        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => GenericValue::Int32(*i),
-        _ => todo!(),
     }
 }
 
