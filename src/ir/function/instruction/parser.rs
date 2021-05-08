@@ -89,6 +89,7 @@ pub fn parse_load<'a, 'b>(
         ),
     ))(source)?;
     let (source, _) = opt(parse_metadata("!nonnull"))(source)?; // TODO: FIXME: don't ignore !nonnull
+    let (source, _) = opt(parse_metadata("!range"))(source)?; // TODO: FIXME: don't ignore !range
     let inst = Opcode::Load
         .with_block(ctx.cur_block)
         .with_operand(Operand::Load {
@@ -263,6 +264,7 @@ pub fn parse_cast<'a, 'b>(
             map(tag("zext"), |_| Opcode::Zext),
             map(tag("bitcast"), |_| Opcode::Bitcast),
             map(tag("trunc"), |_| Opcode::Trunc),
+            map(tag("inttoptr"), |_| Opcode::IntToPtr),
         )),
     )(source)?;
     let (source, from) = types::parse(source, ctx.types)?;
