@@ -25,8 +25,8 @@ jobs:
       run:  |
             rustup override set nightly && \
             wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add - && \
-            sudo sh -c echo '"deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
-            sudo sh -c echo '"deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
+            sudo sh -c 'echo "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
+            sudo sh -c 'echo "deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
             sudo -E apt-get update && \
             # sudo -E dpkg --configure -a && \
             # sudo -E dpkg --remove containers-common && \
