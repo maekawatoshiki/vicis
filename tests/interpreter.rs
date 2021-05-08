@@ -1,5 +1,5 @@
 use vicis::{
-    exec::{generic_value::GenericValue, interpreter::Interpreter},
+    exec::{generic_value::GenericValue, interpreter},
     ir::module,
 };
 
@@ -26,9 +26,8 @@ attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
     let main = module.find_function_by_name("main").unwrap();
-    let mut interpreter = Interpreter::new(&module);
     assert_eq!(
-        interpreter.run_function(main).unwrap(),
+        interpreter::run_function(&module, main).unwrap(),
         GenericValue::Int32(0)
     );
 }
@@ -84,9 +83,8 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
     "#;
     let module = module::parse_assembly(asm).unwrap();
     let main = module.find_function_by_name("main").unwrap();
-    let mut interpreter = Interpreter::new(&module);
     assert_eq!(
-        interpreter.run_function(main).unwrap(),
+        interpreter::run_function(&module, main).unwrap(),
         GenericValue::Int32(55)
     );
 }

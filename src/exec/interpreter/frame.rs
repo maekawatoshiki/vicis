@@ -4,18 +4,21 @@ use crate::{
     exec::generic_value::GenericValue,
     ir::{
         function::{instruction::InstructionId, Function},
+        module::Module,
         value::{ConstantData, ConstantInt, Value, ValueId},
     },
 };
 
 pub struct StackFrame<'a> {
+    pub module: &'a Module,
     pub func: &'a Function,
     val_map: FxHashMap<InstructionId, GenericValue>,
 }
 
 impl<'a> StackFrame<'a> {
-    pub fn new(func: &'a Function) -> Self {
+    pub fn new(module: &'a Module, func: &'a Function) -> Self {
         Self {
+            module,
             func,
             val_map: FxHashMap::default(),
         }
