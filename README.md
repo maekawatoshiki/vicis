@@ -14,8 +14,7 @@ Manipulate LLVM-IR in Pure Rust
 
 # Requirements
 
-- llvm (>= 10.0.0 recommended) is used for tests
-  - it's ironic :cry:
+- llvm (== 12.0.0) is used for tests
 
 # Example
 
