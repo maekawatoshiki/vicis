@@ -46,7 +46,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         write!(self.fmt, "{:?} ", f.preemption_specifier)?;
         write!(self.fmt, "{:?} ", f.visibility)?;
         for attr in &f.ret_attrs {
-            write!(self.fmt, "{:?} ", attr)?
+            write!(self.fmt, "{} ", attr.to_string(&f.types))?
         }
         write!(self.fmt, "{} ", f.types.to_string(f.result_ty))?;
         write!(self.fmt, "@{}(", f.name)?;
@@ -54,7 +54,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         for (i, param) in f.params.iter().enumerate() {
             write!(self.fmt, "{} ", f.types.to_string(param.ty))?;
             for attr in &param.attrs {
-                write!(self.fmt, "{:?} ", attr)?;
+                write!(self.fmt, "{} ", attr.to_string(&f.types))?;
             }
             match param.name.to_string() {
                 Some(name) => {
@@ -343,9 +343,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     } else {
                         format!("%{:?} = ", dest)
                     },
-                    ret_attrs
-                        .iter()
-                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
+                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
+                        "{}{} ",
+                        acc,
+                        attr.to_string(types)
+                    )),
                     types.to_string(tys[0]),
                     self.value_to_string(data.value_ref(args[0]), types),
                     tys[1..]
@@ -359,7 +361,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 acc,
                                 types.to_string(ty),
                                 attrs.iter().fold("".to_string(), |acc, attr| {
-                                    format!("{}{:?} ", acc, attr)
+                                    format!("{}{} ", acc, attr.to_string(types))
                                 }),
                                 self.value_to_string(data.value_ref(arg), types),
                             )
@@ -386,9 +388,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     } else {
                         format!("%{:?} = ", dest)
                     },
-                    ret_attrs
-                        .iter()
-                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
+                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
+                        "{}{} ",
+                        acc,
+                        attr.to_string(types)
+                    )),
                     types.to_string(tys[0]),
                     self.value_to_string(data.value_ref(args[0]), types),
                     tys[1..]
@@ -402,7 +406,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 acc,
                                 types.to_string(ty),
                                 attrs.iter().fold("".to_string(), |acc, attr| {
-                                    format!("{}{:?} ", acc, attr)
+                                    format!("{}{} ", acc, attr.to_string(types))
                                 }),
                                 self.value_to_string(data.value_ref(arg), types),
                             )

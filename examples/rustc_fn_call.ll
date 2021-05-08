@@ -3,14 +3,16 @@ source_filename = "a.7rcbfp3g-cgu.0"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
+%"std::fmt::Formatter" = type { [0 x i64], { i64, i64 }, [0 x i64], { i64, i64 }, [0 x i64], { {}*, [3 x i64]* }, [0 x i32], i32, [0 x i32], i32, [0 x i8], i8, [7 x i8] }
+%"core::fmt::Opaque" = type {}
 %"std::fmt::Arguments" = type { [0 x i64], { [0 x { [0 x i8]*, i64 }]*, i64 }, [0 x i64], { i64*, i64 }, [0 x i64], { [0 x { i8*, i64* }]*, i64 }, [0 x i64] }
 %"unwind::libunwind::_Unwind_Exception" = type { [0 x i64], i64, [0 x i64], void (i32, %"unwind::libunwind::_Unwind_Exception"*)*, [0 x i64], [6 x i64], [0 x i64] }
 %"unwind::libunwind::_Unwind_Context" = type { [0 x i8] }
 
 @vtable.0 = private unnamed_addr constant { void (i64**)*, i64, i64, i32 (i64**)*, i32 (i64**)*, i32 (i64**)* } { void (i64**)* @"_ZN4core3ptr85drop_in_place$LT$std..rt..lang_start$LT$$LP$$RP$$GT$..$u7b$$u7b$closure$u7d$$u7d$$GT$17h6be9283ec94d764bE", i64 8, i64 8, i32 (i64**)* @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17hc67b0eba1738ef88E", i32 (i64**)* @"_ZN3std2rt10lang_start28_$u7b$$u7b$closure$u7d$$u7d$17hc67b0eba1738ef88E", i32 (i64**)* @"_ZN4core3ops8function6FnOnce40call_once$u7b$$u7b$vtable.shim$u7d$$u7d$17h725d331cbdf52b97E" }, align 8
-@alloc1 = private unnamed_addr constant <{ [12 x i8] }> <{ [12 x i8] c"hello world\0A" }>, align 1
-@alloc2 = private unnamed_addr constant <{ i8*, [8 x i8] }> <{ i8* getelementptr inbounds (<{ [12 x i8] }>, <{ [12 x i8] }>* @alloc1, i32 0, i32 0, i32 0), [8 x i8] c"\0C\00\00\00\00\00\00\00" }>, align 8
-@alloc4 = private unnamed_addr constant <{ [0 x i8] }> zeroinitializer, align 8
+@alloc1 = private unnamed_addr constant <{ [12 x i8] }> <{ [12 x i8] c"hello world " }>, align 1
+@alloc3 = private unnamed_addr constant <{ [1 x i8] }> <{ [1 x i8] c"\0A" }>, align 1
+@alloc2 = private unnamed_addr constant <{ i8*, [8 x i8], i8*, [8 x i8] }> <{ i8* getelementptr inbounds (<{ [12 x i8] }>, <{ [12 x i8] }>* @alloc1, i32 0, i32 0, i32 0), [8 x i8] c"\0C\00\00\00\00\00\00\00", i8* getelementptr inbounds (<{ [1 x i8] }>, <{ [1 x i8] }>* @alloc3, i32 0, i32 0, i32 0), [8 x i8] c"\01\00\00\00\00\00\00\00" }>, align 8
 
 ; std::sys_common::backtrace::__rust_begin_short_backtrace
 ; Function Attrs: noinline nonlazybind uwtable
@@ -95,6 +97,39 @@ start:
   %_2 = load i8, i8* %self, align 1
   %0 = zext i8 %_2 to i32
   ret i32 %0
+}
+
+; core::fmt::ArgumentV1::new
+; Function Attrs: nonlazybind uwtable
+define internal { i8*, i64* } @_ZN4core3fmt10ArgumentV13new17haeda942aa9336562E(i32* noalias readonly align 4 dereferenceable(4) %x, i1 (i32*, %"std::fmt::Formatter"*)* nonnull %f) unnamed_addr #1 {
+start:
+  %0 = alloca %"core::fmt::Opaque"*, align 8
+  %1 = alloca i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)*, align 8
+  %2 = alloca { i8*, i64* }, align 8
+  %3 = bitcast i1 (i32*, %"std::fmt::Formatter"*)* %f to i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)*
+  store i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)* %3, i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)** %1, align 8
+  %_3 = load i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)*, i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)** %1, align 8, !nonnull !3
+  br label %bb1
+
+bb1:                                              ; preds = %start
+  %4 = bitcast i32* %x to %"core::fmt::Opaque"*
+  store %"core::fmt::Opaque"* %4, %"core::fmt::Opaque"** %0, align 8
+  %_5 = load %"core::fmt::Opaque"*, %"core::fmt::Opaque"** %0, align 8, !nonnull !3
+  br label %bb2
+
+bb2:                                              ; preds = %bb1
+  %5 = bitcast { i8*, i64* }* %2 to %"core::fmt::Opaque"**
+  store %"core::fmt::Opaque"* %_5, %"core::fmt::Opaque"** %5, align 8
+  %6 = getelementptr inbounds { i8*, i64* }, { i8*, i64* }* %2, i32 0, i32 1
+  %7 = bitcast i64** %6 to i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)**
+  store i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)* %_3, i1 (%"core::fmt::Opaque"*, %"std::fmt::Formatter"*)** %7, align 8
+  %8 = getelementptr inbounds { i8*, i64* }, { i8*, i64* }* %2, i32 0, i32 0
+  %9 = load i8*, i8** %8, align 8, !nonnull !3
+  %10 = getelementptr inbounds { i8*, i64* }, { i8*, i64* }* %2, i32 0, i32 1
+  %11 = load i64*, i64** %10, align 8, !nonnull !3
+  %12 = insertvalue { i8*, i64* } undef, i8* %9, 0
+  %13 = insertvalue { i8*, i64* } %12, i64* %11, 1
+  ret { i8*, i64* } %13
 }
 
 ; core::fmt::Arguments::new_v1
@@ -236,21 +271,52 @@ bb1:                                              ; preds = %start
   ret i32 %1
 }
 
+; a::f
+; Function Attrs: nonlazybind uwtable
+define internal i32 @_ZN1a1f17h2adf0efcb5ff6894E() unnamed_addr #1 {
+start:
+  ret i32 123
+}
+
 ; a::main
 ; Function Attrs: nonlazybind uwtable
 define internal void @_ZN1a4main17h2f11f58c70c1d210E() unnamed_addr #1 {
 start:
+  %_12 = alloca i32, align 4
+  %_10 = alloca i32*, align 8
+  %_9 = alloca [1 x { i8*, i64* }], align 8
   %_2 = alloca %"std::fmt::Arguments", align 8
-; call core::fmt::Arguments::new_v1
-  call void @_ZN4core3fmt9Arguments6new_v117he6f7a0435a4ddfe0E(%"std::fmt::Arguments"* noalias nocapture sret(%"std::fmt::Arguments") dereferenceable(48) %_2, [0 x { [0 x i8]*, i64 }]* noalias nonnull readonly align 8 bitcast (<{ i8*, [8 x i8] }>* @alloc2 to [0 x { [0 x i8]*, i64 }]*), i64 1, [0 x { i8*, i64* }]* noalias nonnull readonly align 8 bitcast (<{ [0 x i8] }>* @alloc4 to [0 x { i8*, i64* }]*), i64 0)
+; call a::f
+  %0 = call i32 @_ZN1a1f17h2adf0efcb5ff6894E()
+  store i32 %0, i32* %_12, align 4
   br label %bb1
 
 bb1:                                              ; preds = %start
-; call std::io::stdio::_print
-  call void @_ZN3std2io5stdio6_print17h1203ca2abdf22dfaE(%"std::fmt::Arguments"* noalias nocapture dereferenceable(48) %_2)
+  store i32* %_12, i32** %_10, align 8
+  %arg0 = load i32*, i32** %_10, align 8, !nonnull !3
+; call core::fmt::ArgumentV1::new
+  %1 = call { i8*, i64* } @_ZN4core3fmt10ArgumentV13new17haeda942aa9336562E(i32* noalias readonly align 4 dereferenceable(4) %arg0, i1 (i32*, %"std::fmt::Formatter"*)* nonnull @"_ZN4core3fmt3num3imp52_$LT$impl$u20$core..fmt..Display$u20$for$u20$i32$GT$3fmt17he4610f81b6d3fde2E")
+  %_14.0 = extractvalue { i8*, i64* } %1, 0
+  %_14.1 = extractvalue { i8*, i64* } %1, 1
   br label %bb2
 
 bb2:                                              ; preds = %bb1
+  %2 = bitcast [1 x { i8*, i64* }]* %_9 to { i8*, i64* }*
+  %3 = getelementptr inbounds { i8*, i64* }, { i8*, i64* }* %2, i32 0, i32 0
+  store i8* %_14.0, i8** %3, align 8
+  %4 = getelementptr inbounds { i8*, i64* }, { i8*, i64* }* %2, i32 0, i32 1
+  store i64* %_14.1, i64** %4, align 8
+  %_6.0 = bitcast [1 x { i8*, i64* }]* %_9 to [0 x { i8*, i64* }]*
+; call core::fmt::Arguments::new_v1
+  call void @_ZN4core3fmt9Arguments6new_v117he6f7a0435a4ddfe0E(%"std::fmt::Arguments"* noalias nocapture sret(%"std::fmt::Arguments") dereferenceable(48) %_2, [0 x { [0 x i8]*, i64 }]* noalias nonnull readonly align 8 bitcast (<{ i8*, [8 x i8], i8*, [8 x i8] }>* @alloc2 to [0 x { [0 x i8]*, i64 }]*), i64 2, [0 x { i8*, i64* }]* noalias nonnull readonly align 8 %_6.0, i64 1)
+  br label %bb3
+
+bb3:                                              ; preds = %bb2
+; call std::io::stdio::_print
+  call void @_ZN3std2io5stdio6_print17h1203ca2abdf22dfaE(%"std::fmt::Arguments"* noalias nocapture dereferenceable(48) %_2)
+  br label %bb4
+
+bb4:                                              ; preds = %bb3
   ret void
 }
 
@@ -260,6 +326,10 @@ declare i32 @rust_eh_personality(i32, i32, i64, %"unwind::libunwind::_Unwind_Exc
 ; std::rt::lang_start_internal
 ; Function Attrs: nonlazybind uwtable
 declare i64 @_ZN3std2rt19lang_start_internal17h12392519f60c6396E({}* nonnull align 1, [3 x i64]* noalias readonly align 8 dereferenceable(24), i64, i8**) unnamed_addr #1
+
+; core::fmt::num::imp::<impl core::fmt::Display for i32>::fmt
+; Function Attrs: nonlazybind uwtable
+declare zeroext i1 @"_ZN4core3fmt3num3imp52_$LT$impl$u20$core..fmt..Display$u20$for$u20$i32$GT$3fmt17he4610f81b6d3fde2E"(i32* noalias readonly align 4 dereferenceable(4), %"std::fmt::Formatter"* align 8 dereferenceable(64)) unnamed_addr #1
 
 ; std::io::stdio::_print
 ; Function Attrs: nonlazybind uwtable
@@ -287,4 +357,4 @@ attributes #4 = { nonlazybind "target-cpu"="x86-64" }
 !1 = !{i32 7, !"PIE Level", i32 2}
 !2 = !{i32 2, !"RtLibUseGOT", i32 1}
 !3 = !{}
-!4 = !{i32 2849348}
+!4 = !{i32 2849383}

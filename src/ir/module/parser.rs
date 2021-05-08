@@ -175,7 +175,7 @@ fn parse_all_examples() {
             write!(file, "{:?}", module).unwrap();
             file.flush().unwrap();
         }
-        assert!(process::Command::new("llc-10")
+        assert!(process::Command::new("llc-12")
             .args(&["/tmp/output.ll"])
             .stderr(process::Stdio::null())
             .status()

@@ -24,6 +24,9 @@ jobs:
         ACCEPT_EULA: Y
       run:  |
             rustup override set nightly && \
+            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add - && \
+            sudo sh -c echo '"deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
+            sudo sh -c echo '"deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list' && \
             sudo -E apt-get update && \
             # sudo -E dpkg --configure -a && \
             # sudo -E dpkg --remove containers-common && \
@@ -31,7 +34,7 @@ jobs:
             sudo -E apt-get install -y zlib1g-dev apt-utils && \
             sudo -E apt-get install -y opt libedit-dev build-essential make && \
             sudo -E apt-get install -y cmake llvm-10 pkg-config jq && \
-            sudo -E apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev && \
+            sudo -E apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev llvm-12 && \
             cargo install cargo-kcov && \
             cargo kcov --print-install-kcov-sh | sh
     - name: Run tests
