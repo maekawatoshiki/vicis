@@ -33,6 +33,7 @@ pub enum ConstantData {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ConstantInt {
+    Int1(bool),
     Int8(i8),
     Int32(i32),
     Int64(i64),
@@ -142,6 +143,7 @@ impl ConstantData {
 impl ConstantInt {
     pub fn to_string(&self) -> String {
         match self {
+            Self::Int1(i) => format!("{}", i),
             Self::Int8(i) => format!("{}", i),
             Self::Int32(i) => format!("{}", i),
             Self::Int64(i) => format!("{}", i),
@@ -158,6 +160,7 @@ impl ConstantInt {
     // TODO: Generics?
     pub fn cast_to_usize(self) -> usize {
         match self {
+            Self::Int1(i) => i as usize,
             Self::Int8(i) => i as usize,
             Self::Int32(i) => i as usize,
             Self::Int64(i) => i as usize,

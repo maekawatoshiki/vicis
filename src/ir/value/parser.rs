@@ -50,8 +50,15 @@ pub fn parse_constant_int<'a>(
     types: &Types,
     ty: TypeId,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    let (source, num) = preceded(spaces, recognize(tuple((opt(char('-')), digit1))))(source)?;
+    let (source, num) = preceded(
+        spaces,
+        recognize(tuple((
+            opt(char('-')),
+            alt((digit1, tag("true"), tag("false"))),
+        ))),
+    )(source)?;
     let val = match &*types.get(ty) {
+        Type::Int(1) => ConstantData::Int(ConstantInt::Int1(num == "true")),
         Type::Int(8) => ConstantData::Int(ConstantInt::Int8(num.parse::<i8>().unwrap())),
         Type::Int(32) => ConstantData::Int(ConstantInt::Int32(num.parse::<i32>().unwrap())),
         Type::Int(64) => ConstantData::Int(ConstantInt::Int64(num.parse::<i64>().unwrap())),
