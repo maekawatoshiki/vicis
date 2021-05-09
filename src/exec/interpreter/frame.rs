@@ -1,25 +1,25 @@
 use rustc_hash::FxHashMap;
 
+use super::Context;
 use crate::{
     exec::generic_value::GenericValue,
     ir::{
         function::{instruction::InstructionId, Function},
-        module::Module,
         value::{ConstantData, ConstantInt, Value, ValueId},
     },
 };
 
 pub struct StackFrame<'a> {
-    pub module: &'a Module,
+    pub ctx: &'a Context<'a>,
     pub func: &'a Function,
     val_map: FxHashMap<InstructionId, GenericValue>,
     args: Vec<GenericValue>,
 }
 
 impl<'a> StackFrame<'a> {
-    pub fn new(module: &'a Module, func: &'a Function, args: Vec<GenericValue>) -> Self {
+    pub fn new(ctx: &'a Context<'a>, func: &'a Function, args: Vec<GenericValue>) -> Self {
         Self {
-            module,
+            ctx,
             func,
             val_map: FxHashMap::default(),
             args,
@@ -44,8 +44,15 @@ impl<'a> StackFrame<'a> {
                 Some(GenericValue::Int64(*i))
             }
             Value::Constant(ConstantData::GlobalRef(name)) => {
-                if let Some(f) = self.module.find_function_by_name(name.to_string().unwrap()) {
+                if let Some(f) = self
+                    .ctx
+                    .module
+                    .find_function_by_name(name.to_string().unwrap())
+                {
                     return Some(GenericValue::id(f));
+                }
+                if let Some(g) = self.ctx.globals.get(&name) {
+                    return Some(*g);
                 }
                 None
             }

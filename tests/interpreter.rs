@@ -25,9 +25,10 @@ define dso_local i32 @main() #0 {
 attributes #0 = { noinline nounwind optnone uwtable }
 "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(0)
     );
 }
@@ -82,9 +83,10 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(55)
     );
 }
@@ -119,9 +121,10 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(123)
     );
 }
@@ -160,9 +163,10 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(42)
     );
 }
@@ -221,9 +225,10 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(89)
     );
 }
@@ -262,9 +267,10 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(3)
     );
 }
@@ -342,9 +348,10 @@ define dso_local i32 @main() #0 {
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
     "#;
     let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
-        interpreter::run_function(&module, main, vec![]).unwrap(),
+        interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(55)
     );
 }

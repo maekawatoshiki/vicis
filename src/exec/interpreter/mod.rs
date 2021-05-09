@@ -6,20 +6,26 @@ use crate::ir::{
         instruction::{ICmpCond, InstructionId, Opcode, Operand},
         FunctionId,
     },
-    module::Module,
+    module::{name::Name, Module},
     types::{ArrayType, Type, TypeId, Types},
     value::{ConstantData, ValueId},
 };
 use frame::StackFrame;
+use rustc_hash::FxHashMap;
 use std::alloc;
 
+pub struct Context<'a> {
+    pub module: &'a Module,
+    pub globals: FxHashMap<Name, GenericValue>,
+}
+
 pub fn run_function(
-    module: &Module,
+    ctx: &Context,
     func_id: FunctionId,
     args: Vec<GenericValue>,
 ) -> Option<GenericValue> {
-    let func = &module.functions()[func_id];
-    let mut frame = StackFrame::new(module, func, args);
+    let func = &ctx.module.functions()[func_id];
+    let mut frame = StackFrame::new(ctx, func, args);
     let mut block = func.layout.first_block?;
 
     'main: loop {
@@ -204,7 +210,7 @@ fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[TypeId], args: &[
         .map(|&a| frame.get_val(a).unwrap())
         .collect();
     let func_id = callee.to_id::<FunctionId>().unwrap();
-    if let Some(ret) = run_function(frame.module, *func_id, args) {
+    if let Some(ret) = run_function(frame.ctx, *func_id, args) {
         match ret {
             GenericValue::Void => {}
             v => frame.add_inst_val(id, v),
@@ -239,6 +245,23 @@ fn slt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x < y)),
         _ => None,
+    }
+}
+
+// Context
+
+impl<'a> Context<'a> {
+    pub fn new(module: &'a Module) -> Self {
+        let mut globals = FxHashMap::default();
+        for (name, gv) in &module.global_variables {
+            let sz = module.types.size_of(gv.ty);
+            let align = if gv.align > 0 { gv.align } else { 8 } as usize;
+            let ptr = unsafe {
+                alloc::alloc(alloc::Layout::from_size_align(sz, align).expect("layout err"))
+            };
+            globals.insert(name.clone(), GenericValue::Ptr(ptr));
+        }
+        Self { module, globals }
     }
 }
 
