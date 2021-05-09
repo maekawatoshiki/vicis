@@ -7,9 +7,10 @@ use crate::ir::{
         FunctionId,
     },
     module::Module,
-    types::{Type, TypeId, Types},
-    value::{ConstantData, ConstantInt, Value, ValueId},
+    types::{ArrayType, Type, TypeId, Types},
+    value::{ConstantData, ValueId},
 };
+use frame::StackFrame;
 use std::alloc;
 
 pub fn run_function(
@@ -18,7 +19,7 @@ pub fn run_function(
     args: Vec<GenericValue>,
 ) -> Option<GenericValue> {
     let func = &module.functions()[func_id];
-    let mut stack = frame::StackFrame::new(module, func, args);
+    let mut frame = StackFrame::new(module, func, args);
     let mut block = func.layout.first_block?;
 
     'main: loop {
@@ -33,21 +34,27 @@ pub fn run_function(
                     tys,
                     num_elements,
                     align,
-                } => run_alloca(&mut stack, inst_id, tys, num_elements, *align),
-                Operand::Store { tys, args, align } => run_store(&mut stack, tys, args, *align),
+                } => run_alloca(&mut frame, inst_id, tys, num_elements, *align),
+                Operand::Store { tys, args, align } => run_store(&mut frame, tys, args, *align),
                 Operand::Load { tys, addr, align } => {
-                    run_load(&mut stack, inst_id, tys, *addr, *align)
+                    run_load(&mut frame, inst_id, tys, *addr, *align)
                 }
                 Operand::IntBinary {
                     ty: _,
                     nsw: _,
                     nuw: _,
                     args,
-                } => run_int_binary(&mut stack, inst_id, inst.opcode, args),
-                Operand::ICmp { ty: _, args, cond } => run_icmp(&mut stack, inst_id, args, *cond),
-                Operand::Call { tys, args, .. } => run_call(&mut stack, inst_id, tys, args),
+                } => run_int_binary(&mut frame, inst_id, inst.opcode, args),
+                Operand::ICmp { ty: _, args, cond } => run_icmp(&mut frame, inst_id, args, *cond),
+                Operand::Cast { tys, arg } => run_cast(&mut frame, inst_id, inst.opcode, tys, *arg),
+                Operand::GetElementPtr {
+                    inbounds: _,
+                    tys,
+                    args,
+                } => run_gep(&mut frame, inst_id, tys, args),
+                Operand::Call { tys, args, .. } => run_call(&mut frame, inst_id, tys, args),
                 Operand::CondBr { arg, blocks } => {
-                    let arg = stack.get_val(*arg).unwrap();
+                    let arg = frame.get_val(*arg).unwrap();
                     block = blocks[if matches!(arg, GenericValue::Int1(true)) {
                         0
                     } else {
@@ -64,7 +71,7 @@ pub fn run_function(
                     ty: _,
                     val: Some(val),
                 } => {
-                    let val = stack.get_val(*val).unwrap();
+                    let val = frame.get_val(*val).unwrap();
                     return Some(val);
                 }
                 _ => todo!("{:?}", inst.opcode),
@@ -85,26 +92,26 @@ pub fn run_function(
 // Instructions
 
 fn run_alloca(
-    stack: &mut frame::StackFrame,
+    frame: &mut StackFrame,
     id: InstructionId,
     tys: &[TypeId],
     num_elements: &ConstantData,
     align: u32,
 ) {
     let alloc_ty = tys[0];
-    let alloc_sz = stack.func.types.size_of(alloc_ty) * num_elements.as_int().cast_to_usize();
+    let alloc_sz = frame.func.types.size_of(alloc_ty) * num_elements.as_int().cast_to_usize();
     let alloc_align = if align > 0 { align } else { 8 } as usize;
     let ptr = unsafe {
         alloc::alloc(alloc::Layout::from_size_align(alloc_sz, alloc_align).expect("layout err"))
     };
-    stack.add_inst_val(id, GenericValue::Ptr(ptr));
+    frame.add_inst_val(id, GenericValue::Ptr(ptr));
 }
 
-fn run_store(stack: &mut frame::StackFrame, _tys: &[TypeId], args: &[ValueId], _align: u32) {
+fn run_store(frame: &mut StackFrame, _tys: &[TypeId], args: &[ValueId], _align: u32) {
     let src = args[0];
     let dst = args[1];
-    let dst = stack.get_val(dst).unwrap();
-    let src = stack.get_val(src).unwrap();
+    let dst = frame.get_val(dst).unwrap();
+    let src = frame.get_val(src).unwrap();
     match src {
         GenericValue::Int32(i) => unsafe {
             *(dst.to_ptr().unwrap() as *mut i32) = i;
@@ -113,17 +120,11 @@ fn run_store(stack: &mut frame::StackFrame, _tys: &[TypeId], args: &[ValueId], _
     }
 }
 
-fn run_load(
-    stack: &mut frame::StackFrame,
-    id: InstructionId,
-    tys: &[TypeId],
-    addr: ValueId,
-    _align: u32,
-) {
+fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], addr: ValueId, _align: u32) {
     let ty = tys[0];
-    let addr = stack.get_val(addr).unwrap();
-    match &*stack.func.types.get(ty) {
-        Type::Int(32) => stack.add_inst_val(
+    let addr = frame.get_val(addr).unwrap();
+    match &*frame.func.types.get(ty) {
+        Type::Int(32) => frame.add_inst_val(
             id,
             GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
         ),
@@ -131,42 +132,82 @@ fn run_load(
     };
 }
 
-fn run_int_binary(
-    stack: &mut frame::StackFrame,
-    id: InstructionId,
-    opcode: Opcode,
-    args: &[ValueId],
-) {
-    let x = stack.get_val(args[0]).unwrap();
-    let y = stack.get_val(args[1]).unwrap();
+fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, args: &[ValueId]) {
+    let x = frame.get_val(args[0]).unwrap();
+    let y = frame.get_val(args[1]).unwrap();
     match opcode {
-        Opcode::Add => stack.add_inst_val(id, add(x, y).unwrap()),
-        Opcode::Sub => stack.add_inst_val(id, sub(x, y).unwrap()),
+        Opcode::Add => frame.add_inst_val(id, add(x, y).unwrap()),
+        Opcode::Sub => frame.add_inst_val(id, sub(x, y).unwrap()),
+        Opcode::Mul => frame.add_inst_val(id, mul(x, y).unwrap()),
         _ => todo!(),
     };
 }
 
-fn run_icmp(stack: &mut frame::StackFrame, id: InstructionId, args: &[ValueId], cond: ICmpCond) {
-    let x = stack.get_val(args[0]).unwrap();
-    let y = stack.get_val(args[1]).unwrap();
+fn run_icmp(frame: &mut StackFrame, id: InstructionId, args: &[ValueId], cond: ICmpCond) {
+    let x = frame.get_val(args[0]).unwrap();
+    let y = frame.get_val(args[1]).unwrap();
     let res = match cond {
         ICmpCond::Slt => slt(x, y).unwrap(),
         _ => todo!(),
     };
-    stack.add_inst_val(id, res);
+    frame.add_inst_val(id, res);
 }
 
-fn run_call(stack: &mut frame::StackFrame, id: InstructionId, _tys: &[TypeId], args: &[ValueId]) {
-    let callee = stack.get_val(args[0]).unwrap();
+fn run_cast(
+    frame: &mut StackFrame,
+    id: InstructionId,
+    opcode: Opcode,
+    tys: &[TypeId],
+    arg: ValueId,
+) {
+    let _from = tys[0];
+    let to = tys[1];
+    let arg = frame.get_val(arg).unwrap();
+    let val = match opcode {
+        Opcode::Sext => {
+            let arg = arg.sext_to_i64().unwrap();
+            match &*frame.func.types.get(to) {
+                Type::Int(32) => GenericValue::Int32(arg as i32),
+                Type::Int(64) => GenericValue::Int64(arg),
+                _ => todo!(),
+            }
+        }
+        t => todo!("cast {:?}", t),
+    };
+    frame.add_inst_val(id, val)
+}
+
+fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], args: &[ValueId]) {
+    let arg = frame.get_val(args[0]).unwrap().to_ptr().unwrap();
+    let mut total = 0;
+    let mut cur_ty = tys[1];
+    for &idx in &args[1..] {
+        if matches!(&*frame.func.types.get(cur_ty), Type::Struct(_)) {
+        } else {
+            let inner = frame.func.types.get_element(cur_ty).unwrap();
+            let idx = match frame.get_val(idx).unwrap() {
+                GenericValue::Int32(idx) => idx as usize,
+                GenericValue::Int64(idx) => idx as usize,
+                _ => panic!(),
+            };
+            total += frame.func.types.size_of(inner) * idx;
+            cur_ty = inner;
+        }
+    }
+    frame.add_inst_val(id, GenericValue::Ptr(unsafe { arg.add(total) }));
+}
+
+fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[TypeId], args: &[ValueId]) {
+    let callee = frame.get_val(args[0]).unwrap();
     let args: Vec<GenericValue> = args[1..]
         .iter()
-        .map(|&a| stack.get_val(a).unwrap())
+        .map(|&a| frame.get_val(a).unwrap())
         .collect();
     let func_id = callee.to_id::<FunctionId>().unwrap();
-    if let Some(ret) = run_function(stack.module, *func_id, args) {
+    if let Some(ret) = run_function(frame.module, *func_id, args) {
         match ret {
             GenericValue::Void => {}
-            v => stack.add_inst_val(id, v),
+            v => frame.add_inst_val(id, v),
         }
     }
 }
@@ -183,6 +224,13 @@ fn add(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn sub(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x - y)),
+        _ => None,
+    }
+}
+
+fn mul(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x * y)),
         _ => None,
     }
 }
@@ -210,6 +258,11 @@ impl TypeSize for Types {
             Type::Int(8) => 1,
             Type::Int(16) => 2,
             Type::Int(32) => 4,
+            Type::Array(ArrayType {
+                inner,
+                num_elements,
+            }) => self.size_of(*inner) * *num_elements as usize,
+            Type::Pointer(_) => 8,
             _ => todo!(),
         }
     }

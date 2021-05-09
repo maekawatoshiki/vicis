@@ -5,6 +5,7 @@ pub enum GenericValue {
     Void,
     Int1(bool),
     Int32(i32),
+    Int64(i64),
     Ptr(*mut u8),
     Id([u8; 16]),
 }
@@ -20,6 +21,22 @@ impl GenericValue {
     pub fn to_i32(&self) -> Option<i32> {
         match self {
             Self::Int32(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    pub fn to_i64(&self) -> Option<i64> {
+        match self {
+            Self::Int64(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    pub fn sext_to_i64(&self) -> Option<i64> {
+        match self {
+            Self::Int1(i) => Some(*i as i64),
+            Self::Int32(i) => Some(*i as i64),
+            Self::Int64(i) => Some(*i),
             _ => None,
         }
     }

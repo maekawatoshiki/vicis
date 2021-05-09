@@ -40,6 +40,9 @@ impl<'a> StackFrame<'a> {
             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
                 Some(GenericValue::Int32(*i))
             }
+            Value::Constant(ConstantData::Int(ConstantInt::Int64(i))) => {
+                Some(GenericValue::Int64(*i))
+            }
             Value::Constant(ConstantData::GlobalRef(name)) => {
                 if let Some(f) = self.module.find_function_by_name(name.to_string().unwrap()) {
                     return Some(GenericValue::id(f));
