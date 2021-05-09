@@ -12,9 +12,13 @@ use crate::ir::{
 };
 use std::alloc;
 
-pub fn run_function(module: &Module, func_id: FunctionId) -> Option<GenericValue> {
+pub fn run_function(
+    module: &Module,
+    func_id: FunctionId,
+    args: Vec<GenericValue>,
+) -> Option<GenericValue> {
     let func = &module.functions()[func_id];
-    let mut stack = frame::StackFrame::new(module, func);
+    let mut stack = frame::StackFrame::new(module, func, args);
     let mut block = func.layout.first_block?;
 
     'main: loop {
@@ -41,6 +45,7 @@ pub fn run_function(module: &Module, func_id: FunctionId) -> Option<GenericValue
                     args,
                 } => run_int_binary(&mut stack, inst_id, inst.opcode, args),
                 Operand::ICmp { ty: _, args, cond } => run_icmp(&mut stack, inst_id, args, *cond),
+                Operand::Call { tys, args, .. } => run_call(&mut stack, inst_id, tys, args),
                 Operand::CondBr { arg, blocks } => {
                     let arg = stack.get_val(*arg).unwrap();
                     block = blocks[if matches!(arg, GenericValue::Int1(true)) {
@@ -95,20 +100,16 @@ fn run_alloca(
     stack.add_inst_val(id, GenericValue::Ptr(ptr));
 }
 
-fn run_store(stack: &mut frame::StackFrame, tys: &[TypeId], args: &[ValueId], _align: u32) {
-    let ty = tys[0];
+fn run_store(stack: &mut frame::StackFrame, _tys: &[TypeId], args: &[ValueId], _align: u32) {
     let src = args[0];
     let dst = args[1];
-    let dst_addr = stack.get_val(dst).unwrap();
-    match stack.func.data.value_ref(src) {
-        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => unsafe {
-            *(dst_addr.to_ptr().unwrap() as *mut i32) = *i;
+    let dst = stack.get_val(dst).unwrap();
+    let src = stack.get_val(src).unwrap();
+    match src {
+        GenericValue::Int32(i) => unsafe {
+            *(dst.to_ptr().unwrap() as *mut i32) = i;
         },
-        Value::Instruction(id) if matches!(&*stack.func.types.get(ty), Type::Int(32)) => unsafe {
-            *(dst_addr.to_ptr().unwrap() as *mut i32) =
-                stack.get_inst_val(*id).unwrap().to_i32().unwrap();
-        },
-        e => todo!("{:?}", e),
+        t => todo!("{:?}", t),
     }
 }
 
@@ -153,6 +154,21 @@ fn run_icmp(stack: &mut frame::StackFrame, id: InstructionId, args: &[ValueId], 
         _ => todo!(),
     };
     stack.add_inst_val(id, res);
+}
+
+fn run_call(stack: &mut frame::StackFrame, id: InstructionId, _tys: &[TypeId], args: &[ValueId]) {
+    let callee = stack.get_val(args[0]).unwrap();
+    let args: Vec<GenericValue> = args[1..]
+        .iter()
+        .map(|&a| stack.get_val(a).unwrap())
+        .collect();
+    let func_id = callee.to_id::<FunctionId>().unwrap();
+    if let Some(ret) = run_function(stack.module, *func_id, args) {
+        match ret {
+            GenericValue::Void => {}
+            v => stack.add_inst_val(id, v),
+        }
+    }
 }
 
 // Utils

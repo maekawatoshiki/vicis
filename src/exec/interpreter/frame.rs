@@ -13,14 +13,16 @@ pub struct StackFrame<'a> {
     pub module: &'a Module,
     pub func: &'a Function,
     val_map: FxHashMap<InstructionId, GenericValue>,
+    args: Vec<GenericValue>,
 }
 
 impl<'a> StackFrame<'a> {
-    pub fn new(module: &'a Module, func: &'a Function) -> Self {
+    pub fn new(module: &'a Module, func: &'a Function, args: Vec<GenericValue>) -> Self {
         Self {
             module,
             func,
             val_map: FxHashMap::default(),
+            args,
         }
     }
 
@@ -38,6 +40,13 @@ impl<'a> StackFrame<'a> {
             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
                 Some(GenericValue::Int32(*i))
             }
+            Value::Constant(ConstantData::GlobalRef(name)) => {
+                if let Some(f) = self.module.find_function_by_name(name.to_string().unwrap()) {
+                    return Some(GenericValue::id(f));
+                }
+                None
+            }
+            Value::Argument(i) => self.args.get(*i).copied(),
             _ => None,
         }
     }
