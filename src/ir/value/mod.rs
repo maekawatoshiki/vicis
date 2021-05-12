@@ -43,7 +43,7 @@ pub enum ConstantInt {
 pub struct ConstantArray {
     pub elem_ty: TypeId,
     pub elems: Vec<ConstantData>,
-    pub is_string: bool, // Int32(i32),
+    pub is_string: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

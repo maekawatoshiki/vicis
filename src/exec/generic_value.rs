@@ -4,6 +4,7 @@ use id_arena::Id;
 pub enum GenericValue {
     Void,
     Int1(bool),
+    Int8(i8),
     Int32(i32),
     Int64(i64),
     Ptr(*mut u8),
@@ -35,6 +36,7 @@ impl GenericValue {
     pub fn sext_to_i64(&self) -> Option<i64> {
         match self {
             Self::Int1(i) => Some(*i as i64),
+            Self::Int8(i) => Some(*i as i64),
             Self::Int32(i) => Some(*i as i64),
             Self::Int64(i) => Some(*i),
             _ => None,

@@ -5,7 +5,7 @@ use crate::{
     exec::generic_value::GenericValue,
     ir::{
         function::{instruction::InstructionId, Function},
-        value::{ConstantData, ConstantInt, Value, ValueId},
+        value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
     },
 };
 
@@ -57,6 +57,12 @@ impl<'a> StackFrame<'a> {
                 None
             }
             Value::Argument(i) => self.args.get(*i).copied(),
+            Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
+                match args[0] {
+                    ConstantData::GlobalRef(ref name) => self.ctx.globals.get(&name).copied(),
+                    _ => todo!(),
+                }
+            }
             _ => None,
         }
     }

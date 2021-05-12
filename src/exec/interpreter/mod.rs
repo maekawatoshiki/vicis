@@ -8,15 +8,15 @@ use crate::ir::{
     },
     module::{name::Name, Module},
     types::{ArrayType, Type, TypeId, Types},
-    value::{ConstantData, ValueId},
+    value::{ConstantArray, ConstantData, ValueId},
 };
 use frame::StackFrame;
 use rustc_hash::FxHashMap;
-use std::alloc;
+use std::{alloc, ptr};
 
 pub struct Context<'a> {
     pub module: &'a Module,
-    pub globals: FxHashMap<Name, GenericValue>,
+    globals: FxHashMap<Name, GenericValue>,
 }
 
 pub fn run_function(
@@ -122,6 +122,9 @@ fn run_store(frame: &mut StackFrame, _tys: &[TypeId], args: &[ValueId], _align: 
         GenericValue::Int32(i) => unsafe {
             *(dst.to_ptr().unwrap() as *mut i32) = i;
         },
+        GenericValue::Ptr(p) => unsafe {
+            *(dst.to_ptr().unwrap() as *mut *mut u8) = p;
+        },
         t => todo!("{:?}", t),
     }
 }
@@ -130,9 +133,17 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], addr: Val
     let ty = tys[0];
     let addr = frame.get_val(addr).unwrap();
     match &*frame.func.types.get(ty) {
+        Type::Int(8) => frame.add_inst_val(
+            id,
+            GenericValue::Int8(unsafe { *(addr.to_ptr().unwrap() as *const i8) }),
+        ),
         Type::Int(32) => frame.add_inst_val(
             id,
             GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
+        ),
+        Type::Pointer(_) => frame.add_inst_val(
+            id,
+            GenericValue::Ptr(unsafe { *(addr.to_ptr().unwrap() as *const *mut u8) }),
         ),
         _ => todo!(),
     };
@@ -259,6 +270,19 @@ impl<'a> Context<'a> {
             let ptr = unsafe {
                 alloc::alloc(alloc::Layout::from_size_align(sz, align).expect("layout err"))
             };
+            if let Some(init) = &gv.init {
+                match init {
+                    ConstantData::Array(ConstantArray {
+                        is_string: true,
+                        elems,
+                        ..
+                    }) => {
+                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
+                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
+                    }
+                    _ => todo!(),
+                }
+            }
             globals.insert(name.clone(), GenericValue::Ptr(ptr));
         }
         Self { module, globals }
