@@ -412,7 +412,9 @@ attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-
 
     "#;
     let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
+    let ctx = interpreter::Context::new(&module)
+        .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
+        .expect("failed to load libc");
     let main = module.find_function_by_name("main").unwrap();
     assert_eq!(
         interpreter::run_function(&ctx, main, vec![]).unwrap(),
