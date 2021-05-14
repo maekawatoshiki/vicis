@@ -18,7 +18,7 @@ use nom::{
     IResult,
 };
 
-fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
     tuple((
         tag("source_filename"),
         preceded(spaces, char('=')),
@@ -27,9 +27,7 @@ fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, &'a str, Verbo
     .map(|(i, (_, _, name))| (i, name))
 }
 
-fn parse_target_datalayout<'a>(
-    source: &'a str,
-) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+fn parse_target_datalayout<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("datalayout")),
@@ -39,7 +37,7 @@ fn parse_target_datalayout<'a>(
     .map(|(i, (_, _, _, datalayout))| (i, datalayout))
 }
 
-fn parse_target_triple<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+fn parse_target_triple<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("triple")),
@@ -94,7 +92,7 @@ pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'
         }
 
         if let Ok((source_, source_filename)) = parse_source_filename(source) {
-            module.source_filename = source_filename.to_string();
+            module.source_filename = source_filename;
             source = source_;
             continue;
         }

@@ -1,7 +1,7 @@
   .text
   .intel_syntax noprefix
 .str:
-  .string "hello world\00"
+  .string "hello world"
   .globl main
 main:
 .LBL0_0:

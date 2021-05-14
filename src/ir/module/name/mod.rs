@@ -1,5 +1,6 @@
 pub mod parser;
 
+use crate::ir::util::escape;
 pub use parser::parse;
 
 use std::fmt;
@@ -55,8 +56,8 @@ fn to_escaped(f: &mut fmt::Formatter<'_>, s: &str) -> fmt::Result {
     if s.find(|c: char| !(c.is_ascii_alphanumeric() || c == '.' || c == '_'))
         .is_some()
     {
-        write!(f, r#""{}""#, s)
+        write!(f, r#""{}""#, escape(s))
     } else {
-        write!(f, "{}", s)
+        write!(f, "{}", escape(s))
     }
 }

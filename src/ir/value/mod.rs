@@ -6,8 +6,10 @@ use super::{
     function::{data::Data, instruction::InstructionId},
     module::name::Name,
     types::{TypeId, Types},
+    util::escape,
 };
 use id_arena::Id;
+use std::str;
 
 pub type ValueId = Id<Value>;
 
@@ -173,14 +175,16 @@ impl ConstantArray {
         if self.is_string {
             return format!(
                 "c\"{}\"",
-                ::std::str::from_utf8(
-                    self.elems
-                        .iter()
-                        .map(|i| *i.as_int().as_i8() as u8)
-                        .collect::<Vec<u8>>()
-                        .as_slice()
+                escape(
+                    str::from_utf8(
+                        self.elems
+                            .iter()
+                            .map(|i| *i.as_int().as_i8() as u8)
+                            .collect::<Vec<u8>>()
+                            .as_slice(),
+                    )
+                    .unwrap()
                 )
-                .unwrap()
             );
         }
 

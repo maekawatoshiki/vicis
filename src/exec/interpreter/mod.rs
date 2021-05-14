@@ -4,7 +4,7 @@ use super::generic_value::GenericValue;
 use crate::ir::{
     function::{
         instruction::{ICmpCond, InstructionId, Opcode, Operand},
-        FunctionId,
+        Function, FunctionId,
     },
     module::{name::Name, Module},
     types::{ArrayType, Type, TypeId, Types},
@@ -25,6 +25,11 @@ pub fn run_function(
     args: Vec<GenericValue>,
 ) -> Option<GenericValue> {
     let func = &ctx.module.functions()[func_id];
+
+    if func.is_prototype {
+        return Some(call_external_func(func, &args));
+    }
+
     let mut frame = StackFrame::new(ctx, func, args);
     let mut block = func.layout.first_block?;
 
@@ -312,5 +317,75 @@ impl TypeSize for Types {
             Type::Pointer(_) => 8,
             _ => todo!(),
         }
+    }
+}
+
+fn call_external_func(func: &Function, args_: &[GenericValue]) -> GenericValue {
+    extern crate libloading;
+    extern crate libffi;
+    use std::os::raw::c_void;
+
+    let libc = unsafe { libloading::Library::new("/lib/x86_64-linux-gnu/libc.so.6").unwrap() };
+    let puts: libloading::Symbol<unsafe extern "C" fn()> =
+        unsafe { libc.get(func.name().as_bytes()).unwrap() };
+    let puts = libffi::low::CodePtr(unsafe { puts.into_raw() }.into_raw());
+
+    let mut args: Vec<*mut libffi::low::ffi_type> =
+        unsafe { vec![&mut libffi::low::types::pointer] };
+    let mut cif: libffi::low::ffi_cif = Default::default();
+
+    unsafe {
+        libffi::low::prep_cif(
+            &mut cif,
+            libffi::low::ffi_abi_FFI_DEFAULT_ABI,
+            args.len(),
+            &mut libffi::low::types::sint32,
+            args.as_mut_ptr(),
+        )
+    }
+    .unwrap();
+
+    unsafe {
+        libffi::low::call(
+            &mut cif,
+            puts,
+            vec![&mut args_[0].to_ptr().unwrap() as *mut _ as *mut c_void].as_mut_ptr(),
+        )
+    }
+}
+
+#[test]
+fn load_libc() {
+    extern crate libloading;
+    extern crate libffi;
+    use std::os::raw::c_void;
+
+    let libc = unsafe { libloading::Library::new("/lib/x86_64-linux-gnu/libc.so.6").unwrap() };
+    let puts: libloading::Symbol<unsafe extern "C" fn()> = unsafe { libc.get(b"puts").unwrap() };
+    let puts = libffi::low::CodePtr(unsafe { puts.into_raw() }.into_raw());
+
+    let mut args: Vec<*mut libffi::low::ffi_type> =
+        unsafe { vec![&mut libffi::low::types::pointer] };
+    let mut cif: libffi::low::ffi_cif = Default::default();
+
+    unsafe {
+        libffi::low::prep_cif(
+            &mut cif,
+            libffi::low::ffi_abi_FFI_DEFAULT_ABI,
+            args.len(),
+            &mut libffi::low::types::sint32,
+            args.as_mut_ptr(),
+        )
+    }
+    .unwrap();
+
+    let hello_world = "hello world";
+
+    unsafe {
+        libffi::low::call(
+            &mut cif,
+            puts,
+            vec![&mut hello_world.as_ptr() as *mut _ as *mut c_void].as_mut_ptr(),
+        )
     }
 }
