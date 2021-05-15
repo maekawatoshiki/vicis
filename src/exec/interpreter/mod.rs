@@ -174,6 +174,7 @@ fn run_icmp(frame: &mut StackFrame, id: InstructionId, args: &[ValueId], cond: I
     let y = frame.get_val(args[1]).unwrap();
     let res = match cond {
         ICmpCond::Slt => slt(x, y).unwrap(),
+        ICmpCond::Sle => sle(x, y).unwrap(),
         _ => todo!(),
     };
     frame.add_inst_val(id, res);
@@ -264,6 +265,13 @@ fn mul(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn slt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x < y)),
+        _ => None,
+    }
+}
+
+fn sle(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x <= y)),
         _ => None,
     }
 }

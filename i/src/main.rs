@@ -1,7 +1,7 @@
 extern crate structopt;
 extern crate vicis;
 
-use std::fs;
+use std::{fs, process};
 use structopt::StructOpt;
 use vicis::{exec::interpreter, ir::module};
 
@@ -24,5 +24,6 @@ fn main() {
     let ctx = interpreter::Context::new(&module)
         .with_libs(opt.libs)
         .expect("failed to load library");
-    interpreter::run_function(&ctx, main, vec![]);
+    let ret = interpreter::run_function(&ctx, main, vec![]);
+    process::exit(ret.expect("unknown error").sext_to_i64().unwrap_or(0) as i32)
 }
