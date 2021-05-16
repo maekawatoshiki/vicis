@@ -222,7 +222,7 @@ pub fn parse_icmp<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
-    pub fn icmp_cond<'a, 'b>(source: &'a str) -> IResult<&'a str, ICmpCond, VerboseError<&'a str>> {
+    pub fn icmp_cond(source: &str) -> IResult<&str, ICmpCond, VerboseError<&str>> {
         alt((
             map(tag("eq"), |_| ICmpCond::Eq),
             map(tag("ne"), |_| ICmpCond::Ne),
@@ -384,9 +384,7 @@ pub fn parse_callee<'a, 'b>(
     Ok((source, callee))
 }
 
-pub fn parse_call_asm<'a, 'b>(
-    source: &'a str,
-) -> IResult<&'a str, value::InlineAsm, VerboseError<&'a str>> {
+pub fn parse_call_asm(source: &str) -> IResult<&str, value::InlineAsm, VerboseError<&str>> {
     let (source, _) = preceded(spaces, tag("asm"))(source)?;
     let (source, sideeffect) = opt(tuple((spaces, tag("sideeffect"))))(source)?;
     let (source, constraints) = preceded(spaces, string_literal)(source)?;
@@ -395,8 +393,8 @@ pub fn parse_call_asm<'a, 'b>(
     Ok((
         source,
         value::InlineAsm {
-            constraints: constraints.to_owned(),
-            body: body.to_owned(),
+            constraints,
+            body,
             sideeffect: sideeffect.is_some(),
         },
     ))
@@ -566,7 +564,7 @@ pub fn parse<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, InstructionId, VerboseError<&'a str>> {
     let (source, name) = opt(tuple((spaces, char('%'), name::parse, spaces, char('='))))(source)?;
-    let name = name.map_or(None, |(_, _, name, _, _)| Some(name));
+    let name = name.map(|(_, _, name, _, _)| name);
     for f in [
         parse_alloca,
         parse_phi,

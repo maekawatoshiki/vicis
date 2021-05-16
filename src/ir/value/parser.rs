@@ -1,13 +1,11 @@
-use super::{
-    super::{
-        function::parser::ParserContext,
-        module::name,
-        types,
-        types::{Type, TypeId, Types},
-        util::{spaces, string_literal},
-        value::{ConstantArray, ConstantData, ConstantExpr, ConstantInt, ConstantStruct, Value},
+use crate::ir::{
+    function::parser::ParserContext,
+    module::name,
+    types::{self, Type, TypeId, Types},
+    util::{spaces, string_literal},
+    value::{
+        ConstantArray, ConstantData, ConstantExpr, ConstantInt, ConstantStruct, Value, ValueId,
     },
-    ValueId,
 };
 use nom::{
     branch::alt,
@@ -67,7 +65,7 @@ pub fn parse_constant_int<'a>(
     Ok((source, val))
 }
 
-pub fn parse_constant_array<'a, 'b>(
+pub fn parse_constant_array<'a>(
     source: &'a str,
     types: &Types,
     // ty: TypeId,
@@ -79,7 +77,7 @@ pub fn parse_constant_array<'a, 'b>(
         elem_ty: types.base().i8(),
         elems: s
             .as_bytes()
-            .into_iter()
+            .iter()
             .map(|c| ConstantData::Int(ConstantInt::Int8(*c as i8)))
             .collect(),
         is_string: true,
@@ -102,7 +100,7 @@ pub fn parse_constant_array<'a, 'b>(
     // Ok((source, ctx.data.create_value(val)))
 }
 
-pub fn parse_constant_expr<'a, 'b>(
+pub fn parse_constant_expr<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
@@ -112,7 +110,7 @@ pub fn parse_constant_expr<'a, 'b>(
     parse_constant_bitcast(source, types)
 }
 
-pub fn parse_constant_getelementptr<'a, 'b>(
+pub fn parse_constant_getelementptr<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
@@ -145,7 +143,7 @@ pub fn parse_constant_getelementptr<'a, 'b>(
     }
 }
 
-pub fn parse_constant_bitcast<'a, 'b>(
+pub fn parse_constant_bitcast<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
@@ -156,18 +154,16 @@ pub fn parse_constant_bitcast<'a, 'b>(
     let (source, _) = preceded(spaces, tag("to"))(source)?;
     let (source, to) = types::parse(source, types)?;
     let (source, _) = preceded(spaces, char(')'))(source)?;
-    return Ok((
+    Ok((
         source,
         ConstantData::Expr(ConstantExpr::Bitcast {
             tys: [from, to],
             arg: Box::new(arg),
         }),
-    ));
+    ))
 }
 
-pub fn parse_constant_global_ref<'a>(
-    source: &'a str,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+pub fn parse_constant_global_ref(source: &str) -> IResult<&str, ConstantData, VerboseError<&str>> {
     let (source, name) = preceded(spaces, preceded(char('@'), name::parse))(source)?;
     Ok((source, ConstantData::GlobalRef(name)))
 }

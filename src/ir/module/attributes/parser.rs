@@ -11,7 +11,7 @@ use nom::{
     IResult,
 };
 
-pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, VerboseError<&'a str>> {
+pub fn parse_attribute(source: &str) -> IResult<&str, Attribute, VerboseError<&str>> {
     alt((
         alt((
             map(tag("alwaysinline"), |_| Attribute::AlwaysInline),
@@ -72,13 +72,10 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
             // map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
             map(
                 tuple((string_literal, spaces, char('='), spaces, string_literal)),
-                |(kind, _, _, _, value)| Attribute::StringAttribute {
-                    kind: kind.to_string(),
-                    value: value.to_string(),
-                },
+                |(kind, _, _, _, value)| Attribute::StringAttribute { kind, value },
             ),
             map(string_literal, |kind| Attribute::StringAttribute {
-                kind: kind.to_string(),
+                kind,
                 value: "".to_string(),
             }),
             map(preceded(char('#'), digit1), |num: &str| {
@@ -88,8 +85,6 @@ pub fn parse_attribute<'a>(source: &'a str) -> IResult<&'a str, Attribute, Verbo
     ))(source)
 }
 
-pub fn parse_attributes<'a>(
-    source: &'a str,
-) -> IResult<&'a str, Vec<Attribute>, VerboseError<&'a str>> {
+pub fn parse_attributes(source: &str) -> IResult<&str, Vec<Attribute>, VerboseError<&str>> {
     many0(preceded(spaces, parse_attribute))(source)
 }

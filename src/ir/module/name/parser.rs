@@ -5,17 +5,17 @@ use nom::{
     error::VerboseError, sequence::preceded, IResult,
 };
 
-pub fn parse<'a>(source: &'a str) -> IResult<&'a str, Name, VerboseError<&'a str>> {
+pub fn parse(source: &str) -> IResult<&str, Name, VerboseError<&str>> {
     preceded(
         spaces,
         alt((
-            map(digit1, |i: &'a str| Name::Number(i.parse().unwrap())),
-            map(identifier, |n: &'a str| Name::Name(n.to_string())),
-            map(string_literal, |s: String| Name::Name(format!(r#"{}"#, s))),
+            map(digit1, |i: &str| Name::Number(i.parse().unwrap())),
+            map(identifier, |n: &str| Name::Name(n.to_string())),
+            map(string_literal, Name::Name),
         )),
     )(source)
 }
 
-pub fn identifier<'a>(source: &'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
+pub fn identifier(source: &str) -> IResult<&str, &str, VerboseError<&str>> {
     take_while1(|c: char| c.is_alphanumeric() || c == '.' || c == '_')(source)
 }

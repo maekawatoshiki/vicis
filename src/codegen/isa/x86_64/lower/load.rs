@@ -107,7 +107,7 @@ fn lower_load_gep(
     let gep_args: Vec<&Value> = gep
         .operand
         .args()
-        .into_iter()
+        .iter()
         .map(|&arg| &ctx.ir_data.values[arg])
         .collect();
 
@@ -160,7 +160,9 @@ fn lower_load_gep(
     }
 
     let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
-    sext.map(|x| ctx.mark_as_merged(x));
+    if let Some(x) = sext {
+        ctx.mark_as_merged(x)
+    }
 
     let src_ty = tys[0];
     match &*ctx.types.get(src_ty) {

@@ -131,13 +131,13 @@ impl ID for InstructionData {
     fn input_vregs(&self) -> Vec<VReg> {
         let mut vrs = vec![];
         for operand in &self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::VReg(vr),
-                    input: true,
-                    ..
-                } => vrs.push(*vr),
-                _ => {}
+            if let Operand {
+                data: OperandData::VReg(vr),
+                input: true,
+                ..
+            } = operand
+            {
+                vrs.push(*vr)
             }
         }
         vrs
@@ -146,13 +146,13 @@ impl ID for InstructionData {
     fn output_vregs(&self) -> Vec<VReg> {
         let mut vrs = vec![];
         for operand in &self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::VReg(vr),
-                    output: true,
-                    ..
-                } => vrs.push(*vr),
-                _ => {}
+            if let Operand {
+                data: OperandData::VReg(vr),
+                output: true,
+                ..
+            } = operand
+            {
+                vrs.push(*vr)
             }
         }
         vrs
@@ -175,13 +175,13 @@ impl ID for InstructionData {
     fn input_regs(&self) -> Vec<Reg> {
         let mut rs = vec![];
         for operand in &self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::Reg(r),
-                    input: true,
-                    ..
-                } => rs.push(*r),
-                _ => {}
+            if let Operand {
+                data: OperandData::Reg(r),
+                input: true,
+                ..
+            } = operand
+            {
+                rs.push(*r)
             }
         }
         rs
@@ -190,13 +190,13 @@ impl ID for InstructionData {
     fn output_regs(&self) -> Vec<Reg> {
         let mut rs = vec![];
         for operand in &self.operands {
-            match operand {
-                Operand {
-                    data: OperandData::Reg(r),
-                    output: true,
-                    ..
-                } => rs.push(*r),
-                _ => {}
+            if let Operand {
+                data: OperandData::Reg(r),
+                output: true,
+                ..
+            } = operand
+            {
+                rs.push(*r)
             }
         }
         rs
@@ -321,27 +321,27 @@ impl OperandData {
     }
 }
 
-impl Into<OperandData> for VReg {
-    fn into(self) -> OperandData {
-        OperandData::VReg(self)
+impl From<VReg> for OperandData {
+    fn from(r: VReg) -> Self {
+        OperandData::VReg(r)
     }
 }
 
-impl Into<OperandData> for Reg {
-    fn into(self) -> OperandData {
-        OperandData::Reg(self)
+impl From<Reg> for OperandData {
+    fn from(r: Reg) -> Self {
+        OperandData::Reg(r)
     }
 }
 
-impl Into<OperandData> for i32 {
-    fn into(self) -> OperandData {
-        OperandData::Int32(self)
+impl From<i32> for OperandData {
+    fn from(i: i32) -> Self {
+        OperandData::Int32(i)
     }
 }
 
-impl Into<OperandData> for &i32 {
-    fn into(self) -> OperandData {
-        OperandData::Int32(*self)
+impl From<&i32> for OperandData {
+    fn from(i: &i32) -> Self {
+        OperandData::Int32(*i)
     }
 }
 
@@ -371,7 +371,7 @@ impl fmt::Debug for Operand {
             flags.push("imp")
         }
         write!(f, "{:?}", self.data)?;
-        if flags.len() > 0 {
+        if !flags.is_empty() {
             write!(f, "<")?;
             for (i, flag) in flags.iter().enumerate() {
                 write!(f, "{}", flag)?;

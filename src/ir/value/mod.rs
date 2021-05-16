@@ -9,7 +9,7 @@ use super::{
     util::escape,
 };
 use id_arena::Id;
-use std::str;
+use std::{fmt, str};
 
 pub type ValueId = Id<Value>;
 
@@ -143,15 +143,6 @@ impl ConstantData {
 }
 
 impl ConstantInt {
-    pub fn to_string(&self) -> String {
-        match self {
-            Self::Int1(i) => format!("{}", i),
-            Self::Int8(i) => format!("{}", i),
-            Self::Int32(i) => format!("{}", i),
-            Self::Int64(i) => format!("{}", i),
-        }
-    }
-
     pub fn as_i8(&self) -> &i8 {
         match self {
             Self::Int8(i) => i,
@@ -166,6 +157,17 @@ impl ConstantInt {
             Self::Int8(i) => i as usize,
             Self::Int32(i) => i as usize,
             Self::Int64(i) => i as usize,
+        }
+    }
+}
+
+impl fmt::Display for ConstantInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Int1(i) => write!(f, "{}", i),
+            Self::Int8(i) => write!(f, "{}", i),
+            Self::Int32(i) => write!(f, "{}", i),
+            Self::Int64(i) => write!(f, "{}", i),
         }
     }
 }

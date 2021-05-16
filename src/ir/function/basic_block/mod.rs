@@ -11,13 +11,19 @@ pub struct BasicBlock {
     pub succs: FxHashSet<BasicBlockId>,
 }
 
-impl BasicBlock {
-    pub fn new() -> Self {
+impl Default for BasicBlock {
+    fn default() -> Self {
         Self {
             name: None,
             preds: FxHashSet::default(),
             succs: FxHashSet::default(),
         }
+    }
+}
+
+impl BasicBlock {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn preds(&self) -> &FxHashSet<BasicBlockId> {

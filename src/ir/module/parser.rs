@@ -18,7 +18,7 @@ use nom::{
     IResult,
 };
 
-fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
+fn parse_source_filename(source: &str) -> IResult<&str, String, VerboseError<&str>> {
     tuple((
         tag("source_filename"),
         preceded(spaces, char('=')),
@@ -27,7 +27,7 @@ fn parse_source_filename<'a>(source: &'a str) -> IResult<&'a str, String, Verbos
     .map(|(i, (_, _, name))| (i, name))
 }
 
-fn parse_target_datalayout<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
+fn parse_target_datalayout(source: &str) -> IResult<&str, String, VerboseError<&str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("datalayout")),
@@ -37,7 +37,7 @@ fn parse_target_datalayout<'a>(source: &'a str) -> IResult<&'a str, String, Verb
     .map(|(i, (_, _, _, datalayout))| (i, datalayout))
 }
 
-fn parse_target_triple<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
+fn parse_target_triple(source: &str) -> IResult<&str, String, VerboseError<&str>> {
     tuple((
         tag("target"),
         preceded(spaces, tag("triple")),
@@ -47,9 +47,7 @@ fn parse_target_triple<'a>(source: &'a str) -> IResult<&'a str, String, VerboseE
     .map(|(i, (_, _, _, triple))| (i, triple))
 }
 
-fn parse_attribute_group<'a>(
-    source: &'a str,
-) -> IResult<&'a str, (u32, Vec<Attribute>), VerboseError<&'a str>> {
+fn parse_attribute_group(source: &str) -> IResult<&str, (u32, Vec<Attribute>), VerboseError<&str>> {
     tuple((
         tag("attributes"),
         preceded(spaces, char('#')),
@@ -62,7 +60,7 @@ fn parse_attribute_group<'a>(
     .map(|(i, (_, _, id, _, _, attrs, _))| (i, (id.parse().unwrap(), attrs)))
 }
 
-fn parse_metadata<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a str>> {
+fn parse_metadata(source: &str) -> IResult<&str, (), VerboseError<&str>> {
     map(
         preceded(char('!'), terminated(take_until("\n"), char('\n'))),
         |_| (),
@@ -81,7 +79,7 @@ fn parse_local_type<'a>(
     Ok((source, ()))
 }
 
-pub fn parse<'a>(mut source: &'a str) -> Result<Module, nom::Err<VerboseError<&'a str>>> {
+pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
     let mut module = Module::new();
 
     loop {

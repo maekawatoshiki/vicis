@@ -12,23 +12,23 @@ pub enum GenericValue {
 }
 
 impl GenericValue {
-    pub fn to_ptr(&self) -> Option<*mut u8> {
+    pub fn to_ptr(self) -> Option<*mut u8> {
         match self {
-            Self::Ptr(p) => Some(*p),
+            Self::Ptr(p) => Some(p),
             _ => None,
         }
     }
 
-    pub fn to_i32(&self) -> Option<i32> {
+    pub fn to_i32(self) -> Option<i32> {
         match self {
-            Self::Int32(i) => Some(*i),
+            Self::Int32(i) => Some(i),
             _ => None,
         }
     }
 
-    pub fn to_i64(&self) -> Option<i64> {
+    pub fn to_i64(self) -> Option<i64> {
         match self {
-            Self::Int64(i) => Some(*i),
+            Self::Int64(i) => Some(i),
             _ => None,
         }
     }

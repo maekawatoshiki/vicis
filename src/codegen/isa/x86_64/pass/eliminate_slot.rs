@@ -23,8 +23,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
                 .data
                 .operands
                 .iter()
-                .find(|op| matches!(op.data, OperandData::Slot(_)))
-                .is_some()
+                .any(|op| matches!(op.data, OperandData::Slot(_)))
             {
                 worklist.push(inst_id);
             }

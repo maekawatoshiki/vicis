@@ -33,7 +33,7 @@ impl<BB: BasicBlock> DominatorTree<BB> {
 
         // x dominates y
         for (&y, &x) in &ctx.idom {
-            dom.entry(x).or_insert(FxHashSet::default()).insert(y);
+            dom.entry(x).or_insert_with(FxHashSet::default).insert(y);
         }
 
         fn leveling<BB: BasicBlock>(
@@ -76,7 +76,7 @@ impl<BB: BasicBlock> DominatorTree<BB> {
     }
 
     pub fn level_of(&self, x: Id<BB>) -> Option<usize> {
-        self.level.get(&x).map(|x| *x)
+        self.level.get(&x).copied()
     }
 
     pub fn root(&self) -> &Id<BB> {
@@ -165,7 +165,10 @@ impl<'a, BB: BasicBlock, F: BasicBlockData<BB> + BasicBlockLayout<BB>> Context<'
             }
 
             self.semi.insert(node, s);
-            bucket.entry(s).or_insert(FxHashSet::default()).insert(node);
+            bucket
+                .entry(s)
+                .or_insert_with(FxHashSet::default)
+                .insert(node);
             self.link(pred, node);
 
             if let Some(set) = bucket.get_mut(&pred) {

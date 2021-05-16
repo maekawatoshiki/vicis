@@ -27,7 +27,7 @@ impl<T: TargetIsa> fmt::Debug for Module<T> {
         writeln!(f, "target datalayout = \"{}\"", self.target.datalayout())?;
         writeln!(f, "target triple = \"{}\"", self.target.triple())?;
         writeln!(f)?;
-        for (_, gv) in &self.global_variables {
+        for gv in self.global_variables.values() {
             writeln!(f, "{}", gv.to_string(&self.types))?;
         }
         writeln!(f)?;

@@ -64,10 +64,7 @@ pub fn parse_param_attr<'a>(
         map(tag("immarg"), |_| ParameterAttribute::ImmArg),
         map(
             tuple((string_literal, spaces, char('='), spaces, string_literal)),
-            |(kind, _, _, _, value)| ParameterAttribute::StringAttribute {
-                kind: kind.to_string(),
-                value: value.to_string(),
-            },
+            |(kind, _, _, _, value)| ParameterAttribute::StringAttribute { kind, value },
         ),
         map(preceded(char('#'), digit1), |num: &str| {
             ParameterAttribute::Ref(num.parse::<u32>().unwrap())

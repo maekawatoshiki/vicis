@@ -37,8 +37,8 @@ pub struct Module {
     // TODO: Metadata
 }
 
-impl Module {
-    pub fn new() -> Self {
+impl Default for Module {
+    fn default() -> Self {
         Self {
             name: "".to_string(),
             source_filename: "".to_string(),
@@ -48,6 +48,12 @@ impl Module {
             global_variables: FxHashMap::default(),
             types: Types::new(),
         }
+    }
+}
+
+impl Module {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn name(&self) -> &String {
@@ -72,12 +78,18 @@ impl Module {
     }
 }
 
-impl Target {
-    pub fn new() -> Self {
+impl Default for Target {
+    fn default() -> Self {
         Self {
             triple: "".to_string(),
             datalayout: "".to_string(),
         }
+    }
+}
+
+impl Target {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn triple(&self) -> &str {
@@ -96,7 +108,7 @@ impl fmt::Debug for Module {
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
         writeln!(f)?;
         write!(f, "{:?}", self.types)?;
-        for (_, gv) in &self.global_variables {
+        for gv in self.global_variables.values() {
             writeln!(f, "{}", gv.to_string(&self.types))?;
         }
         writeln!(f)?;

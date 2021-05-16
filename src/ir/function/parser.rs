@@ -152,10 +152,7 @@ pub fn parse_personality<'a>(
     Ok((source, None))
 }
 
-pub fn parse<'a>(
-    source: &'a str,
-    types: Types,
-) -> IResult<&'a str, Function, VerboseError<&'a str>> {
+pub fn parse(source: &str, types: Types) -> IResult<&str, Function, VerboseError<&str>> {
     let (source, define_or_declare) =
         preceded(spaces, alt((tag("define"), tag("declare"))))(source)?;
     let is_prototype = define_or_declare == "declare";
@@ -202,7 +199,7 @@ pub fn parse<'a>(
     Ok((
         source,
         Function {
-            name: name.to_string(),
+            name,
             is_var_arg,
             result_ty,
             linkage: linkage.unwrap_or(linkage::Linkage::External),

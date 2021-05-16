@@ -28,10 +28,8 @@ pub fn lower_store(
             // Maybe Alloca
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
                 dst_slot = Some(*slot_id);
-            } else {
-                if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
-                    return lower_store_gep(ctx, tys, args, _align, *id);
-                }
+            } else if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
+                return lower_store_gep(ctx, tys, args, _align, *id);
             }
         }
         _ => return Err(LoweringError::Todo.into()),
@@ -44,7 +42,7 @@ pub fn lower_store(
     match ctx.ir_data.value_ref(args[0]) {
         Value::Constant(ConstantData::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
-        Value::Argument(idx) => arg = ctx.arg_idx_to_vreg.get(idx).map(|x| *x),
+        Value::Argument(idx) => arg = ctx.arg_idx_to_vreg.get(idx).copied(),
         _ => return Err(LoweringError::Todo.into()),
     }
 
@@ -66,7 +64,7 @@ pub fn lower_store(
                 },
                 ctx.block_map[&ctx.cur_block],
             )]);
-            return Ok(());
+            Ok(())
         }
         (Some(slot), None, None, Some(ConstantInt::Int32(imm))) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
@@ -84,7 +82,7 @@ pub fn lower_store(
                 },
                 ctx.block_map[&ctx.cur_block],
             )]);
-            return Ok(());
+            Ok(())
         }
         (Some(slot), None, Some(arg), None) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
@@ -102,9 +100,9 @@ pub fn lower_store(
                 },
                 ctx.block_map[&ctx.cur_block],
             )]);
-            return Ok(());
+            Ok(())
         }
-        _ => return Err(LoweringError::Todo.into()),
+        _ => Err(LoweringError::Todo.into()),
     }
 }
 
@@ -127,7 +125,7 @@ fn lower_store_gep(
     let gep_args: Vec<&Value> = gep
         .operand
         .args()
-        .into_iter()
+        .iter()
         .map(|&arg| &ctx.ir_data.values[arg])
         .collect();
 

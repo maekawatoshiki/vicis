@@ -8,7 +8,7 @@ use nom::{
     IResult,
 };
 
-pub fn parse<'a>(source: &'a str) -> IResult<&'a str, PreemptionSpecifier, VerboseError<&'a str>> {
+pub fn parse(source: &str) -> IResult<&str, PreemptionSpecifier, VerboseError<&str>> {
     alt((
         map(tag("dso_local"), |_| PreemptionSpecifier::DsoLocal),
         map(tag("dso_preemptable"), |_| {

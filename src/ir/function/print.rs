@@ -100,7 +100,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             return writeln!(self.fmt);
         }
 
-        write!(self.fmt, "{{\n")?;
+        writeln!(self.fmt, "{{")?;
 
         for block_id in f.layout.block_iter() {
             if let Some(name) = &f.data.block_ref(block_id).name {
@@ -157,7 +157,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             }
         }
 
-        write!(self.fmt, "}}\n")
+        writeln!(self.fmt, "}}")
     }
 
     fn print_inst(&mut self, inst: &Instruction, types: &Types, data: &Data) -> fmt::Result {

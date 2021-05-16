@@ -16,8 +16,8 @@ pub struct Data<InstData: InstructionData> {
     pub vreg_users: VRegUsers<InstData>,
 }
 
-impl<InstData: InstructionData> Data<InstData> {
-    pub fn new() -> Self {
+impl<InstData: InstructionData> Default for Data<InstData> {
+    fn default() -> Self {
         Self {
             // values: Arena::new(),
             instructions: Arena::new(),
@@ -25,6 +25,12 @@ impl<InstData: InstructionData> Data<InstData> {
             vregs: VRegs::new(),
             vreg_users: VRegUsers::new(),
         }
+    }
+}
+
+impl<InstData: InstructionData> Data<InstData> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_block(&mut self) -> BasicBlockId {

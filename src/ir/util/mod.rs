@@ -10,7 +10,7 @@ use nom::{
 };
 use std::{collections::VecDeque, str};
 
-pub fn spaces<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a str>> {
+pub fn spaces(source: &str) -> IResult<&str, (), VerboseError<&str>> {
     alt((
         map(
             many1(tuple((
@@ -24,7 +24,7 @@ pub fn spaces<'a>(source: &'a str) -> IResult<&'a str, (), VerboseError<&'a str>
     ))(source)
 }
 
-pub fn string_literal<'a>(source: &'a str) -> IResult<&'a str, String, VerboseError<&'a str>> {
+pub fn string_literal(source: &str) -> IResult<&str, String, VerboseError<&str>> {
     map(
         preceded(char('\"'), cut(terminated(take_until("\""), char('\"')))),
         |s| unescape(s).unwrap(),

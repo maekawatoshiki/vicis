@@ -102,14 +102,20 @@ impl ProgramPoint {
     }
 }
 
-impl<T: TargetIsa> Liveness<T> {
-    pub fn new() -> Self {
+impl<T: TargetIsa> Default for Liveness<T> {
+    fn default() -> Self {
         Self {
             block_data: FxHashMap::default(),
             reg_lrs_map: FxHashMap::default(),
             vreg_lrs_map: FxHashMap::default(),
             inst_to_pp: FxHashMap::default(),
         }
+    }
+}
+
+impl<T: TargetIsa> Liveness<T> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn analyze_function(&mut self, func: &Function<T>) {
@@ -179,7 +185,10 @@ impl<T: TargetIsa> Liveness<T> {
 
     pub fn assign(&mut self, reg: RegUnit, vreg: VReg) {
         let vreg_lr = &self.vreg_lrs_map[&vreg];
-        let reg_lr = self.reg_lrs_map.entry(reg).or_insert(LiveRange(vec![]));
+        let reg_lr = self
+            .reg_lrs_map
+            .entry(reg)
+            .or_insert_with(|| LiveRange(vec![]));
         reg_lr.merge(vreg_lr)
     }
 
@@ -189,7 +198,7 @@ impl<T: TargetIsa> Liveness<T> {
     }
 
     fn remove_vreg_from_block_data(&mut self, vreg: VReg) {
-        for (_block_id, block_data) in &mut self.block_data {
+        for block_data in self.block_data.values_mut() {
             block_data.live_in.remove(&Reg::Virt(vreg));
             block_data.live_out.remove(&Reg::Virt(vreg));
         }
@@ -202,8 +211,8 @@ impl<T: TargetIsa> Liveness<T> {
     ////////
 
     pub fn compute_program_points(&mut self, func: &Function<T>) {
-        let mut block_num = 0;
-        for block_id in func.layout.block_iter() {
+        for (block_num, block_id) in func.layout.block_iter().enumerate() {
+            let block_num = block_num as u32;
             let mut inst_num = 0u32;
             let mut local_vreg_lr_map = FxHashMap::default();
             let mut local_reg_lr_map = FxHashMap::default();
@@ -261,7 +270,7 @@ impl<T: TargetIsa> Liveness<T> {
                 for output in inst.data.output_vregs() {
                     local_vreg_lr_map
                         .entry(output)
-                        .or_insert(LiveSegment {
+                        .or_insert_with(|| LiveSegment {
                             start: ProgramPoint(block_num, inst_num),
                             end: ProgramPoint(block_num, inst_num),
                         })
@@ -270,7 +279,7 @@ impl<T: TargetIsa> Liveness<T> {
                 for output in inst.data.output_regs() {
                     local_reg_lr_map
                         .entry(T::RegInfo::to_reg_unit(output))
-                        .or_insert(LiveRange(vec![]))
+                        .or_insert_with(|| LiveRange(vec![]))
                         .0
                         .push(LiveSegment {
                             start: ProgramPoint(block_num, inst_num),
@@ -304,19 +313,17 @@ impl<T: TargetIsa> Liveness<T> {
             for (vreg, local_lr) in local_vreg_lr_map {
                 self.vreg_lrs_map
                     .entry(vreg)
-                    .or_insert(LiveRange(vec![]))
+                    .or_insert_with(|| LiveRange(vec![]))
                     .0
                     .push(local_lr)
             }
             for (reg, local_lr) in local_reg_lr_map {
                 self.reg_lrs_map
                     .entry(reg)
-                    .or_insert(LiveRange(vec![]))
+                    .or_insert_with(|| LiveRange(vec![]))
                     .0
                     .extend(local_lr.0.into_iter())
             }
-
-            block_num += 1;
         }
     }
 
@@ -330,7 +337,9 @@ impl<T: TargetIsa> Liveness<T> {
 
     fn set_def(&mut self, func: &Function<T>) {
         for block_id in func.layout.block_iter() {
-            self.block_data.entry(block_id).or_insert(BlockData::new());
+            self.block_data
+                .entry(block_id)
+                .or_insert_with(BlockData::new);
             for inst_id in func.layout.inst_iter(block_id) {
                 let inst = func.data.inst_ref(inst_id);
                 self.set_def_on_inst(inst, block_id);
@@ -346,14 +355,14 @@ impl<T: TargetIsa> Liveness<T> {
         for output in inst.data.output_vregs() {
             self.block_data
                 .entry(block_id)
-                .or_insert_with(|| BlockData::new())
+                .or_insert_with(BlockData::new)
                 .def
                 .insert(Reg::Virt(output));
         }
         for output in inst.data.output_regs() {
             self.block_data
                 .entry(block_id)
-                .or_insert_with(|| BlockData::new())
+                .or_insert_with(BlockData::new)
                 .def
                 .insert(Reg::Phys(T::RegInfo::to_reg_unit(output)));
         }
@@ -451,12 +460,18 @@ impl LiveSegment {
     }
 }
 
-impl BlockData {
-    pub fn new() -> Self {
-        BlockData {
+impl Default for BlockData {
+    fn default() -> Self {
+        Self {
             def: FxHashSet::default(),
             live_in: FxHashSet::default(),
             live_out: FxHashSet::default(),
         }
+    }
+}
+
+impl BlockData {
+    pub fn new() -> Self {
+        Self::default()
     }
 }

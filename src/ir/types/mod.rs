@@ -65,9 +65,15 @@ pub struct StructType {
     pub is_packed: bool,
 }
 
+impl Default for Types {
+    fn default() -> Self {
+        Self(Arc::new(RefCell::new(TypesBase::new())))
+    }
+}
+
 impl Types {
     pub fn new() -> Self {
-        Self(Arc::new(RefCell::new(TypesBase::new())))
+        Self::default()
     }
 
     pub fn base(&self) -> Ref<TypesBase> {
@@ -96,8 +102,8 @@ impl Types {
     }
 }
 
-impl TypesBase {
-    pub fn new() -> Self {
+impl Default for TypesBase {
+    fn default() -> Self {
         let mut arena = Arena::new();
         let void = arena.alloc(Type::Void);
         let int: Cache<u32> = vec![
@@ -120,12 +126,20 @@ impl TypesBase {
             structs: Cache::default(),
         }
     }
+}
+
+impl TypesBase {
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn named_type(&mut self, name: Name) -> TypeId {
-        *self
-            .named_types
-            .entry(name)
-            .or_insert(self.arena.alloc(Type::Void))
+        if let Some(named) = self.named_types.get(&name) {
+            return *named;
+        }
+        let id = self.arena.alloc(Type::Void);
+        self.named_types.insert(name, id);
+        id
     }
 
     pub fn void(&self) -> TypeId {
@@ -133,10 +147,12 @@ impl TypesBase {
     }
 
     pub fn int(&mut self, bits: u32) -> TypeId {
-        *self
-            .int
-            .entry(bits)
-            .or_insert(self.arena.alloc(Type::Int(bits)))
+        if let Some(int) = self.int.get(&bits) {
+            return *int;
+        }
+        let id = self.arena.alloc(Type::Int(bits));
+        self.int.insert(bits, id);
+        id
     }
 
     pub fn i1(&self) -> TypeId {
@@ -160,30 +176,38 @@ impl TypesBase {
     }
 
     pub fn pointer(&mut self, inner: TypeId) -> TypeId {
-        *self
-            .pointer
-            .entry((inner, 0))
-            .or_insert(self.arena.alloc(Type::Pointer(PointerType {
-                inner,
-                addr_space: 0,
-            })))
+        if let Some(pointer) = self.pointer.get(&(inner, 0)) {
+            return *pointer;
+        }
+        let id = self.arena.alloc(Type::Pointer(PointerType {
+            inner,
+            addr_space: 0,
+        }));
+        self.pointer.insert((inner, 0), id);
+        id
     }
 
     pub fn pointer_in_addr_space(&mut self, inner: TypeId, addr_space: u32) -> TypeId {
-        *self.pointer.entry((inner, 0)).or_insert(
-            self.arena
-                .alloc(Type::Pointer(PointerType { inner, addr_space })),
-        )
+        if let Some(pointer) = self.pointer.get(&(inner, addr_space)) {
+            return *pointer;
+        }
+        let id = self
+            .arena
+            .alloc(Type::Pointer(PointerType { inner, addr_space }));
+        self.pointer.insert((inner, addr_space), id);
+        id
     }
 
     pub fn array(&mut self, inner: TypeId, num_elements: u32) -> TypeId {
-        *self
-            .array
-            .entry((inner, num_elements))
-            .or_insert(self.arena.alloc(Type::Array(ArrayType {
-                inner,
-                num_elements,
-            })))
+        if let Some(array) = self.array.get(&(inner, num_elements)) {
+            return *array;
+        }
+        let id = self.arena.alloc(Type::Array(ArrayType {
+            inner,
+            num_elements,
+        }));
+        self.array.insert((inner, num_elements), id);
+        id
     }
 
     pub fn function(&mut self, ret: TypeId, params: Vec<TypeId>, is_var_arg: bool) -> TypeId {
@@ -196,14 +220,16 @@ impl TypesBase {
     }
 
     pub fn empty_struct_named(&mut self, name: String, is_packed: bool) -> TypeId {
-        *self
-            .structs
-            .entry(name.clone())
-            .or_insert(self.arena.alloc(Type::Struct(StructType {
-                name: Some(Name::Name(name)),
-                elems: vec![],
-                is_packed,
-            })))
+        if let Some(strct) = self.structs.get(&name) {
+            return *strct;
+        }
+        let id = self.arena.alloc(Type::Struct(StructType {
+            name: Some(Name::Name(name.clone())),
+            elems: vec![],
+            is_packed,
+        }));
+        self.structs.insert(name, id);
+        id
     }
 
     pub fn anonymous_struct(&mut self, elems: Vec<TypeId>, is_packed: bool) -> TypeId {

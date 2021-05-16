@@ -1,7 +1,7 @@
 use super::Linkage;
 use nom::{branch::alt, bytes::complete::tag, combinator::map, error::VerboseError, IResult};
 
-pub fn parse<'a, 'b>(source: &'a str) -> IResult<&'a str, Linkage, VerboseError<&'a str>> {
+pub fn parse(source: &str) -> IResult<&str, Linkage, VerboseError<&str>> {
     alt((
         map(tag("private"), |_| Linkage::Private),
         map(tag("internal"), |_| Linkage::Internal),

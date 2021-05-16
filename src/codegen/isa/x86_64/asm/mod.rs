@@ -13,7 +13,7 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
     writeln!(f, "  .text")?;
     writeln!(f, "  .intel_syntax noprefix")?;
 
-    for (_, gv) in &module.global_variables {
+    for gv in module.global_variables.values() {
         if let Some(init) = &gv.init {
             let arr = init.as_array();
             if !arr.is_string {

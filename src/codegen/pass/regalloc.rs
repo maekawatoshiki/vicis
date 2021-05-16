@@ -129,7 +129,7 @@ pub fn collect_preferred_registers<T: TargetIsa>(
     let mut preferred = FxHashMap::default();
     for &vreg in all_vregs {
         let rs = find_preferred_registers(function, vreg);
-        if rs.len() > 0 {
+        if !rs.is_empty() {
             preferred.insert(vreg, rs);
         }
     }
@@ -146,13 +146,13 @@ pub fn find_preferred_registers<T: TargetIsa>(function: &Function<T>, vreg: VReg
         }
         if inst.data.is_copy() {
             let regs = inst.data.output_regs();
-            if regs.len() > 0 {
+            if !regs.is_empty() {
                 list.insert(0, regs[0]);
                 continue;
             }
 
             let regs = inst.data.output_vregs();
-            if regs.len() > 0 {
+            if !regs.is_empty() {
                 let dst = regs[0]; // TODO: Why do we know the first element of `regs` is destination?
                 list.extend(find_preferred_registers(function, dst).into_iter());
             }

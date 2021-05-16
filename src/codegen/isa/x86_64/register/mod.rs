@@ -52,27 +52,27 @@ pub enum RegClass {
     GR64,
 }
 
-impl Into<Reg> for GR32 {
-    fn into(self) -> Reg {
-        Reg(RegClass::GR32 as u16, self as u16)
+impl From<GR32> for Reg {
+    fn from(r: GR32) -> Self {
+        Reg(RegClass::GR32 as u16, r as u16)
     }
 }
 
-impl Into<Reg> for GR64 {
-    fn into(self) -> Reg {
-        Reg(RegClass::GR64 as u16, self as u16)
+impl From<GR64> for Reg {
+    fn from(r: GR64) -> Self {
+        Reg(RegClass::GR64 as u16, r as u16)
     }
 }
 
-impl Into<RegUnit> for GR32 {
-    fn into(self) -> RegUnit {
-        RegUnit(RegClass::GR64 as u16, self as u16)
+impl From<GR32> for RegUnit {
+    fn from(r: GR32) -> Self {
+        RegUnit(RegClass::GR64 as u16, r as u16)
     }
 }
 
-impl Into<RegUnit> for GR64 {
-    fn into(self) -> RegUnit {
-        RegUnit(RegClass::GR64 as u16, self as u16)
+impl From<GR64> for RegUnit {
+    fn from(r: GR64) -> Self {
+        RegUnit(RegClass::GR64 as u16, r as u16)
     }
 }
 

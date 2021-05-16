@@ -319,7 +319,7 @@ impl Instruction {
                     blocks[1].index()
                 )
             }
-            Operand::Ret { val: None, .. } => format!("ret void"),
+            Operand::Ret { val: None, .. } => "ret void".to_string(),
             Operand::Ret { val: Some(val), ty } => {
                 format!(
                     "ret {} {}",

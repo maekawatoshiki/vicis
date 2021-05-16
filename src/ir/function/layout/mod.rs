@@ -35,8 +35,8 @@ pub struct InstructionIter<'a> {
     tail: Option<InstructionId>,
 }
 
-impl Layout {
-    pub fn new() -> Self {
+impl Default for Layout {
+    fn default() -> Self {
         Self {
             basic_blocks: FxHashMap::default(),
             instructions: FxHashMap::default(),
@@ -44,19 +44,25 @@ impl Layout {
             last_block: None,
         }
     }
+}
+
+impl Layout {
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn block_node(&self, id: BasicBlockId) -> &BasicBlockNode {
         &self.basic_blocks[&id]
     }
 
-    pub fn block_iter<'a>(&'a self) -> BasicBlockIter<'a> {
+    pub fn block_iter(&self) -> BasicBlockIter {
         BasicBlockIter {
             layout: self,
             cur: self.first_block,
         }
     }
 
-    pub fn inst_iter<'a>(&'a self, block: BasicBlockId) -> InstructionIter<'a> {
+    pub fn inst_iter(&self, block: BasicBlockId) -> InstructionIter {
         InstructionIter {
             layout: self,
             block,

@@ -32,9 +32,15 @@ use store::lower_store;
 #[derive(Clone, Copy)]
 pub struct Lower {}
 
+impl Default for Lower {
+    fn default() -> Self {
+        Lower {}
+    }
+}
+
 impl Lower {
     pub fn new() -> Self {
-        Lower {}
+        Lower::default()
     }
 }
 
@@ -44,11 +50,9 @@ impl LowerTrait<X86_64> for Lower {
     }
 
     fn copy_args_to_vregs(ctx: &mut LoweringContext<X86_64>, params: &[Parameter]) -> Result<()> {
-        let mut gpr_used = 0;
         let args = RegInfo::arg_reg_list(&ctx.call_conv);
-        for (i, Parameter { name: _, ty, .. }) in params.iter().enumerate() {
+        for (gpr_used, Parameter { name: _, ty, .. }) in params.iter().enumerate() {
             let reg = args[gpr_used].apply(&RegClass::for_type(ctx.types, *ty));
-            gpr_used += 1;
             debug!(reg);
             // Copy reg to new vreg
             assert!(*ctx.types.get(*ty) == Type::Int(32));
@@ -60,7 +64,7 @@ impl LowerTrait<X86_64> for Lower {
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
-            ctx.arg_idx_to_vreg.insert(i, output);
+            ctx.arg_idx_to_vreg.insert(gpr_used, output);
         }
         Ok(())
     }
@@ -259,11 +263,11 @@ fn lower_condbr(
             Value::Instruction(id) => {
                 let inst = data.inst_ref(*id);
                 match &inst.operand {
-                    Operand::ICmp { ty, args, cond } => return Some((ty, args, cond)),
-                    _ => return None,
+                    Operand::ICmp { ty, args, cond } => Some((ty, args, cond)),
+                    _ => None,
                 }
             }
-            _ => return None,
+            _ => None,
         }
     }
 
@@ -322,11 +326,9 @@ fn lower_call(
     let output = new_empty_inst_output(ctx, tys[0], id);
 
     let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
-    let mut gpr_used = 0;
-    for (&arg, &ty) in args[1..].iter().zip(tys[1..].iter()) {
+    for (gpr_used, (&arg, &ty)) in args[1..].iter().zip(tys[1..].iter()).enumerate() {
         let arg = val_to_operand_data(ctx, ty, arg)?;
         let r = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
-        gpr_used += 1;
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: match &arg {
@@ -334,7 +336,7 @@ fn lower_call(
                     OperandData::VReg(_) | OperandData::Reg(_) => Opcode::MOVrr32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
-                operands: vec![MOperand::output(r.into()), MOperand::input(arg.into())],
+                operands: vec![MOperand::output(r.into()), MOperand::input(arg)],
             },
             ctx.block_map[&ctx.cur_block],
         ));
@@ -356,7 +358,7 @@ fn lower_call(
         ctx.block_map[&ctx.cur_block],
     ));
 
-    if ctx.ir_data.users_of(id).len() > 0 {
+    if !ctx.ir_data.users_of(id).is_empty() {
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::MOVrr32,
@@ -456,7 +458,7 @@ fn val_to_operand_data(
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVri32, // TODO: MOVri64 is correct
-                    operands: vec![MOperand::output(dst.into()), MOperand::new(src.into())],
+                    operands: vec![MOperand::output(dst.into()), MOperand::new(src)],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));

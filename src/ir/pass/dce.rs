@@ -42,7 +42,7 @@ fn check_if_elimination_possible(
     elimination_list: &mut Vec<InstructionId>,
     worklist: &mut Vec<InstructionId>,
 ) {
-    let no_users = data.users_of(inst).len() == 0;
+    let no_users = data.users_of(inst).is_empty();
     let inst = data.inst_ref(inst);
     let do_not_eliminate = matches!(inst.opcode, Opcode::Alloca | Opcode::Store | Opcode::Call)
         || inst.opcode.is_terminator();

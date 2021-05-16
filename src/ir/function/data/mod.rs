@@ -15,14 +15,20 @@ pub struct Data {
     pub users_map: FxHashMap<InstructionId, FxHashSet<InstructionId>>,
 }
 
-impl Data {
-    pub fn new() -> Self {
+impl Default for Data {
+    fn default() -> Self {
         Self {
             values: Arena::new(),
             instructions: Arena::new(),
             basic_blocks: Arena::new(),
             users_map: FxHashMap::default(),
         }
+    }
+}
+
+impl Data {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn create_block(&mut self) -> BasicBlockId {
@@ -83,7 +89,7 @@ impl Data {
         if self.users_of(id).len() != 1 {
             return None;
         }
-        self.users_of(id).iter().next().map(|x| *x)
+        self.users_of(id).iter().next().copied()
     }
 
     // For `Instruction`s
@@ -92,7 +98,7 @@ impl Data {
         let args = self.instructions[id]
             .operand
             .args()
-            .into_iter()
+            .iter()
             .filter_map(|&arg| match &self.values[arg] {
                 Value::Instruction(id) => Some(*id),
                 _ => None,
@@ -101,7 +107,7 @@ impl Data {
         for arg in args {
             self.users_map
                 .entry(arg)
-                .or_insert(FxHashSet::default())
+                .or_insert_with(FxHashSet::default)
                 .insert(id);
         }
     }
@@ -110,7 +116,7 @@ impl Data {
         let args = self.instructions[id]
             .operand
             .args()
-            .into_iter()
+            .iter()
             .filter_map(|&arg| match &self.values[arg] {
                 Value::Instruction(id) => Some(*id),
                 _ => None,

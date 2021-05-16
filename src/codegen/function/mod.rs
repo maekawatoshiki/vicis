@@ -66,7 +66,7 @@ impl<T: TargetIsa> fmt::Debug for Function<T> {
         if self.is_prototype {
             writeln!(f)?;
         } else {
-            write!(f, "{{\n")?;
+            writeln!(f, "{{")?;
             for block_id in self.layout.block_iter() {
                 writeln!(f, "B{:?}:", block_id.index())?;
                 for inst_id in self.layout.inst_iter(block_id) {
@@ -74,7 +74,7 @@ impl<T: TargetIsa> fmt::Debug for Function<T> {
                     writeln!(f, "  id{:<4}| {:?}", inst_id.index(), inst.data)?;
                 }
             }
-            write!(f, "}}\n")?;
+            writeln!(f, "}}")?;
         }
 
         Ok(())

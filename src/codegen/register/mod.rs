@@ -55,12 +55,18 @@ impl RegUnit {
     }
 }
 
-impl VRegs {
-    pub fn new() -> Self {
+impl Default for VRegs {
+    fn default() -> Self {
         Self {
             map: FxHashMap::default(),
             cur: 0,
         }
+    }
+}
+
+impl VRegs {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     // TODO: Change name
@@ -85,17 +91,23 @@ impl VRegs {
     }
 }
 
-impl<Data: ID> VRegUsers<Data> {
-    pub fn new() -> Self {
+impl<Data: ID> Default for VRegUsers<Data> {
+    fn default() -> Self {
         Self {
             vreg_to_insts: FxHashMap::default(),
         }
+    }
+}
+
+impl<Data: ID> VRegUsers<Data> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn add_use(&mut self, vreg: VReg, inst_id: InstructionId<Data>, read: bool, write: bool) {
         self.vreg_to_insts
             .entry(vreg)
-            .or_insert(vec![])
+            .or_insert_with(Vec::new)
             .push(VRegUser {
                 inst_id,
                 read,

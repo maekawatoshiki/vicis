@@ -21,12 +21,18 @@ pub struct PassManager<T> {
     results: FxHashMap<TypeId, Box<dyn Any>>,
 }
 
-impl<T> PassManager<T> {
-    pub fn new() -> Self {
+impl<T> Default for PassManager<T> {
+    fn default() -> Self {
         Self {
             passes: vec![],
             results: FxHashMap::default(),
         }
+    }
+}
+
+impl<T> PassManager<T> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn add(&mut self, pass: Pass<T>) {
@@ -70,7 +76,7 @@ impl<T> PassManager<T> {
     pub fn get_result<P: 'static>(&self) -> Option<&P> {
         self.results
             .get(&TypeId::of::<P>())
-            .map_or(None, |result| result.downcast_ref())
+            .and_then(|result| result.downcast_ref())
     }
 }
 

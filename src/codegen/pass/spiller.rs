@@ -25,7 +25,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
 
     pub fn spill(&mut self, vreg: VReg, new_vregs: &mut Vec<VReg>) {
         let ty = self.function.data.vregs.type_for(vreg);
-        assert!(&*self.function.types.get(ty) == &Type::Int(32));
+        assert!(*self.function.types.get(ty) == Type::Int(32));
         let slot = self
             .function
             .slots
@@ -50,7 +50,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
             }
         }
 
-        if defs.len() == 0 {
+        if defs.is_empty() {
             return;
         }
 
@@ -59,7 +59,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
 
         // Most cases
         if defs.len() == 1 {
-            let def_id = *defs.iter().next().unwrap();
+            let def_id = *defs.get(0).unwrap();
             let def_block;
             {
                 let inst = &mut self.function.data.instructions[def_id];
@@ -103,7 +103,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
             }
         }
 
-        if uses.len() == 0 {
+        if uses.is_empty() {
             return;
         }
 
