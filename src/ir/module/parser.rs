@@ -134,6 +134,8 @@ pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
             source = source_;
             continue;
         }
+
+        todo!("unsupported syntax at {:?}", source)
     }
 
     Ok(module)

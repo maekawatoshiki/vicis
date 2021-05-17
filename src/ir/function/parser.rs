@@ -106,37 +106,45 @@ pub fn parse_body<'a, 'b>(
     ctx: &mut ParserContext<'b>,
     num_args: usize,
 ) -> IResult<&'a str, (), VerboseError<&'a str>> {
-    let (mut source, _) = tuple((spaces, char('{')))(source)?;
+    let (source, _) = tuple((spaces, char('{')))(source)?;
 
     if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
         return Ok((source, ()));
     }
 
+    let (mut source, entry) = opt(preceded(
+        spaces,
+        terminated(name::parse, preceded(spaces, char(':'))),
+    ))(source)?;
+    let mut label = entry.unwrap_or(name::Name::Number(num_args));
+
     // Parse each block
     loop {
-        // Parse label if any
-        let (mut source_, label) = opt(preceded(
-            spaces,
-            terminated(name::parse, preceded(spaces, char(':'))),
-        ))(source)?;
-        let label = label.unwrap_or(name::Name::Number(num_args));
-
         let block = ctx.get_or_create_named_block(label);
 
         ctx.layout.append_block(block);
         ctx.cur_block = block;
 
-        while let Ok((source__, inst)) = instruction::parse(source_, ctx) {
+        while let Ok((source_, inst)) = instruction::parse(source, ctx) {
             ctx.layout.append_inst(inst, ctx.cur_block);
-            source_ = source__
+            source = source_
         }
 
-        if let Ok((source, _)) = tuple((spaces, char('}')))(source_) {
+        if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
             ctx.set_blocks_info();
             return Ok((source, ()));
         }
 
-        source = source_
+        // Parse label
+        if let Ok((source_, label_)) =
+            preceded(spaces, terminated(name::parse, preceded(spaces, char(':'))))(source)
+        {
+            label = label_;
+            source = source_;
+            continue;
+        }
+
+        todo!("unsupported syntax at {:?}", source)
     }
 }
 
