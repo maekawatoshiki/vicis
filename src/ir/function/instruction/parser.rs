@@ -199,10 +199,13 @@ pub fn parse_add_sub_mul<'a, 'b>(
             map(tag("add"), |_| Opcode::Add),
             map(tag("sub"), |_| Opcode::Sub),
             map(tag("mul"), |_| Opcode::Mul),
+            map(tag("sdiv"), |_| Opcode::SDiv),
+            map(tag("srem"), |_| Opcode::SRem),
         )),
     )(source)?;
     let (source, nuw) = opt(preceded(spaces, tag("nuw")))(source)?;
     let (source, nsw) = opt(preceded(spaces, tag("nsw")))(source)?;
+    let (source, exact) = opt(preceded(spaces, tag("exact")))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, lhs) = value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
@@ -214,6 +217,7 @@ pub fn parse_add_sub_mul<'a, 'b>(
             args: [lhs, rhs],
             nuw: nuw.map_or(false, |_| true),
             nsw: nsw.map_or(false, |_| true),
+            exact: exact.map_or(false, |_| true),
         });
     Ok((source, inst))
 }

@@ -58,6 +58,7 @@ pub fn run_function(
                     ty: _,
                     nsw: _,
                     nuw: _,
+                    exact: _,
                     args,
                 } => run_int_binary(&mut frame, inst_id, inst.opcode, args),
                 Operand::ICmp { ty: _, args, cond } => run_icmp(&mut frame, inst_id, args, *cond),

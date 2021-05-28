@@ -34,6 +34,8 @@ pub enum Opcode {
     Add,
     Sub,
     Mul,
+    SDiv,
+    SRem,
     ICmp,
     Sext,
     Zext,
@@ -86,9 +88,9 @@ pub enum Operand {
         ty: TypeId,
         nsw: bool,
         nuw: bool,
+        exact: bool,
         args: [ValueId; 2],
     },
-    // IntDiv { .. }
     Store {
         tys: [TypeId; 2],
         args: [ValueId; 2],
@@ -228,13 +230,20 @@ impl Instruction {
             }
             Operand::InsertValue { .. } => todo!(),
             Operand::ExtractValue { .. } => todo!(),
-            Operand::IntBinary { ty, nuw, nsw, args } => {
+            Operand::IntBinary {
+                ty,
+                nuw,
+                nsw,
+                exact,
+                args,
+            } => {
                 format!(
-                    "%I{} = {:?}{}{} {} {}, {}",
+                    "%I{} = {:?}{}{}{} {} {}, {}",
                     self.id.unwrap().index(),
                     self.opcode,
                     if *nuw { " nuw" } else { "" },
                     if *nsw { " nsw" } else { "" },
+                    if *exact { " exact" } else { "" },
                     types.to_string(*ty),
                     data.value_ref(args[0]).to_string(data, types),
                     data.value_ref(args[1]).to_string(data, types),
@@ -465,6 +474,8 @@ impl fmt::Debug for Opcode {
                 Opcode::Add => "add",
                 Opcode::Sub => "sub",
                 Opcode::Mul => "mul",
+                Opcode::SDiv => "sdiv",
+                Opcode::SRem => "srem",
                 Opcode::ICmp => "icmp",
                 Opcode::Sext => "sext",
                 Opcode::Zext => "zext",

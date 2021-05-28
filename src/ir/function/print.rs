@@ -267,14 +267,21 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::IntBinary { ty, nuw, nsw, args } => {
+            Operand::IntBinary {
+                ty,
+                nuw,
+                nsw,
+                exact,
+                args,
+            } => {
                 write!(
                     self.fmt,
-                    "%{:?} = {:?}{}{} {} {}, {}",
+                    "%{:?} = {:?}{}{}{} {} {}, {}",
                     dest,
                     inst.opcode,
                     if *nuw { " nuw" } else { "" },
                     if *nsw { " nsw" } else { "" },
+                    if *exact { " exact" } else { "" },
                     types.to_string(*ty),
                     self.value_to_string(data.value_ref(args[0]), types),
                     self.value_to_string(data.value_ref(args[1]), types),
