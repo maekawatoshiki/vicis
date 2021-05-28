@@ -166,6 +166,8 @@ fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, arg
         Opcode::Add => frame.add_inst_val(id, add(x, y).unwrap()),
         Opcode::Sub => frame.add_inst_val(id, sub(x, y).unwrap()),
         Opcode::Mul => frame.add_inst_val(id, mul(x, y).unwrap()),
+        Opcode::SDiv => frame.add_inst_val(id, sdiv(x, y).unwrap()),
+        Opcode::SRem => frame.add_inst_val(id, srem(x, y).unwrap()),
         _ => todo!(),
     };
 }
@@ -259,6 +261,20 @@ fn sub(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn mul(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x * y)),
+        _ => None,
+    }
+}
+
+fn sdiv(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x / y)),
+        _ => None,
+    }
+}
+
+fn srem(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x % y)),
         _ => None,
     }
 }

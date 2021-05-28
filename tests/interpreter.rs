@@ -388,6 +388,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
         GenericValue::Int32(101)
     );
 }
+
 #[test]
 fn exec9() {
     let asm = r#"
@@ -420,4 +421,38 @@ attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-
         interpreter::run_function(&ctx, main, vec![]).unwrap(),
         GenericValue::Int32(0),
     );
+}
+
+#[test]
+fn exec10() {
+    for (x, y, z, op) in vec![
+        (2, 3, 5, "add"),
+        (3, 30, -27, "sub"),
+        (5, 23, 115, "mul"),
+        (123, 23, 5, "sdiv"),
+        (39, 30, 9, "srem"),
+    ] {
+        let asm = format!(
+            "
+    define dso_local i32 @f(i32 %0, i32 %1) {{
+      %3 = {} i32 %0, %1
+      ret i32 %3
+    }}",
+            op
+        );
+        let module = module::parse_assembly(asm.as_str()).unwrap();
+        let ctx = interpreter::Context::new(&module)
+            .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
+            .expect("failed to load libc");
+        let main = module.find_function_by_name("f").unwrap();
+        assert_eq!(
+            interpreter::run_function(
+                &ctx,
+                main,
+                vec![GenericValue::Int32(x), GenericValue::Int32(y)]
+            )
+            .unwrap(),
+            GenericValue::Int32(z),
+        );
+    }
 }
