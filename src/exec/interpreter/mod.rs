@@ -369,42 +369,52 @@ impl TypeSize for Types {
     }
 }
 
-fn call_external_func(ctx: &Context, func: &Function, args_: &[GenericValue]) -> GenericValue {
+fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> GenericValue {
     fn lookup<'a>(
         ctx: &'a Context,
         name: &'a str,
     ) -> Option<libloading::Symbol<'a, unsafe extern "C" fn()>> {
-        for lib in &ctx.libs {
-            if let Ok(func) = unsafe { lib.get(name.as_bytes()) } {
-                return Some(func);
-            }
-        }
-        None
+        ctx.libs
+            .iter()
+            .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
     }
+
+    let mut args_ty = Vec::with_capacity(100);
+    let mut new_args = Vec::with_capacity(100);
+    let mut args: Vec<GenericValue> = args.to_vec();
+    for arg in &mut args {
+        match arg {
+            GenericValue::Int32(ref mut i) => {
+                args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
+                new_args.push(i as *mut _ as *mut c_void)
+            }
+            GenericValue::Ptr(p) => {
+                args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+                new_args.push(&mut (*p as *mut u8) as *mut _ as *mut c_void)
+            }
+            _ => todo!(),
+        }
+    }
+    let ret_ty = match &*func.types.get(func.result_ty) {
+        Type::Int(32) => unsafe { &mut libffi::low::types::sint32 },
+        Type::Pointer(_) => unsafe { &mut libffi::low::types::pointer },
+        _ => panic!(),
+    };
+    let mut cif: libffi::low::ffi_cif = Default::default();
 
     let func = lookup(ctx, func.name()).unwrap();
     let func = libffi::low::CodePtr(unsafe { func.into_raw() }.into_raw());
-
-    let mut args: Vec<*mut libffi::low::ffi_type> =
-        unsafe { vec![&mut libffi::low::types::pointer] };
-    let mut cif: libffi::low::ffi_cif = Default::default();
 
     unsafe {
         libffi::low::prep_cif(
             &mut cif,
             libffi::low::ffi_abi_FFI_DEFAULT_ABI,
-            args.len(),
-            &mut libffi::low::types::sint32,
-            args.as_mut_ptr(),
+            args_ty.len(),
+            ret_ty,
+            args_ty.as_mut_ptr(),
         )
     }
     .unwrap();
 
-    unsafe {
-        libffi::low::call(
-            &mut cif,
-            func,
-            vec![&mut args_[0].to_ptr().unwrap() as *mut _ as *mut c_void].as_mut_ptr(),
-        )
-    }
+    unsafe { libffi::low::call(&mut cif, func, new_args.as_mut_ptr()) }
 }
