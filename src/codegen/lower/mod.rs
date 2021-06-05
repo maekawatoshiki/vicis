@@ -230,6 +230,10 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
 }
 
 impl<'a, T: TargetIsa> LoweringContext<'a, T> {
+    pub fn set_output_for_inst(&mut self, id: IrInstructionId, vreg: VReg) {
+        self.inst_id_to_vreg.insert(id, vreg);
+    }
+
     pub fn mark_as_merged(&mut self, inst: IrInstructionId) {
         self.merged_inst.insert(inst);
     }

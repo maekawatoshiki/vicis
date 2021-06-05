@@ -4,7 +4,7 @@ pub mod store;
 use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
     isa::x86_64::{
-        instruction::{InstructionData, Opcode, Operand as MOperand, OperandData},
+        instruction::{InstructionData, Opcode, Operand as MO, OperandData},
         register::{RegClass, RegInfo, GR32},
         X86_64,
     },
@@ -60,7 +60,7 @@ impl LowerTrait<X86_64> for Lower {
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrr32,
-                    operands: vec![MOperand::output(output.into()), MOperand::input(reg.into())],
+                    operands: vec![MO::output(output.into()), MO::input(reg.into())],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
@@ -131,10 +131,10 @@ fn lower_phi(
     blocks: &[BasicBlockId],
 ) -> Result<()> {
     let output = new_empty_inst_output(ctx, ty, id);
-    let mut operands = vec![MOperand::output(output.into())];
+    let mut operands = vec![MO::output(output.into())];
     for (arg, block) in args.iter().zip(blocks.iter()) {
-        operands.push(MOperand::input(val_to_operand_data(ctx, ty, *arg)?));
-        operands.push(MOperand::new(OperandData::Block(ctx.block_map[block])))
+        operands.push(MO::input(val_to_operand_data(ctx, ty, *arg)?));
+        operands.push(MO::new(OperandData::Block(ctx.block_map[block])))
     }
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
@@ -160,7 +160,7 @@ fn lower_bin(
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::MOVrr32,
-                operands: vec![MOperand::output(output.into()), MOperand::input(lhs.into())],
+                operands: vec![MO::output(output.into()), MO::input(lhs.into())],
             },
             ctx.block_map[&ctx.cur_block],
         ))
@@ -177,10 +177,7 @@ fn lower_bin(
                     IrOpcode::Sub => Opcode::SUBri32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
-                operands: vec![
-                    MOperand::input_output(output.into()),
-                    MOperand::new(rhs.into()),
-                ],
+                operands: vec![MO::input_output(output.into()), MO::new(rhs.into())],
             }
         }
         OperandData::VReg(rhs) => {
@@ -191,10 +188,7 @@ fn lower_bin(
                     IrOpcode::Sub => Opcode::SUBrr32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
-                operands: vec![
-                    MOperand::input_output(output.into()),
-                    MOperand::input(rhs.into()),
-                ],
+                operands: vec![MO::input_output(output.into()), MO::input(rhs.into())],
             }
         }
         _ => return Err(LoweringError::Todo.into()),
@@ -212,24 +206,24 @@ fn lower_sext(
     tys: &[TypeId; 2],
     arg: ValueId,
 ) -> Result<()> {
-    // if ctx.is_merged(id) {
-    //     return Ok(());
-    // }
-
     let from = tys[0];
     let to = tys[1];
+    // TODO
     assert_eq!(*ctx.types.get(from), Type::Int(32));
     assert_eq!(*ctx.types.get(to), Type::Int(64));
 
     let val = match ctx.ir_data.values[arg] {
         Value::Instruction(id) => {
-            if ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from == ctx.types.base().i32() {
+            let is_mergeable_load =
+                ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from == ctx.types.base().i32();
+
+            if is_mergeable_load {
                 let output = new_empty_inst_output(ctx, to, self_id);
-                ctx.inst_id_to_vreg.insert(id, output);
+                ctx.set_output_for_inst(id, output); // Use the same output register for `load` as `sext`
                 return Ok(());
-            } else {
-                get_or_generate_inst_output(ctx, from, id)?
             }
+
+            get_or_generate_inst_output(ctx, from, id)?
         }
         _ => return Err(LoweringError::Todo.into()),
     };
@@ -239,7 +233,7 @@ fn lower_sext(
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::MOVSXDr64r32,
-            operands: vec![MOperand::output(output.into()), MOperand::input(val.into())],
+            operands: vec![MO::output(output.into()), MO::input(val.into())],
         },
         ctx.block_map[&ctx.cur_block],
     ));
@@ -251,7 +245,7 @@ fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) -> Result<()
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::JMP,
-            operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&block]))],
+            operands: vec![MO::new(OperandData::Block(ctx.block_map[&block]))],
         },
         ctx.block_map[&ctx.cur_block],
     ));
@@ -289,7 +283,7 @@ fn lower_condbr(
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::CMPri32,
-                        operands: vec![MOperand::input(lhs.into()), MOperand::new(rhs.into())],
+                        operands: vec![MO::input(lhs.into()), MO::new(rhs.into())],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
@@ -308,14 +302,14 @@ fn lower_condbr(
                     ICmpCond::Sgt => Opcode::JG,
                     _ => return Err(LoweringError::Todo.into()),
                 },
-                operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
+                operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
             },
             ctx.block_map[&ctx.cur_block],
         ));
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::JMP,
-                operands: vec![MOperand::new(OperandData::Block(ctx.block_map[&blocks[1]]))],
+                operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[1]]))],
             },
             ctx.block_map[&ctx.cur_block],
         ));
@@ -344,7 +338,7 @@ fn lower_call(
                     OperandData::VReg(_) | OperandData::Reg(_) => Opcode::MOVrr32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
-                operands: vec![MOperand::output(r.into()), MOperand::input(arg)],
+                operands: vec![MO::output(r.into()), MO::input(arg)],
             },
             ctx.block_map[&ctx.cur_block],
         ));
@@ -359,8 +353,8 @@ fn lower_call(
         InstructionData {
             opcode: Opcode::CALL,
             operands: vec![
-                MOperand::implicit_output(result_reg.into()),
-                MOperand::new(OperandData::Label(name)),
+                MO::implicit_output(result_reg.into()),
+                MO::new(OperandData::Label(name)),
             ],
         },
         ctx.block_map[&ctx.cur_block],
@@ -370,10 +364,7 @@ fn lower_call(
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::MOVrr32,
-                operands: vec![
-                    MOperand::output(output.into()),
-                    MOperand::input(result_reg.into()),
-                ],
+                operands: vec![MO::output(output.into()), MO::input(result_reg.into())],
             },
             ctx.block_map[&ctx.cur_block],
         ));
@@ -389,8 +380,8 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) -
         InstructionData {
             opcode: Opcode::MOVrr32,
             operands: vec![
-                MOperand::output(OperandData::Reg(GR32::EAX.into())),
-                MOperand::input(vreg.into()),
+                MO::output(OperandData::Reg(GR32::EAX.into())),
+                MO::input(vreg.into()),
             ],
         },
         ctx.block_map[&ctx.cur_block],
@@ -472,7 +463,7 @@ fn val_to_operand_data(
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVri32, // TODO: MOVri64 is correct
-                    operands: vec![MOperand::output(dst.into()), MOperand::new(src)],
+                    operands: vec![MO::output(dst.into()), MO::new(src)],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
@@ -489,7 +480,7 @@ fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> R
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVri32,
-                    operands: vec![MOperand::output(output.into()), MOperand::new(i.into())],
+                    operands: vec![MO::output(output.into()), MO::new(i.into())],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));

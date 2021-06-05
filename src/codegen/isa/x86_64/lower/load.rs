@@ -57,10 +57,8 @@ pub fn lower_load(
             MOperand::new(OperandData::None),
         ];
 
-        if let Some(u) = sext {
-            // let output = new_empty_inst_output(ctx, ctx.types.base().i64(), u);
+        if sext.is_some() {
             let output = ctx.inst_id_to_vreg[&id];
-            ctx.mark_as_merged(u);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVSXDr64m32,
@@ -162,9 +160,6 @@ fn lower_load_gep(
     }
 
     let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
-    if let Some(x) = sext {
-        ctx.mark_as_merged(x)
-    }
 
     let src_ty = tys[0];
     match &*ctx.types.get(src_ty) {
