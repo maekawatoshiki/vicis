@@ -33,13 +33,13 @@ pub fn lower_load(
             && types[1] == ctx.types.base().i64()
     });
 
-    if let Value::Instruction(gep_id) = &ctx.ir_data.values[addr] {
-        if let Some(slot_id) = ctx.inst_id_to_slot_id.get(gep_id) {
+    if let Value::Instruction(addr_id) = &ctx.ir_data.values[addr] {
+        if let Some(slot_id) = ctx.inst_id_to_slot_id.get(addr_id) {
             slot = Some(*slot_id);
         } else {
-            let opcode = ctx.ir_data.instructions[*gep_id].opcode;
+            let opcode = ctx.ir_data.instructions[*addr_id].opcode;
             if opcode == IrOpcode::GetElementPtr {
-                return lower_load_gep(ctx, id, tys, *gep_id, _align, sext);
+                return lower_load_gep(ctx, id, tys, *addr_id, _align, sext);
             }
         }
     } else {
@@ -58,7 +58,8 @@ pub fn lower_load(
         ];
 
         if let Some(u) = sext {
-            let output = new_empty_inst_output(ctx, ctx.types.base().i64(), u);
+            // let output = new_empty_inst_output(ctx, ctx.types.base().i64(), u);
+            let output = ctx.inst_id_to_vreg[&id];
             ctx.mark_as_merged(u);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
@@ -74,7 +75,8 @@ pub fn lower_load(
         }
 
         if matches!(&*ctx.types.get(src_ty), Type::Int(32)) {
-            let output = new_empty_inst_output(ctx, src_ty, id);
+            // let output = new_empty_inst_output(ctx, src_ty, id);
+            let output = ctx.inst_id_to_vreg[&id];
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrm32,

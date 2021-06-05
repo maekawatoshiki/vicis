@@ -16,7 +16,7 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
         data::Data as IrData,
-        instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId},
+        instruction::{Instruction as IrInstruction, InstructionId as IrInstructionId, Opcode},
         Function as IrFunction, Parameter,
     },
     module::Module as IrModule,
@@ -25,7 +25,7 @@ use crate::ir::{
 use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, mem};
 
 pub trait Lower<T: TargetIsa> {
     fn lower(ctx: &mut LoweringContext<T>, inst: &IrInstruction) -> Result<()>;
@@ -111,7 +111,9 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
     let call_conv = T::default_call_conv();
 
     for (i, block_id) in function.layout.block_iter().enumerate() {
+        let mut insts_seq = vec![];
         let mut inst_seq = vec![];
+        let mut prologue_seq = vec![];
 
         // entry block
         if i == 0 {
@@ -121,7 +123,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                     mach_data: &mut data,
                     slots: &mut slots,
                     inst_id_to_slot_id: &mut inst_id_to_slot_id,
-                    inst_seq: &mut inst_seq,
+                    inst_seq: &mut prologue_seq,
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
@@ -134,8 +136,38 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
             )?;
         }
 
+        // Only handle Alloca and Phi insts
+        // TODO: Refactoring
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
+            if inst.opcode != Opcode::Alloca && inst.opcode != Opcode::Phi {
+                break;
+            }
+            T::Lower::lower(
+                &mut LoweringContext {
+                    ir_data: &function.data,
+                    mach_data: &mut data,
+                    slots: &mut slots,
+                    inst_id_to_slot_id: &mut inst_id_to_slot_id,
+                    inst_seq: &mut prologue_seq,
+                    arg_idx_to_vreg: &mut arg_idx_to_vreg,
+                    types: &function.types,
+                    inst_id_to_vreg: &mut inst_id_to_vreg,
+                    merged_inst: &mut merged_inst,
+                    block_map: &block_map,
+                    call_conv,
+                    cur_block: block_id,
+                },
+                inst,
+            )?;
+        }
+
+        for inst_id in function.layout.inst_iter(block_id).rev() {
+            let inst = function.data.inst_ref(inst_id);
+
+            if inst.opcode == Opcode::Alloca || inst.opcode == Opcode::Phi {
+                break;
+            }
 
             // Check if `inst` has no side effects and has user instructions placed in
             // the same basic block
@@ -166,10 +198,17 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: IrFunction) -> Result<Ma
                 },
                 inst,
             )?;
+
+            insts_seq.push(mem::replace(&mut inst_seq, vec![]));
         }
-        for mach_inst in inst_seq {
-            let mach_inst = data.create_inst(mach_inst);
-            layout.append_inst(mach_inst, block_map[&block_id])
+
+        insts_seq.push(prologue_seq);
+
+        for inst_seq in insts_seq.into_iter().rev() {
+            for mach_inst in inst_seq {
+                let mach_inst = data.create_inst(mach_inst);
+                layout.append_inst(mach_inst, block_map[&block_id])
+            }
         }
     }
 

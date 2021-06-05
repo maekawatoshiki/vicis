@@ -208,13 +208,13 @@ fn lower_bin(
 
 fn lower_sext(
     ctx: &mut LoweringContext<X86_64>,
-    id: InstructionId,
+    self_id: InstructionId,
     tys: &[TypeId; 2],
     arg: ValueId,
 ) -> Result<()> {
-    if ctx.is_merged(id) {
-        return Ok(());
-    }
+    // if ctx.is_merged(id) {
+    //     return Ok(());
+    // }
 
     let from = tys[0];
     let to = tys[1];
@@ -222,11 +222,19 @@ fn lower_sext(
     assert_eq!(*ctx.types.get(to), Type::Int(64));
 
     let val = match ctx.ir_data.values[arg] {
-        Value::Instruction(id) => get_or_generate_inst_output(ctx, from, id)?,
+        Value::Instruction(id) => {
+            if ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from == ctx.types.base().i32() {
+                let output = new_empty_inst_output(ctx, to, self_id);
+                ctx.inst_id_to_vreg.insert(id, output);
+                return Ok(());
+            } else {
+                get_or_generate_inst_output(ctx, from, id)?
+            }
+        }
         _ => return Err(LoweringError::Todo.into()),
     };
 
-    let output = new_empty_inst_output(ctx, to, id);
+    let output = new_empty_inst_output(ctx, to, self_id);
 
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
@@ -413,14 +421,20 @@ fn get_or_generate_inst_output(
 
     if ctx.ir_data.inst_ref(id).parent != ctx.cur_block {
         // The instruction indexed as `id` must be placed in another basic block
-        let v = ctx.mach_data.vregs.add_vreg_data(ty);
-        ctx.inst_id_to_vreg.insert(id, v);
-        return Ok(v);
+        let vreg = new_empty_inst_output(ctx, ty, id);
+        return Ok(vreg);
     }
 
-    // TODO: What about instruction scheduling?
-    lower(ctx, ctx.ir_data.inst_ref(id))?;
-    get_or_generate_inst_output(ctx, ty, id)
+    let inst = ctx.ir_data.inst_ref(id);
+
+    if inst.opcode.has_side_effects() {
+        let vreg = new_empty_inst_output(ctx, ty, id);
+        return Ok(vreg);
+    } else {
+        // TODO: What about instruction scheduling?
+        lower(ctx, inst)?;
+        get_or_generate_inst_output(ctx, ty, id)
+    }
 }
 
 fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: InstructionId) -> VReg {
