@@ -1,4 +1,4 @@
-// pub mod asm;
+pub mod asm;
 pub mod instruction;
 pub mod lower;
 // pub mod pass;

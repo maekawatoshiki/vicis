@@ -8,7 +8,7 @@ use crate::codegen::{
     isa::{mips32::register::reg_to_str, TargetIsa},
     register::{Reg, VReg, VRegUsers},
 };
-use crate::ir::types::Type;
+// use crate::ir::types::Type;
 use std::fmt;
 
 pub struct InstructionInfo;
@@ -21,32 +21,8 @@ pub struct InstructionData {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Opcode {
-    PUSH64,
-    POP64,
-    ADDr64i32,
-    ADDri32,
-    ADDrr32,
-    SUBr64i32,
-    SUBri32,
-    SUBrr32,
-    MOVrr32,
-    MOVrr64,
-    MOVri32,
-    MOVrm32,
-    MOVmi32,
-    MOVmr32,
-    MOVSXDr64r32,
-    MOVSXDr64m32,
-    CMPri32,
-    JMP,
-    JE,
-    JNE,
-    JLE,
-    JL,
-    JGE,
-    JG,
-    CALL,
-    RET,
+    JR,
+    ADDI,
 
     // TODO
     Phi,
@@ -82,23 +58,7 @@ impl II for InstructionInfo {
         slot: SlotId,
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
-        let ty = f.data.vregs.type_for(vreg);
-        assert_eq!(&*f.types.get(ty), &Type::Int(32));
-        Instruction::new(
-            InstructionData {
-                opcode: Opcode::MOVmr32,
-                operands: vec![
-                    Operand::new(OperandData::MemStart),
-                    Operand::new(OperandData::Slot(slot)),
-                    Operand::new(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::new(OperandData::None),
-                    Operand::input(vreg.into()),
-                ],
-            },
-            block,
-        )
+        todo!()
     }
 
     fn load_from_slot<T: TargetIsa>(
@@ -107,23 +67,7 @@ impl II for InstructionInfo {
         slot: SlotId,
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
-        let ty = f.data.vregs.type_for(vreg);
-        assert_eq!(&*f.types.get(ty), &Type::Int(32));
-        Instruction::new(
-            InstructionData {
-                opcode: Opcode::MOVrm32,
-                operands: vec![
-                    Operand::output(vreg.into()),
-                    Operand::new(OperandData::MemStart),
-                    Operand::new(OperandData::Slot(slot)),
-                    Operand::new(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::new(OperandData::None),
-                ],
-            },
-            block,
-        )
+        todo!()
     }
 }
 
@@ -243,11 +187,13 @@ impl ID for InstructionData {
     }
 
     fn is_copy(&self) -> bool {
-        matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
+        false
+        // matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
     }
 
     fn is_call(&self) -> bool {
-        matches!(self.opcode, Opcode::CALL)
+        false
+        // matches!(self.opcode, Opcode::CALL)
     }
 }
 

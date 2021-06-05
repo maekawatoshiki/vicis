@@ -1,15 +1,24 @@
 use crate::codegen::{
-    // function::instruction::Instruction as MachInstruction,
-    isa::mips32::MIPS32,
+    function::instruction::Instruction as MachInstruction,
+    isa::mips32::{
+        instruction::{InstructionData, Opcode, Operand as MO, OperandData},
+        register::GR,
+        MIPS32,
+    },
     // isa::TargetIsa,
-    lower::{Lower as LowerTrait, LoweringContext},
-    // register::{Reg, RegisterClass, RegisterInfo, VReg},
+    lower::{Lower as LowerTrait, LoweringContext, LoweringError},
+    register::Reg,
 };
-use crate::ir::function::{
-    // basic_block::BasicBlockId,
-    // data::Data as IrData,
-    instruction::Instruction as IrInstruction,
-    Parameter,
+use crate::ir::{
+    function::{
+        // basic_block::BasicBlockId,
+        // data::Data as IrData,
+        instruction::{Instruction as IrInstruction, Operand},
+        Parameter,
+    },
+    types::TypeId,
+    value::{ConstantData, ConstantInt, Value, ValueId},
+    // value::{ValueId,Value},
 };
 use anyhow::Result;
 
@@ -29,9 +38,8 @@ impl Lower {
 }
 
 impl LowerTrait<MIPS32> for Lower {
-    fn lower(_ctx: &mut LoweringContext<MIPS32>, _inst: &IrInstruction) -> Result<()> {
-        todo!()
-        // lower(ctx, inst)
+    fn lower(ctx: &mut LoweringContext<MIPS32>, inst: &IrInstruction) -> Result<()> {
+        lower(ctx, inst)
     }
 
     fn copy_args_to_vregs(_ctx: &mut LoweringContext<MIPS32>, _params: &[Parameter]) -> Result<()> {
@@ -55,44 +63,44 @@ impl LowerTrait<MIPS32> for Lower {
     }
 }
 
-// fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> {
-//     match inst.operand {
-//         Operand::Alloca {
-//             ref tys,
-//             ref num_elements,
-//             align,
-//         } => lower_alloca(ctx, inst.id.unwrap(), tys, num_elements, align),
-//         Operand::Phi {
-//             ty,
-//             ref args,
-//             ref blocks,
-//         } => lower_phi(ctx, inst.id.unwrap(), ty, args, blocks),
-//         Operand::Load {
-//             ref tys,
-//             addr,
-//             align,
-//         } => lower_load(ctx, inst.id.unwrap(), tys, addr, align),
-//         Operand::Store {
-//             ref tys,
-//             ref args,
-//             align,
-//         } => lower_store(ctx, tys, args, align),
-//         Operand::IntBinary { ty, ref args, .. } => {
-//             lower_bin(ctx, inst.id.unwrap(), inst.opcode, ty, args)
-//         }
-//         Operand::Cast { ref tys, arg } if inst.opcode == IrOpcode::Sext => {
-//             lower_sext(ctx, inst.id.unwrap(), tys, arg)
-//         }
-//         Operand::Br { block } => lower_br(ctx, block),
-//         Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
-//         Operand::Call {
-//             ref args, ref tys, ..
-//         } => lower_call(ctx, inst.id.unwrap(), tys, args),
-//         Operand::Ret { val: None, .. } => Err(LoweringError::Todo.into()),
-//         Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
-//         _ => Err(LoweringError::Todo.into()),
-//     }
-// }
+fn lower(ctx: &mut LoweringContext<MIPS32>, inst: &IrInstruction) -> Result<()> {
+    match inst.operand {
+        // Operand::Alloca {
+        //     ref tys,
+        //     ref num_elements,
+        //     align,
+        // } => lower_alloca(ctx, inst.id.unwrap(), tys, num_elements, align),
+        // Operand::Phi {
+        //     ty,
+        //     ref args,
+        //     ref blocks,
+        // } => lower_phi(ctx, inst.id.unwrap(), ty, args, blocks),
+        // Operand::Load {
+        //     ref tys,
+        //     addr,
+        //     align,
+        // } => lower_load(ctx, inst.id.unwrap(), tys, addr, align),
+        // Operand::Store {
+        //     ref tys,
+        //     ref args,
+        //     align,
+        // } => lower_store(ctx, tys, args, align),
+        // Operand::IntBinary { ty, ref args, .. } => {
+        //     lower_bin(ctx, inst.id.unwrap(), inst.opcode, ty, args)
+        // }
+        // Operand::Cast { ref tys, arg } if inst.opcode == IrOpcode::Sext => {
+        //     lower_sext(ctx, inst.id.unwrap(), tys, arg)
+        // }
+        // Operand::Br { block } => lower_br(ctx, block),
+        // Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
+        // Operand::Call {
+        //     ref args, ref tys, ..
+        // } => lower_call(ctx, inst.id.unwrap(), tys, args),
+        Operand::Ret { val: None, .. } => Err(LoweringError::Todo.into()),
+        Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
+        _ => Err(LoweringError::Todo.into()),
+    }
+}
 //
 // fn lower_alloca(
 //     ctx: &mut LoweringContext<X86_64>,
@@ -357,30 +365,44 @@ impl LowerTrait<MIPS32> for Lower {
 //
 //     Ok(())
 // }
-//
-// fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) -> Result<()> {
-//     let vreg = val_to_vreg(ctx, ty, value)?;
-//     assert!(*ctx.types.get(ty) == Type::Int(32));
-//     ctx.inst_seq.push(MachInstruction::new(
-//         InstructionData {
-//             opcode: Opcode::MOVrr32,
-//             operands: vec![
-//                 MO::output(OperandData::Reg(GR32::EAX.into())),
-//                 MO::input(vreg.into()),
-//             ],
-//         },
-//         ctx.block_map[&ctx.cur_block],
-//     ));
-//     ctx.inst_seq.push(MachInstruction::new(
-//         InstructionData {
-//             opcode: Opcode::RET,
-//             operands: vec![],
-//         },
-//         ctx.block_map[&ctx.cur_block],
-//     ));
-//     Ok(())
-// }
-//
+
+fn lower_return(ctx: &mut LoweringContext<MIPS32>, ty: TypeId, value: ValueId) -> Result<()> {
+    set_reg_val(ctx, GR::V0.into(), ty, value)?;
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::JR,
+            operands: vec![MO::input(OperandData::Reg(GR::RA.into()))],
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+    Ok(())
+}
+
+fn set_reg_val(
+    ctx: &mut LoweringContext<MIPS32>,
+    reg: Reg,
+    ty: TypeId,
+    val: ValueId,
+) -> Result<()> {
+    match ctx.ir_data.value_ref(val) {
+        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::ADDI,
+                    operands: vec![
+                        MO::output(OperandData::Reg(reg)),
+                        MO::output(OperandData::Reg(GR::ZERO.into())),
+                        MO::new(OperandData::Int32(*i)),
+                    ],
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            Ok(())
+        }
+        _ => Err(LoweringError::Todo.into()),
+    }
+}
+
 // // Get instruction output.
 // // If the instruction is not placed in any basic block, place it in the current block.
 // // If the instruction must be placed in another block except the current block(, which means
@@ -457,7 +479,7 @@ impl LowerTrait<MIPS32> for Lower {
 //         _ => Err(LoweringError::Todo.into()),
 //     }
 // }
-//
+
 // fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> Result<VReg> {
 //     match val_to_operand_data(ctx, ty, val)? {
 //         OperandData::Int32(i) => {
