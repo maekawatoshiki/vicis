@@ -89,6 +89,7 @@ impl RegisterInfo for RegInfo {
     fn arg_reg_list(cc: &CallConvKind) -> &'static [RegUnit] {
         match cc {
             CallConvKind::SystemV => &ARG_REGS,
+            CallConvKind::MIPS => panic!(),
         }
     }
 
