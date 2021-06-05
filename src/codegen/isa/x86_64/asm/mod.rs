@@ -23,8 +23,12 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
             for elem in &arr.elems {
                 s.push(*elem.as_int().as_i8() as u8)
             }
+            let s: Vec<u8> = s
+                .into_iter()
+                .flat_map(|c| ::std::ascii::escape_default(c))
+                .collect();
             let s = ::std::str::from_utf8(s.as_slice()).unwrap().to_string();
-            let s = s.trim_end_matches('\x00'); // TODO
+            let s = s.trim_end_matches("\\x00"); // TODO
             debug!(&s);
             writeln!(f, "{}:", gv.name.as_string())?;
             writeln!(f, "  .string \"{}\"", s)?;
