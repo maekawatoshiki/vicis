@@ -35,12 +35,14 @@ jobs:
             sudo -E apt-get install -y opt libedit-dev build-essential make && \
             sudo -E apt-get install -y cmake llvm-10 pkg-config jq && \
             sudo -E apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev llvm-12 && \
+            cd vicis_ir && \
             cargo install cargo-kcov && \
             cargo kcov --print-install-kcov-sh | sh
     - name: Run tests
-      run: cargo test --verbose
+      run: cd vicis_ir && cargo test --verbose
     - name: Run kcov
       run: |
+            cd vicis_ir \ 
             REPORT=$(find ./target/debug -maxdepth 2 -regex '.+/deps/.*' -a ! -regex '.+\.\(d\|rlib\|rmeta\|so\)'); \
             for file in $REPORT; do \
               echo $file; \
