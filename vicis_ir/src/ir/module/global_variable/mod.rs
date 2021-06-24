@@ -8,6 +8,7 @@ use crate::ir::{
     value::ConstantData,
 };
 
+#[derive(Clone)]
 pub struct GlobalVariable {
     pub name: Name,
     pub linkage: Option<Linkage>,

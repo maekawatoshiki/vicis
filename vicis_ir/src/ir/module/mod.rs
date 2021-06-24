@@ -60,12 +60,28 @@ impl Module {
         &self.name
     }
 
+    pub fn source_filename(&self) -> &String {
+        &self.source_filename
+    }
+
+    pub fn target(&self) -> &Target {
+        &self.target
+    }
+
     pub fn functions(&self) -> &Arena<Function> {
         &self.functions
     }
 
     pub fn functions_mut(&mut self) -> &mut Arena<Function> {
         &mut self.functions
+    }
+
+    pub fn attributes(&self) -> &FxHashMap<u32, Vec<Attribute>> {
+        &self.attributes
+    }
+
+    pub fn global_variables(&self) -> &FxHashMap<Name, GlobalVariable> {
+        &self.global_variables
     }
 
     pub fn find_function_by_name<T: AsRef<str>>(&self, name: T) -> Option<FunctionId> {

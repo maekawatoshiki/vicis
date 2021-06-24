@@ -1,5 +1,5 @@
 [package]
-name = "runner"
+name = "vicis_interpreter"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,6 +7,8 @@ edition = "2018"
 
 [dependencies]
 vicis_ir = { path = "../vicis_ir" }
-vicis_codegen = { path = "../vicis_codegen" }
-structopt = "0.3.18"
-rand = "0.8.3"
+libffi = "= 1.0.1"
+libloading = "= 0.7.0"
+rustc-hash = "= 1.1.0"
+id-arena = "= 2.2.1"
+anyhow = "= 1.0.38"

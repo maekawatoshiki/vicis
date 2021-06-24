@@ -6,5 +6,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-vicis = { path = "../" }
+vicis_ir = { path = "../vicis_ir" }
+vicis_interpreter = { path = "../vicis_interpreter" }
 structopt = "0.3.18"

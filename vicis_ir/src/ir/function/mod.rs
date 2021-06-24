@@ -29,21 +29,21 @@ pub type FunctionId = Id<Function>;
 pub type PersonalityFunc = (TypeId, ConstantData);
 
 pub struct Function {
-    pub(crate) name: String,
-    pub(crate) is_var_arg: bool,
-    pub(crate) result_ty: TypeId,
-    pub(crate) params: Vec<Parameter>,
-    pub(crate) linkage: Linkage,
-    pub(crate) preemption_specifier: PreemptionSpecifier,
-    pub(crate) visibility: Visibility,
-    pub(crate) unnamed_addr: Option<UnnamedAddr>,
-    pub(crate) func_attrs: Vec<Attribute>,
-    pub(crate) ret_attrs: Vec<param_attrs::ParameterAttribute>,
-    pub(crate) personality: Option<PersonalityFunc>,
+    pub name: String,
+    pub is_var_arg: bool,
+    pub result_ty: TypeId,
+    pub params: Vec<Parameter>,
+    pub linkage: Linkage,
+    pub preemption_specifier: PreemptionSpecifier,
+    pub visibility: Visibility,
+    pub unnamed_addr: Option<UnnamedAddr>,
+    pub func_attrs: Vec<Attribute>,
+    pub ret_attrs: Vec<param_attrs::ParameterAttribute>,
+    pub personality: Option<PersonalityFunc>,
     pub data: data::Data,
     pub layout: layout::Layout,
     pub types: Types,
-    pub(crate) is_prototype: bool,
+    pub is_prototype: bool,
 }
 
 #[derive(Debug, Clone)]

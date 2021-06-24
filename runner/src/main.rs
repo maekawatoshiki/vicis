@@ -1,14 +1,13 @@
 extern crate rand;
 extern crate structopt;
-extern crate vicis;
+extern crate vicis_codegen;
+extern crate vicis_ir;
 
 use rand::Rng;
 use std::{fs, io::Write, process};
 use structopt::StructOpt;
-use vicis::{
-    codegen::{isa::x86_64::X86_64, lower::compile_module},
-    ir::module,
-};
+use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
+use vicis_ir::ir::module;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "i")]
@@ -23,7 +22,7 @@ fn main() {
     let opt = Opt::from_args();
     let ir = fs::read_to_string(opt.ir_file.as_str()).expect("failed to load *.ll file");
     let module = module::parse_assembly(ir.as_str()).expect("failed to parse LLVM Assembly");
-    let module = compile_module(X86_64, module).expect("failed to compile module");
+    let module = compile_module(X86_64, &module).expect("failed to compile module");
     let asm_file_name = unique_file_name("s");
     let mut output =
         fs::File::create(asm_file_name.as_str()).expect("failed to create output *.s file");

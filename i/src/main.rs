@@ -1,9 +1,11 @@
 extern crate structopt;
-extern crate vicis;
+extern crate vicis_interpreter;
+extern crate vicis_ir;
 
 use std::{fs, process};
 use structopt::StructOpt;
-use vicis::{exec::interpreter, ir::module};
+use vicis_interpreter::interpreter;
+use vicis_ir::ir::module;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "i")]
