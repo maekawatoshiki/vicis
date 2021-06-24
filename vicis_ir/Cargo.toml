@@ -1,5 +1,5 @@
 [package]
-name = "vicis"
+name = "vicis_ir"
 version = "0.1.0"
 authors = ["uint256_t <uint2p8_t@protonmail.com>"]
 edition = "2018"

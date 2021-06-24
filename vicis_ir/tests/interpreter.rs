@@ -1,4 +1,4 @@
-use vicis::{
+use vicis_ir::{
     exec::{generic_value::GenericValue, interpreter},
     ir::module,
 };
