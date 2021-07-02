@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap;
 use std::{alloc, ffi, os::raw::c_void, ptr};
 use vicis_ir::ir::{
     function::{
-        instruction::{ICmpCond, InstructionId, Opcode, Operand},
+        instruction::{Alloca, ICmpCond, InstructionId, Load, Opcode, Operand},
         Function, FunctionId,
     },
     module::{name::Name, Module},
@@ -45,13 +45,13 @@ pub fn run_function(
             .map(|id| (id, func.data.inst_ref(id)))
         {
             match &inst.operand {
-                Operand::Alloca {
+                Operand::Alloca(Alloca {
                     tys,
                     num_elements,
                     align,
-                } => run_alloca(&mut frame, inst_id, tys, num_elements, *align),
+                }) => run_alloca(&mut frame, inst_id, tys, num_elements, *align),
                 Operand::Store { tys, args, align } => run_store(&mut frame, tys, args, *align),
-                Operand::Load { tys, addr, align } => {
+                Operand::Load(Load { tys, addr, align }) => {
                     run_load(&mut frame, inst_id, tys, *addr, *align)
                 }
                 Operand::IntBinary {

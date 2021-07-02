@@ -1,4 +1,4 @@
-use super::{ICmpCond, Instruction, InstructionId, Opcode, Operand};
+use super::{Alloca, ICmpCond, Instruction, InstructionId, Load, Opcode, Operand, Phi};
 use crate::ir::{
     function::{
         param_attrs::{parser::parse_param_attrs, ParameterAttribute},
@@ -36,11 +36,11 @@ pub fn parse_alloca<'a, 'b>(
     let num_elements = value::ConstantData::Int(value::ConstantInt::Int32(1));
     let inst = Opcode::Alloca
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Alloca {
+        .with_operand(Operand::Alloca(Alloca {
             tys: [ty, ctx.types.base().i32()],
             num_elements,
             align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-        });
+        }));
     Ok((source, inst))
 }
 
@@ -67,7 +67,7 @@ pub fn parse_phi<'a, 'b>(
         }
         let inst = Opcode::Phi
             .with_block(ctx.cur_block)
-            .with_operand(Operand::Phi { ty, args, blocks });
+            .with_operand(Operand::Phi(Phi { ty, args, blocks }));
         return Ok((source_, inst));
     }
 }
@@ -92,11 +92,11 @@ pub fn parse_load<'a, 'b>(
     let (source, _) = opt(parse_metadata("!range"))(source)?; // TODO: FIXME: don't ignore !range
     let inst = Opcode::Load
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Load {
+        .with_operand(Operand::Load(Load {
             tys: [ty, addr_ty],
             addr,
             align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-        });
+        }));
     Ok((source, inst))
 }
 

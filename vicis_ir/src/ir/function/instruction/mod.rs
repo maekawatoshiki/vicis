@@ -3,10 +3,9 @@ pub mod parser;
 pub use parser::parse;
 
 use crate::ir::{
-    function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
+    function::{basic_block::BasicBlockId, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, name::Name},
     types::TypeId,
-    types::Types,
     value::{ConstantData, ValueId},
 };
 use id_arena::Id;
@@ -67,23 +66,32 @@ pub enum ICmpCond {
     Sle,
 }
 
+#[derive(Debug, Clone)]
+pub struct Alloca {
+    pub tys: [TypeId; 2],
+    pub num_elements: ConstantData,
+    pub align: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct Phi {
+    pub ty: TypeId,
+    pub args: Vec<ValueId>,
+    pub blocks: Vec<BasicBlockId>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Load {
+    pub tys: [TypeId; 2],
+    pub addr: ValueId,
+    pub align: u32,
+}
+
 #[derive(Clone)]
 pub enum Operand {
-    Alloca {
-        tys: [TypeId; 2],
-        num_elements: ConstantData,
-        align: u32,
-    },
-    Phi {
-        ty: TypeId,
-        args: Vec<ValueId>,
-        blocks: Vec<BasicBlockId>,
-    },
-    Load {
-        tys: [TypeId; 2],
-        addr: ValueId,
-        align: u32,
-    },
+    Alloca(Alloca),
+    Phi(Phi),
+    Load(Load),
     IntBinary {
         ty: TypeId,
         nsw: bool,
@@ -173,172 +181,172 @@ impl Instruction {
         self
     }
 
-    pub fn to_string(&self, data: &Data, types: &Types) -> String {
-        match &self.operand {
-            Operand::Alloca {
-                tys,
-                num_elements,
-                align,
-            } => {
-                // TODO: %I{index} or %{self.dest}
-                format!(
-                    "%I{} = alloca {}, {} {}, align {}",
-                    self.id.unwrap().index(),
-                    types.to_string(tys[0]),
-                    types.to_string(tys[1]),
-                    num_elements.to_string(types),
-                    align
-                )
-            }
-            Operand::Phi { ty, args, blocks } => {
-                format!(
-                    "%I{} = phi {} {}",
-                    self.id.unwrap().index(),
-                    types.to_string(*ty),
-                    args.iter()
-                        .zip(blocks.iter())
-                        .fold("".to_string(), |acc, (arg, block)| {
-                            format!(
-                                "{}[{}, %B{}], ",
-                                acc,
-                                data.value_ref(*arg).to_string(data, types),
-                                block.index()
-                            )
-                        })
-                        .trim_end_matches(", ")
-                )
-            }
-            Operand::Load { tys, addr, align } => {
-                format!(
-                    "%I{} = load {}, {} {}, align {}",
-                    self.id.unwrap().index(),
-                    types.to_string(tys[0]),
-                    types.to_string(tys[1]),
-                    data.value_ref(*addr).to_string(data, types),
-                    align
-                )
-            }
-            Operand::Store { tys, args, align } => {
-                format!(
-                    "store {} {}, {} {}, align {}",
-                    types.to_string(tys[0]),
-                    data.value_ref(args[0]).to_string(data, types),
-                    types.to_string(tys[1]),
-                    data.value_ref(args[1]).to_string(data, types),
-                    align
-                )
-            }
-            Operand::InsertValue { .. } => todo!(),
-            Operand::ExtractValue { .. } => todo!(),
-            Operand::IntBinary {
-                ty,
-                nuw,
-                nsw,
-                exact,
-                args,
-            } => {
-                format!(
-                    "%I{} = {:?}{}{}{} {} {}, {}",
-                    self.id.unwrap().index(),
-                    self.opcode,
-                    if *nuw { " nuw" } else { "" },
-                    if *nsw { " nsw" } else { "" },
-                    if *exact { " exact" } else { "" },
-                    types.to_string(*ty),
-                    data.value_ref(args[0]).to_string(data, types),
-                    data.value_ref(args[1]).to_string(data, types),
-                )
-            }
-            Operand::ICmp { ty, args, cond } => {
-                format!(
-                    "%I{} = icmp {:?} {} {}, {}",
-                    self.id.unwrap().index(),
-                    cond,
-                    types.to_string(*ty),
-                    data.value_ref(args[0]).to_string(data, types),
-                    data.value_ref(args[1]).to_string(data, types)
-                )
-            }
-            Operand::Cast { tys, arg } => {
-                format!(
-                    "%I{} = {:?} {} {} to {}",
-                    self.id.unwrap().index(),
-                    self.opcode,
-                    types.to_string(tys[0]),
-                    data.value_ref(*arg).to_string(data, types),
-                    types.to_string(tys[1]),
-                )
-            }
-            Operand::GetElementPtr {
-                inbounds,
-                tys,
-                args,
-            } => {
-                format!(
-                    "%I{} = getelementptr {}{}, {}",
-                    self.id.unwrap().index(),
-                    if *inbounds { "inbounds " } else { "" },
-                    types.to_string(tys[0]),
-                    tys[1..]
-                        .iter()
-                        .zip(args.iter())
-                        .fold("".to_string(), |acc, (ty, arg)| {
-                            format!(
-                                "{}{} {}, ",
-                                acc,
-                                types.to_string(*ty),
-                                data.value_ref(*arg).to_string(data, types)
-                            )
-                        })
-                        .trim_end_matches(", ")
-                )
-            }
-            Operand::Call { tys, args, .. } => {
-                format!(
-                    "%I{} = call {} {}({})",
-                    self.id.unwrap().index(),
-                    types.to_string(tys[0]),
-                    data.value_ref(args[0]).to_string(data, types),
-                    tys[1..]
-                        .iter()
-                        .zip(args[1..].iter())
-                        .into_iter()
-                        .fold("".to_string(), |acc, (t, a)| {
-                            format!(
-                                "{}{} {}, ",
-                                acc,
-                                types.to_string(*t),
-                                data.value_ref(*a).to_string(data, types),
-                            )
-                        })
-                        .trim_end_matches(", ")
-                )
-            }
-            Operand::Invoke { .. } => todo!(),
-            Operand::LandingPad { .. } => todo!(),
-            Operand::Resume { .. } => todo!(),
-            Operand::Br { block } => {
-                format!("br label %B{}", block.index())
-            }
-            Operand::CondBr { arg, blocks } => {
-                format!(
-                    "br i1 {}, label %B{}, label %B{}",
-                    data.value_ref(*arg).to_string(data, types),
-                    blocks[0].index(),
-                    blocks[1].index()
-                )
-            }
-            Operand::Ret { val: None, .. } => "ret void".to_string(),
-            Operand::Ret { val: Some(val), ty } => {
-                format!(
-                    "ret {} {}",
-                    types.to_string(*ty),
-                    data.value_ref(*val).to_string(data, types)
-                )
-            }
-            Operand::Invalid => panic!(),
-        }
-    }
+    // pub fn to_string(&self, data: &Data, types: &Types) -> String {
+    //     match &self.operand {
+    //         Operand::Alloca(Alloca {
+    //             tys,
+    //             num_elements,
+    //             align,
+    //         }) => {
+    //             // TODO: %I{index} or %{self.dest}
+    //             format!(
+    //                 "%I{} = alloca {}, {} {}, align {}",
+    //                 self.id.unwrap().index(),
+    //                 types.to_string(tys[0]),
+    //                 types.to_string(tys[1]),
+    //                 num_elements.to_string(types),
+    //                 align
+    //             )
+    //         }
+    //         Operand::Phi { ty, args, blocks } => {
+    //             format!(
+    //                 "%I{} = phi {} {}",
+    //                 self.id.unwrap().index(),
+    //                 types.to_string(*ty),
+    //                 args.iter()
+    //                     .zip(blocks.iter())
+    //                     .fold("".to_string(), |acc, (arg, block)| {
+    //                         format!(
+    //                             "{}[{}, %B{}], ",
+    //                             acc,
+    //                             data.value_ref(*arg).to_string(data, types),
+    //                             block.index()
+    //                         )
+    //                     })
+    //                     .trim_end_matches(", ")
+    //             )
+    //         }
+    //         Operand::Load { tys, addr, align } => {
+    //             format!(
+    //                 "%I{} = load {}, {} {}, align {}",
+    //                 self.id.unwrap().index(),
+    //                 types.to_string(tys[0]),
+    //                 types.to_string(tys[1]),
+    //                 data.value_ref(*addr).to_string(data, types),
+    //                 align
+    //             )
+    //         }
+    //         Operand::Store { tys, args, align } => {
+    //             format!(
+    //                 "store {} {}, {} {}, align {}",
+    //                 types.to_string(tys[0]),
+    //                 data.value_ref(args[0]).to_string(data, types),
+    //                 types.to_string(tys[1]),
+    //                 data.value_ref(args[1]).to_string(data, types),
+    //                 align
+    //             )
+    //         }
+    //         Operand::InsertValue { .. } => todo!(),
+    //         Operand::ExtractValue { .. } => todo!(),
+    //         Operand::IntBinary {
+    //             ty,
+    //             nuw,
+    //             nsw,
+    //             exact,
+    //             args,
+    //         } => {
+    //             format!(
+    //                 "%I{} = {:?}{}{}{} {} {}, {}",
+    //                 self.id.unwrap().index(),
+    //                 self.opcode,
+    //                 if *nuw { " nuw" } else { "" },
+    //                 if *nsw { " nsw" } else { "" },
+    //                 if *exact { " exact" } else { "" },
+    //                 types.to_string(*ty),
+    //                 data.value_ref(args[0]).to_string(data, types),
+    //                 data.value_ref(args[1]).to_string(data, types),
+    //             )
+    //         }
+    //         Operand::ICmp { ty, args, cond } => {
+    //             format!(
+    //                 "%I{} = icmp {:?} {} {}, {}",
+    //                 self.id.unwrap().index(),
+    //                 cond,
+    //                 types.to_string(*ty),
+    //                 data.value_ref(args[0]).to_string(data, types),
+    //                 data.value_ref(args[1]).to_string(data, types)
+    //             )
+    //         }
+    //         Operand::Cast { tys, arg } => {
+    //             format!(
+    //                 "%I{} = {:?} {} {} to {}",
+    //                 self.id.unwrap().index(),
+    //                 self.opcode,
+    //                 types.to_string(tys[0]),
+    //                 data.value_ref(*arg).to_string(data, types),
+    //                 types.to_string(tys[1]),
+    //             )
+    //         }
+    //         Operand::GetElementPtr {
+    //             inbounds,
+    //             tys,
+    //             args,
+    //         } => {
+    //             format!(
+    //                 "%I{} = getelementptr {}{}, {}",
+    //                 self.id.unwrap().index(),
+    //                 if *inbounds { "inbounds " } else { "" },
+    //                 types.to_string(tys[0]),
+    //                 tys[1..]
+    //                     .iter()
+    //                     .zip(args.iter())
+    //                     .fold("".to_string(), |acc, (ty, arg)| {
+    //                         format!(
+    //                             "{}{} {}, ",
+    //                             acc,
+    //                             types.to_string(*ty),
+    //                             data.value_ref(*arg).to_string(data, types)
+    //                         )
+    //                     })
+    //                     .trim_end_matches(", ")
+    //             )
+    //         }
+    //         Operand::Call { tys, args, .. } => {
+    //             format!(
+    //                 "%I{} = call {} {}({})",
+    //                 self.id.unwrap().index(),
+    //                 types.to_string(tys[0]),
+    //                 data.value_ref(args[0]).to_string(data, types),
+    //                 tys[1..]
+    //                     .iter()
+    //                     .zip(args[1..].iter())
+    //                     .into_iter()
+    //                     .fold("".to_string(), |acc, (t, a)| {
+    //                         format!(
+    //                             "{}{} {}, ",
+    //                             acc,
+    //                             types.to_string(*t),
+    //                             data.value_ref(*a).to_string(data, types),
+    //                         )
+    //                     })
+    //                     .trim_end_matches(", ")
+    //             )
+    //         }
+    //         Operand::Invoke { .. } => todo!(),
+    //         Operand::LandingPad { .. } => todo!(),
+    //         Operand::Resume { .. } => todo!(),
+    //         Operand::Br { block } => {
+    //             format!("br label %B{}", block.index())
+    //         }
+    //         Operand::CondBr { arg, blocks } => {
+    //             format!(
+    //                 "br i1 {}, label %B{}, label %B{}",
+    //                 data.value_ref(*arg).to_string(data, types),
+    //                 blocks[0].index(),
+    //                 blocks[1].index()
+    //             )
+    //         }
+    //         Operand::Ret { val: None, .. } => "ret void".to_string(),
+    //         Operand::Ret { val: Some(val), ty } => {
+    //             format!(
+    //                 "ret {} {}",
+    //                 types.to_string(*ty),
+    //                 data.value_ref(*val).to_string(data, types)
+    //             )
+    //         }
+    //         Operand::Invalid => panic!(),
+    //     }
+    // }
 }
 
 impl Opcode {
@@ -398,11 +406,11 @@ impl Opcode {
 impl Operand {
     pub fn args(&self) -> &[ValueId] {
         match self {
-            Self::Alloca { .. } => &[],
-            Self::Phi { args, .. } => args.as_slice(),
+            Self::Alloca(_) => &[],
+            Self::Phi(Phi { args, .. }) => args.as_slice(),
             Self::Ret { val, .. } if val.is_none() => &[],
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
-            Self::Load { addr, .. } => slice::from_ref(addr),
+            Self::Load(Load { addr, .. }) => slice::from_ref(addr),
             Self::Store { args, .. } => args,
             Self::InsertValue { args, .. } => args,
             Self::ExtractValue { args, .. } => args,
@@ -421,10 +429,10 @@ impl Operand {
 
     pub fn types(&self) -> &[TypeId] {
         match self {
-            Self::Alloca { tys, .. } => tys,
-            Self::Phi { ty, .. } => slice::from_ref(ty),
+            Self::Alloca(Alloca { tys, .. }) => tys,
+            Self::Phi(Phi { ty, .. }) => slice::from_ref(ty),
             Self::Ret { ty, .. } => slice::from_ref(ty),
-            Self::Load { tys, .. } => tys,
+            Self::Load(Load { tys, .. }) => tys,
             Self::Store { .. } => &[],
             Self::InsertValue { tys, .. } => tys,
             Self::ExtractValue { ty, .. } => slice::from_ref(ty),
@@ -443,7 +451,7 @@ impl Operand {
 
     pub fn blocks(&self) -> &[BasicBlockId] {
         match self {
-            Self::Phi { blocks, .. } => blocks,
+            Self::Phi(Phi { blocks, .. }) => blocks,
             Self::Br { block } => slice::from_ref(block),
             Self::CondBr { blocks, .. } => blocks,
             Self::Invoke { blocks, .. } => blocks,

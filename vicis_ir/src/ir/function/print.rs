@@ -4,7 +4,7 @@ use super::{
     super::value::{InlineAsm, Value},
     basic_block::BasicBlockId,
     data::Data,
-    instruction::{Instruction, InstructionId, Opcode, Operand},
+    instruction::{Alloca, Instruction, InstructionId, Load, Opcode, Operand, Phi},
     Function,
 };
 use rustc_hash::FxHashMap;
@@ -167,11 +167,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             .unwrap_or(&Name::Number(usize::MAX));
 
         match &inst.operand {
-            Operand::Alloca {
+            Operand::Alloca(Alloca {
                 tys,
                 num_elements,
                 align,
-            } => {
+            }) => {
                 write!(
                     self.fmt,
                     "%{:?} = alloca {}, {} {}{}",
@@ -186,7 +186,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     }
                 )
             }
-            Operand::Phi { ty, args, blocks } => {
+            Operand::Phi(Phi { ty, args, blocks }) => {
                 write!(
                     self.fmt,
                     "%{:?} = phi {} {}",
@@ -205,7 +205,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::Load { tys, addr, align } => {
+            Operand::Load(Load { tys, addr, align }) => {
                 write!(
                     self.fmt,
                     "%{:?} = load {}, {} {}, align {}",

@@ -20,7 +20,8 @@ use vicis_ir::ir::{
         basic_block::BasicBlockId,
         data::Data as IrData,
         instruction::{
-            ICmpCond, Instruction as IrInstruction, InstructionId, Opcode as IrOpcode, Operand,
+            Alloca, ICmpCond, Instruction as IrInstruction, InstructionId, Load,
+            Opcode as IrOpcode, Operand, Phi,
         },
         Parameter,
     },
@@ -72,21 +73,21 @@ impl LowerTrait<X86_64> for Lower {
 
 fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> {
     match inst.operand {
-        Operand::Alloca {
+        Operand::Alloca(Alloca {
             ref tys,
             ref num_elements,
             align,
-        } => lower_alloca(ctx, inst.id.unwrap(), tys, num_elements, align),
-        Operand::Phi {
+        }) => lower_alloca(ctx, inst.id.unwrap(), tys, num_elements, align),
+        Operand::Phi(Phi {
             ty,
             ref args,
             ref blocks,
-        } => lower_phi(ctx, inst.id.unwrap(), ty, args, blocks),
-        Operand::Load {
+        }) => lower_phi(ctx, inst.id.unwrap(), ty, args, blocks),
+        Operand::Load(Load {
             ref tys,
             addr,
             align,
-        } => lower_load(ctx, inst.id.unwrap(), tys, addr, align),
+        }) => lower_load(ctx, inst.id.unwrap(), tys, addr, align),
         Operand::Store {
             ref tys,
             ref args,
