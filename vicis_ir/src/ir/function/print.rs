@@ -1,3 +1,5 @@
+use crate::ir::function::instruction::{ExtractValue, InsertValue};
+
 use super::{
     super::module::name::Name,
     super::types::Types,
@@ -229,7 +231,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     align
                 )
             }
-            Operand::InsertValue { tys, args } => {
+            Operand::InsertValue(InsertValue { tys, args }) => {
                 write!(
                     self.fmt,
                     "%{:?} = insertvalue {} {}, {} {}, {}",
@@ -250,7 +252,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::ExtractValue { ty, args } => {
+            Operand::ExtractValue(ExtractValue { ty, args }) => {
                 write!(
                     self.fmt,
                     "%{:?} = extractvalue {} {}, {}",

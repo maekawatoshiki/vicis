@@ -3,6 +3,7 @@ use super::{
 };
 use crate::ir::{
     function::{
+        instruction::{ExtractValue, InsertValue},
         param_attrs::{parser::parse_param_attrs, ParameterAttribute},
         parser::ParserContext,
     },
@@ -156,10 +157,10 @@ pub fn parse_insertvalue<'a, 'b>(
             source,
             Opcode::InsertValue
                 .with_block(ctx.cur_block)
-                .with_operand(Operand::InsertValue {
+                .with_operand(Operand::InsertValue(InsertValue {
                     tys: [aggre_ty, ty],
                     args,
-                }),
+                })),
         ));
     }
 }
@@ -186,7 +187,7 @@ pub fn parse_extractvalue<'a, 'b>(
             source,
             Opcode::ExtractValue
                 .with_block(ctx.cur_block)
-                .with_operand(Operand::ExtractValue { ty: aggre_ty, args }),
+                .with_operand(Operand::ExtractValue(ExtractValue { ty: aggre_ty, args })),
         ));
     }
 }
