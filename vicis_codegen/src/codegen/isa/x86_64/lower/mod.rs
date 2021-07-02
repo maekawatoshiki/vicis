@@ -20,8 +20,8 @@ use vicis_ir::ir::{
         basic_block::BasicBlockId,
         data::Data as IrData,
         instruction::{
-            Alloca, ICmpCond, Instruction as IrInstruction, InstructionId, Load,
-            Opcode as IrOpcode, Operand, Phi,
+            Alloca, ICmpCond, Instruction as IrInstruction, InstructionId, IntBinary, Load,
+            Opcode as IrOpcode, Operand, Phi, Store,
         },
         Parameter,
     },
@@ -88,12 +88,12 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
             addr,
             align,
         }) => lower_load(ctx, inst.id.unwrap(), tys, addr, align),
-        Operand::Store {
+        Operand::Store(Store {
             ref tys,
             ref args,
             align,
-        } => lower_store(ctx, tys, args, align),
-        Operand::IntBinary { ty, ref args, .. } => {
+        }) => lower_store(ctx, tys, args, align),
+        Operand::IntBinary(IntBinary { ty, ref args, .. }) => {
             lower_bin(ctx, inst.id.unwrap(), inst.opcode, ty, args)
         }
         Operand::Cast { ref tys, arg } if inst.opcode == IrOpcode::Sext => {

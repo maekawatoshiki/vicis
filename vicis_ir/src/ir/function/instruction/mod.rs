@@ -87,23 +87,29 @@ pub struct Load {
     pub align: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct IntBinary {
+    pub ty: TypeId,
+    pub nsw: bool,
+    pub nuw: bool,
+    pub exact: bool,
+    pub args: [ValueId; 2],
+}
+
+#[derive(Debug, Clone)]
+pub struct Store {
+    pub tys: [TypeId; 2],
+    pub args: [ValueId; 2],
+    pub align: u32,
+}
+
 #[derive(Clone)]
 pub enum Operand {
     Alloca(Alloca),
     Phi(Phi),
     Load(Load),
-    IntBinary {
-        ty: TypeId,
-        nsw: bool,
-        nuw: bool,
-        exact: bool,
-        args: [ValueId; 2],
-    },
-    Store {
-        tys: [TypeId; 2],
-        args: [ValueId; 2],
-        align: u32,
-    },
+    IntBinary(IntBinary),
+    Store(Store),
     InsertValue {
         tys: [TypeId; 2],
         args: Vec<ValueId>,
@@ -411,10 +417,10 @@ impl Operand {
             Self::Ret { val, .. } if val.is_none() => &[],
             Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
             Self::Load(Load { addr, .. }) => slice::from_ref(addr),
-            Self::Store { args, .. } => args,
+            Self::Store(Store { args, .. }) => args,
             Self::InsertValue { args, .. } => args,
             Self::ExtractValue { args, .. } => args,
-            Self::IntBinary { args, .. } => args,
+            Self::IntBinary(IntBinary { args, .. }) => args,
             Self::ICmp { args, .. } => args,
             Self::Cast { arg, .. } => slice::from_ref(arg),
             Self::GetElementPtr { args, .. } => args.as_slice(),
@@ -433,10 +439,10 @@ impl Operand {
             Self::Phi(Phi { ty, .. }) => slice::from_ref(ty),
             Self::Ret { ty, .. } => slice::from_ref(ty),
             Self::Load(Load { tys, .. }) => tys,
-            Self::Store { .. } => &[],
+            Self::Store(Store { .. }) => &[],
             Self::InsertValue { tys, .. } => tys,
             Self::ExtractValue { ty, .. } => slice::from_ref(ty),
-            Self::IntBinary { ty, .. } => slice::from_ref(ty),
+            Self::IntBinary(IntBinary { ty, .. }) => slice::from_ref(ty),
             Self::ICmp { ty, .. } => slice::from_ref(ty),
             Self::Cast { tys, .. } => tys,
             Self::GetElementPtr { tys, .. } => tys.as_slice(),

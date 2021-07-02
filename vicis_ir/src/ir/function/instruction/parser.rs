@@ -1,4 +1,6 @@
-use super::{Alloca, ICmpCond, Instruction, InstructionId, Load, Opcode, Operand, Phi};
+use super::{
+    Alloca, ICmpCond, Instruction, InstructionId, IntBinary, Load, Opcode, Operand, Phi, Store,
+};
 use crate::ir::{
     function::{
         param_attrs::{parser::parse_param_attrs, ParameterAttribute},
@@ -121,11 +123,11 @@ pub fn parse_store<'a, 'b>(
         source,
         Opcode::Store
             .with_block(ctx.cur_block)
-            .with_operand(Operand::Store {
+            .with_operand(Operand::Store(Store {
                 tys: [src_ty, dst_ty],
                 args: [src, dst],
                 align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-            }),
+            })),
     ))
 }
 
@@ -212,13 +214,13 @@ pub fn parse_add_sub_mul<'a, 'b>(
     let (source, rhs) = value::parse(source, ctx, ty)?;
     let inst = opcode
         .with_block(ctx.cur_block)
-        .with_operand(Operand::IntBinary {
+        .with_operand(Operand::IntBinary(IntBinary {
             ty,
             args: [lhs, rhs],
             nuw: nuw.map_or(false, |_| true),
             nsw: nsw.map_or(false, |_| true),
             exact: exact.map_or(false, |_| true),
-        });
+        }));
     Ok((source, inst))
 }
 

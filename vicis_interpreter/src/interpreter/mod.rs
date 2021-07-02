@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap;
 use std::{alloc, ffi, os::raw::c_void, ptr};
 use vicis_ir::ir::{
     function::{
-        instruction::{Alloca, ICmpCond, InstructionId, Load, Opcode, Operand},
+        instruction::{Alloca, ICmpCond, InstructionId, IntBinary, Load, Opcode, Operand, Store},
         Function, FunctionId,
     },
     module::{name::Name, Module},
@@ -50,17 +50,19 @@ pub fn run_function(
                     num_elements,
                     align,
                 }) => run_alloca(&mut frame, inst_id, tys, num_elements, *align),
-                Operand::Store { tys, args, align } => run_store(&mut frame, tys, args, *align),
+                Operand::Store(Store { tys, args, align }) => {
+                    run_store(&mut frame, tys, args, *align)
+                }
                 Operand::Load(Load { tys, addr, align }) => {
                     run_load(&mut frame, inst_id, tys, *addr, *align)
                 }
-                Operand::IntBinary {
+                Operand::IntBinary(IntBinary {
                     ty: _,
                     nsw: _,
                     nuw: _,
                     exact: _,
                     args,
-                } => run_int_binary(&mut frame, inst_id, inst.opcode, args),
+                }) => run_int_binary(&mut frame, inst_id, inst.opcode, args),
                 Operand::ICmp { ty: _, args, cond } => run_icmp(&mut frame, inst_id, args, *cond),
                 Operand::Cast { tys, arg } => run_cast(&mut frame, inst_id, inst.opcode, tys, *arg),
                 Operand::GetElementPtr {
