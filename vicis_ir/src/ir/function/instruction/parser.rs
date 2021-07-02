@@ -1,5 +1,6 @@
 use super::{
-    Alloca, ICmpCond, Instruction, InstructionId, IntBinary, Load, Opcode, Operand, Phi, Store,
+    Alloca, Cast, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId, IntBinary, Load,
+    Opcode, Operand, Phi, Store,
 };
 use crate::ir::{
     function::{
@@ -252,11 +253,11 @@ pub fn parse_icmp<'a, 'b>(
     let (source, rhs) = value::parse(source, ctx, ty)?;
     let inst = Opcode::ICmp
         .with_block(ctx.cur_block)
-        .with_operand(Operand::ICmp {
+        .with_operand(Operand::ICmp(ICmp {
             ty,
             args: [lhs, rhs],
             cond,
-        });
+        }));
     Ok((source, inst))
 }
 
@@ -280,10 +281,10 @@ pub fn parse_cast<'a, 'b>(
     let (source, to) = types::parse(source, ctx.types)?;
     let inst = opcode
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Cast {
+        .with_operand(Operand::Cast(Cast {
             tys: [from, to],
             arg,
-        });
+        }));
     Ok((source, inst))
 }
 
@@ -338,11 +339,11 @@ pub fn parse_getelementptr<'a, 'b>(
         }
         let inst = Opcode::GetElementPtr
             .with_block(ctx.cur_block)
-            .with_operand(Operand::GetElementPtr {
+            .with_operand(Operand::GetElementPtr(GetElementPtr {
                 inbounds: inbounds.is_some(),
                 tys,
                 args,
-            });
+            }));
         return Ok((source_, inst));
     }
 }

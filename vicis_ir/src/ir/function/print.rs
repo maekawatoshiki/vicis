@@ -7,7 +7,8 @@ use super::{
     basic_block::BasicBlockId,
     data::Data,
     instruction::{
-        Alloca, Instruction, InstructionId, IntBinary, Load, Opcode, Operand, Phi, Store,
+        Alloca, Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Load, Opcode,
+        Operand, Phi, Store,
     },
     Function,
 };
@@ -291,7 +292,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.value_to_string(data.value_ref(args[1]), types),
                 )
             }
-            Operand::ICmp { ty, args, cond } => {
+            Operand::ICmp(ICmp { ty, args, cond }) => {
                 write!(
                     self.fmt,
                     "%{:?} = icmp {:?} {} {}, {}",
@@ -302,7 +303,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.value_to_string(data.value_ref(args[1]), types)
                 )
             }
-            Operand::Cast { tys, arg } => {
+            Operand::Cast(Cast { tys, arg }) => {
                 write!(
                     self.fmt,
                     "%{:?} = {:?} {} {} to {}",
@@ -313,11 +314,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     types.to_string(tys[1]),
                 )
             }
-            Operand::GetElementPtr {
+            Operand::GetElementPtr(GetElementPtr {
                 inbounds,
                 tys,
                 args,
-            } => {
+            }) => {
                 write!(
                     self.fmt,
                     "%{:?} = getelementptr {}{}, {}",

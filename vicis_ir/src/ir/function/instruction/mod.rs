@@ -115,6 +115,26 @@ pub struct ExtractValue {
     pub args: Vec<ValueId>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ICmp {
+    pub ty: TypeId,
+    pub args: [ValueId; 2],
+    pub cond: ICmpCond,
+}
+
+#[derive(Debug, Clone)]
+pub struct Cast {
+    pub tys: [TypeId; 2], // from, to
+    pub arg: ValueId,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetElementPtr {
+    pub inbounds: bool,
+    pub tys: Vec<TypeId>,
+    pub args: Vec<ValueId>,
+}
+
 #[derive(Clone)]
 pub enum Operand {
     Alloca(Alloca),
@@ -124,20 +144,9 @@ pub enum Operand {
     Store(Store),
     InsertValue(InsertValue),
     ExtractValue(ExtractValue),
-    ICmp {
-        ty: TypeId,
-        args: [ValueId; 2],
-        cond: ICmpCond,
-    },
-    Cast {
-        tys: [TypeId; 2], // from, to
-        arg: ValueId,
-    },
-    GetElementPtr {
-        inbounds: bool,
-        tys: Vec<TypeId>,
-        args: Vec<ValueId>,
-    },
+    ICmp(ICmp),
+    Cast(Cast),
+    GetElementPtr(GetElementPtr),
     Call {
         args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
         tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
@@ -260,9 +269,9 @@ impl Operand {
             Self::InsertValue(InsertValue { args, .. }) => args,
             Self::ExtractValue(ExtractValue { args, .. }) => args,
             Self::IntBinary(IntBinary { args, .. }) => args,
-            Self::ICmp { args, .. } => args,
-            Self::Cast { arg, .. } => slice::from_ref(arg),
-            Self::GetElementPtr { args, .. } => args.as_slice(),
+            Self::ICmp(ICmp { args, .. }) => args,
+            Self::Cast(Cast { arg, .. }) => slice::from_ref(arg),
+            Self::GetElementPtr(GetElementPtr { args, .. }) => args.as_slice(),
             Self::Call { args, .. } | Self::Invoke { args, .. } => args.as_slice(),
             Self::LandingPad { .. } => &[],
             Self::Resume { arg, .. } => slice::from_ref(arg),
@@ -282,9 +291,9 @@ impl Operand {
             Self::InsertValue(InsertValue { tys, .. }) => tys,
             Self::ExtractValue(ExtractValue { ty, .. }) => slice::from_ref(ty),
             Self::IntBinary(IntBinary { ty, .. }) => slice::from_ref(ty),
-            Self::ICmp { ty, .. } => slice::from_ref(ty),
-            Self::Cast { tys, .. } => tys,
-            Self::GetElementPtr { tys, .. } => tys.as_slice(),
+            Self::ICmp(ICmp { ty, .. }) => slice::from_ref(ty),
+            Self::Cast(Cast { tys, .. }) => tys,
+            Self::GetElementPtr(GetElementPtr { tys, .. }) => tys.as_slice(),
             Self::Call { tys, .. } | Self::Invoke { tys, .. } => tys.as_slice(),
             Self::LandingPad { ty } => slice::from_ref(ty),
             Self::Resume { ty, .. } => slice::from_ref(ty),

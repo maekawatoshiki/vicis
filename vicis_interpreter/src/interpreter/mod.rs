@@ -9,7 +9,10 @@ use rustc_hash::FxHashMap;
 use std::{alloc, ffi, os::raw::c_void, ptr};
 use vicis_ir::ir::{
     function::{
-        instruction::{Alloca, ICmpCond, InstructionId, IntBinary, Load, Opcode, Operand, Store},
+        instruction::{
+            Alloca, Cast, GetElementPtr, ICmp, ICmpCond, InstructionId, IntBinary, Load, Opcode,
+            Operand, Store,
+        },
         Function, FunctionId,
     },
     module::{name::Name, Module},
@@ -63,13 +66,17 @@ pub fn run_function(
                     exact: _,
                     args,
                 }) => run_int_binary(&mut frame, inst_id, inst.opcode, args),
-                Operand::ICmp { ty: _, args, cond } => run_icmp(&mut frame, inst_id, args, *cond),
-                Operand::Cast { tys, arg } => run_cast(&mut frame, inst_id, inst.opcode, tys, *arg),
-                Operand::GetElementPtr {
+                Operand::ICmp(ICmp { ty: _, args, cond }) => {
+                    run_icmp(&mut frame, inst_id, args, *cond)
+                }
+                Operand::Cast(Cast { tys, arg }) => {
+                    run_cast(&mut frame, inst_id, inst.opcode, tys, *arg)
+                }
+                Operand::GetElementPtr(GetElementPtr {
                     inbounds: _,
                     tys,
                     args,
-                } => run_gep(&mut frame, inst_id, tys, args),
+                }) => run_gep(&mut frame, inst_id, tys, args),
                 Operand::Call { tys, args, .. } => run_call(&mut frame, inst_id, tys, args),
                 Operand::CondBr { arg, blocks } => {
                     let arg = frame.get_val(*arg).unwrap();
