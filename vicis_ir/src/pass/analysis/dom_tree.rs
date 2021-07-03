@@ -83,6 +83,10 @@ impl<BB: BasicBlock> DominatorTree<BB> {
         &self.root
     }
 
+    pub fn children_of(&self, x: Id<BB>) -> Option<&FxHashSet<Id<BB>>> {
+        self.dom.get(&x)
+    }
+
     fn compute_dom_frontier_of<F: BasicBlockData<BB> + BasicBlockLayout<BB>>(
         ctx: &Context<BB, F>,
         dom: &FxHashMap<Id<BB>, FxHashSet<Id<BB>>>,

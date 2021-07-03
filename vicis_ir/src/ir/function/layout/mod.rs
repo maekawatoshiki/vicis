@@ -117,6 +117,28 @@ impl Layout {
         }
     }
 
+    pub fn insert_inst_at_start(&mut self, inst: InstructionId, block: BasicBlockId) {
+        self.instructions
+            .entry(inst)
+            .or_insert(InstructionNode {
+                prev: None,
+                next: None,
+                block: Some(block),
+            })
+            .block = Some(block);
+
+        if let Some(first_inst) = self.basic_blocks[&block].first_inst {
+            self.instructions.get_mut(&first_inst).unwrap().prev = Some(inst);
+            self.instructions.get_mut(&inst).unwrap().next = Some(first_inst);
+        }
+
+        self.basic_blocks.get_mut(&block).unwrap().first_inst = Some(inst);
+
+        if self.basic_blocks[&block].last_inst.is_none() {
+            self.basic_blocks.get_mut(&block).unwrap().last_inst = Some(inst);
+        }
+    }
+
     pub fn remove_inst(&mut self, inst: InstructionId) -> Option<()> {
         let block = self.instructions[&inst].block?;
         let prev;

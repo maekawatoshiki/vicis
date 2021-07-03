@@ -287,6 +287,14 @@ macro_rules! as_inst {
             }
         }
     };
+    (mut $name:ident, $inst:ident) => {
+        pub fn $name(&mut self) -> Option<&mut $inst> {
+            match self {
+                Self::$inst(x) => Some(x),
+                _ => None,
+            }
+        }
+    };
 }
 
 impl Operand {
@@ -377,6 +385,9 @@ impl Operand {
 
     as_inst!(as_alloca, Alloca);
     as_inst!(as_store, Store);
+    as_inst!(as_load, Load);
+    as_inst!(as_phi, Phi);
+    as_inst!(mut as_phi_mut, Phi);
 }
 
 impl Alloca {
@@ -392,6 +403,22 @@ impl Store {
 
     pub fn src_val(&self) -> ValueId {
         self.args[0]
+    }
+}
+
+impl Load {
+    pub fn src_val(&self) -> ValueId {
+        self.addr
+    }
+}
+
+impl Phi {
+    pub fn blocks_mut(&mut self) -> &mut Vec<BasicBlockId> {
+        &mut self.blocks
+    }
+
+    pub fn args_mut(&mut self) -> &mut Vec<ValueId> {
+        &mut self.args
     }
 }
 

@@ -1,15 +1,16 @@
 use crate::{
     ir::{
         function::{
-            basic_block::BasicBlock,
-            instruction::{Instruction, InstructionId, Opcode},
+            basic_block::{BasicBlock, BasicBlockId},
+            instruction::{Instruction, InstructionId, Opcode, Operand, Phi},
             Function,
         },
-        value::Value,
+        value::{Value, ValueId},
     },
     pass::analysis::dom_tree,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::{cmp::Ordering, collections::BinaryHeap};
 
 pub struct Mem2Reg<'a> {
     func: &'a mut Function,
@@ -20,6 +21,9 @@ pub struct Mem2Reg<'a> {
 type InstructionIndex = usize;
 
 struct InstructionIndexes(FxHashMap<InstructionId, InstructionIndex>);
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct BlockLevel(usize, BasicBlockId);
 
 impl<'a> Mem2Reg<'a> {
     pub fn new(func: &'a mut Function) -> Self {
@@ -78,6 +82,13 @@ impl<'a> Mem2Reg<'a> {
         for alloca in single_block_alloca_list {
             self.promote_single_block_alloca(alloca);
         }
+
+        let mut phi_block_to_allocas = FxHashMap::default();
+        for &alloca in &multi_block_alloca_list {
+            self.promote_multi_block_alloca(alloca, &mut phi_block_to_allocas);
+        }
+
+        self.rename(multi_block_alloca_list, phi_block_to_allocas);
     }
 
     fn promote_single_store_alloca(&mut self, alloca_id: InstructionId) {
@@ -190,6 +201,230 @@ impl<'a> Mem2Reg<'a> {
         }
     }
 
+    fn promote_multi_block_alloca(
+        &mut self,
+        alloca_id: InstructionId,
+        phi_block_to_allocas: &mut FxHashMap<BasicBlockId, Vec<InstructionId>>,
+    ) {
+        let mut def_blocks = vec![];
+        let mut use_blocks = vec![];
+        let mut livein_blocks = FxHashSet::default();
+
+        for &user_id in self.func.data.users_of(alloca_id) {
+            let user = self.func.data.inst_ref(user_id);
+            match user.opcode {
+                Opcode::Store => def_blocks.push(user.parent),
+                Opcode::Load => use_blocks.push(user.parent),
+                _ => unreachable!(),
+            }
+        }
+
+        let mut worklist = use_blocks.clone();
+        while let Some(block) = worklist.pop() {
+            if !livein_blocks.insert(block) {
+                continue;
+            }
+            for pred in self.func.data.basic_blocks[block].preds() {
+                if def_blocks.contains(pred) {
+                    continue;
+                }
+                worklist.push(*pred)
+            }
+        }
+
+        let mut queue = def_blocks
+            .iter()
+            .map(|&def| BlockLevel(self.dom_tree.level_of(def).unwrap(), def))
+            .collect::<BinaryHeap<_>>();
+        let mut visited_worklist = FxHashSet::default();
+        let mut visited_queue = FxHashSet::default();
+
+        while let Some(BlockLevel(root_level, root_block_id)) = queue.pop() {
+            let mut worklist = vec![];
+
+            worklist.push(root_block_id);
+            visited_worklist.insert(root_block_id);
+
+            while let Some(block_id) = worklist.pop() {
+                let block = &self.func.data.basic_blocks[block_id];
+
+                for &succ_id in block.succs() {
+                    let succ_level = self.dom_tree.level_of(succ_id).unwrap();
+                    if succ_level > root_level {
+                        continue;
+                    }
+                    if !visited_queue.insert(succ_id) {
+                        continue;
+                    }
+                    if !livein_blocks.contains(&succ_id) {
+                        continue;
+                    }
+
+                    phi_block_to_allocas
+                        .entry(succ_id)
+                        .or_insert(vec![])
+                        .push(alloca_id);
+
+                    if !def_blocks.contains(&succ_id) {
+                        queue.push(BlockLevel(succ_level, succ_id));
+                    }
+                }
+
+                if let Some(dom_children) = self.dom_tree.children_of(block_id) {
+                    for child in dom_children {
+                        if visited_worklist.insert(*child) {
+                            worklist.push(*child);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn rename(
+        &mut self,
+        alloca_id_list: Vec<InstructionId>,
+        phi_block_to_allocas: FxHashMap<BasicBlockId, Vec<InstructionId>>,
+    ) {
+        struct Info {
+            cur: BasicBlockId,
+            pred: Option<BasicBlockId>,
+            incoming: FxHashMap<InstructionId, ValueId>,
+            incoming_updated: bool,
+        }
+
+        let entry = self.func.layout.first_block.unwrap();
+
+        let mut visited = FxHashSet::default();
+        let mut added_phi: FxHashMap<
+            (
+                /*phi parent*/ BasicBlockId,
+                /*alloca id*/ InstructionId,
+            ),
+            InstructionId,
+        > = FxHashMap::default();
+        let mut worklist = vec![Info {
+            cur: entry,
+            pred: None,
+            incoming: FxHashMap::default(),
+            incoming_updated: false,
+        }];
+        // let mut
+
+        while let Some(mut info) = worklist.pop() {
+            loop {
+                for &alloca_id in phi_block_to_allocas.get(&info.cur).unwrap_or(&vec![]) {
+                    if let Some(phi_id) = added_phi.get(&(info.cur, alloca_id)) {
+                        let incoming_val_id = info.incoming.get_mut(&alloca_id).unwrap();
+                        if !info.incoming_updated {
+                            continue;
+                        }
+                        info.incoming_updated = false;
+
+                        {
+                            let inst = self.func.data.inst_ref_mut(*phi_id);
+                            let phi = inst.operand.as_phi_mut().unwrap();
+                            phi.args_mut().push(*incoming_val_id);
+                            phi.blocks_mut().push(info.pred.unwrap());
+                        }
+                        self.func.data.validate_inst_uses(*phi_id);
+                        *incoming_val_id = self.func.data.create_value(Value::Instruction(*phi_id));
+                        info.incoming_updated = true;
+                    } else {
+                        if !info.incoming.contains_key(&alloca_id) {
+                            info.incoming
+                                .insert(alloca_id, self.func.data.create_value(Value::undef()));
+                        }
+                        let incoming_val = info.incoming.get_mut(&alloca_id).unwrap();
+                        let ty = self
+                            .func
+                            .data
+                            .inst_ref(alloca_id)
+                            .operand
+                            .as_alloca()
+                            .unwrap()
+                            .ty();
+                        let inst =
+                            Opcode::Phi
+                                .with_block(info.cur)
+                                .with_operand(Operand::Phi(Phi {
+                                    ty,
+                                    args: vec![*incoming_val],
+                                    blocks: vec![info.pred.unwrap()],
+                                }));
+                        let inst_id = self.func.data.create_inst(inst);
+                        self.func.layout.insert_inst_at_start(inst_id, info.cur);
+                        added_phi.insert((info.cur, alloca_id), inst_id);
+                        *incoming_val = self.func.data.create_value(Value::Instruction(inst_id));
+                        info.incoming_updated = true;
+                    }
+                }
+
+                if !visited.insert(info.cur) {
+                    break;
+                }
+
+                let mut removal_list = vec![];
+                for inst_id in self.func.layout.inst_iter(info.cur) {
+                    let inst = self.func.data.inst_ref(inst_id);
+                    let alloca_id = *self
+                        .func
+                        .data
+                        .value_ref(match inst.opcode {
+                            Opcode::Store => inst.operand.as_store().unwrap().dst_val(),
+                            Opcode::Load => inst.operand.as_load().unwrap().src_val(),
+                            _ => continue,
+                        })
+                        .as_inst();
+                    if !alloca_id_list.contains(&alloca_id) {
+                        continue;
+                    }
+                    match inst.opcode {
+                        Opcode::Store => {
+                            info.incoming
+                                .insert(alloca_id, inst.operand.as_store().unwrap().src_val());
+                            info.incoming_updated = true;
+                            removal_list.push(inst_id);
+                        }
+                        Opcode::Load => {
+                            if let Some(val) = info.incoming.get(&alloca_id) {
+                                self.func.data.replace_all_uses(inst_id, *val);
+                            }
+                            removal_list.push(inst_id);
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+
+                for remove in removal_list {
+                    self.func.remove_inst(remove);
+                }
+
+                let block = &self.func.data.basic_blocks[info.cur];
+
+                if block.succs().len() == 0 {
+                    break;
+                }
+
+                info.pred = Some(info.cur);
+                let mut succ_iter = block.succs().iter();
+                info.cur = *succ_iter.next().unwrap();
+                for succ in succ_iter {
+                    worklist.push(Info {
+                        cur: *succ,
+                        pred: info.pred,
+                        incoming: info.incoming.clone(),
+                        incoming_updated: false,
+                    })
+                }
+            }
+        }
+
+        for alloca_id in alloca_id_list {
+            self.func.remove_inst(alloca_id);
+        }
+    }
+
     fn is_promotable(&self, alloca: &Instruction) -> bool {
         let alloca_id = alloca.id.unwrap();
         let alloca = alloca.operand.as_alloca().unwrap();
@@ -253,5 +488,17 @@ impl InstructionIndexes {
         }
 
         self.get(func, inst_id)
+    }
+}
+
+impl Ord for BlockLevel {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for BlockLevel {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }

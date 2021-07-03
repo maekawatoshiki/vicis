@@ -76,6 +76,10 @@ pub struct InlineAsm {
 }
 
 impl Value {
+    pub fn undef() -> Self {
+        Self::Constant(ConstantData::Undef)
+    }
+
     pub fn as_inst(&self) -> &InstructionId {
         match self {
             Self::Instruction(id) => id,

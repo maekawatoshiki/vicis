@@ -41,7 +41,7 @@ impl Data {
             inst
         });
         self.users_map.insert(id, FxHashSet::default());
-        self.set_inst_users(id);
+        self.validate_inst_uses(id);
         id
     }
 
@@ -51,7 +51,7 @@ impl Data {
 
     pub fn replace_inst(&mut self, from: InstructionId, to: Instruction) {
         self.instructions[from].replace(to);
-        self.set_inst_users(from)
+        self.validate_inst_uses(from)
     }
 
     pub fn block_ref(&self, id: BasicBlockId) -> &BasicBlock {
@@ -125,9 +125,13 @@ impl Data {
         }
     }
 
-    // For `Instruction`s
+    pub fn replace_all_uses(&mut self, inst_id: InstructionId, to: ValueId) {
+        for user_id in self.users_map[&inst_id].clone() {
+            self.replace_inst_arg(user_id, inst_id, to);
+        }
+    }
 
-    fn set_inst_users(&mut self, id: InstructionId) {
+    pub fn validate_inst_uses(&mut self, id: InstructionId) {
         let args = self.instructions[id]
             .operand
             .args()
