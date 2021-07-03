@@ -97,6 +97,10 @@ impl Types {
         self.0.borrow().element(id)
     }
 
+    pub fn is_atomic(&self, id: TypeId) -> bool {
+        self.base().is_atomic(id)
+    }
+
     pub fn to_string(&self, ty: TypeId) -> String {
         self.base().to_string(ty)
     }
@@ -356,6 +360,11 @@ impl TypesBase {
 
     pub fn is_struct(&self, ty: TypeId) -> bool {
         matches!(self.arena[ty], Type::Struct(_))
+    }
+
+    pub fn is_atomic(&self, ty: TypeId) -> bool {
+        let ty = &self.arena[ty];
+        matches!(ty, Type::Void | Type::Pointer(_) | Type::Int(_))
     }
 }
 

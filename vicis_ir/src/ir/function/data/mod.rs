@@ -92,6 +92,39 @@ impl Data {
         self.users_of(id).iter().next().copied()
     }
 
+    pub fn replace_inst_arg(&mut self, inst_id: InstructionId, from: InstructionId, to: ValueId) {
+        let inst = &mut self.instructions[inst_id];
+        let mut replaced = false;
+
+        // Replace `from` args with `to`
+        for arg_id in inst.operand.args_mut() {
+            let arg = &self.values[*arg_id];
+            if matches!(arg, Value::Instruction(i) if i == &from) {
+                *arg_id = to;
+                replaced = true;
+            }
+            continue;
+        }
+
+        // Return if no args replaced
+        if !replaced {
+            return;
+        }
+
+        // Update users map
+
+        if let Some(map) = self.users_map.get_mut(&from) {
+            assert!(map.remove(&inst_id));
+        }
+
+        if let Value::Instruction(to) = self.values[to] {
+            self.users_map
+                .entry(to)
+                .or_insert_with(|| FxHashSet::default())
+                .insert(inst_id);
+        }
+    }
+
     // For `Instruction`s
 
     fn set_inst_users(&mut self, id: InstructionId) {

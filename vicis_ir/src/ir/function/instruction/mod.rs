@@ -6,7 +6,7 @@ use crate::ir::{
     function::{basic_block::BasicBlockId, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, name::Name},
     types::TypeId,
-    value::{ConstantData, ValueId},
+    value::{ConstantData, Value, ValueId},
 };
 use id_arena::Id;
 use std::{fmt, slice};
@@ -278,6 +278,17 @@ impl Opcode {
     }
 }
 
+macro_rules! as_inst {
+    ($name:ident, $inst:ident) => {
+        pub fn $name(&self) -> Option<&$inst> {
+            match self {
+                Self::$inst(x) => Some(x),
+                _ => None,
+            }
+        }
+    };
+}
+
 impl Operand {
     pub fn args(&self) -> &[ValueId] {
         match self {
@@ -299,6 +310,29 @@ impl Operand {
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { arg, .. }) => slice::from_ref(arg),
             Self::Invalid => &[],
+        }
+    }
+
+    pub fn args_mut(&mut self) -> &mut [ValueId] {
+        match self {
+            Self::Alloca(_) => &mut [],
+            Self::Phi(Phi { args, .. }) => args.as_mut_slice(),
+            Self::Ret(Ret { val, .. }) if val.is_none() => &mut [],
+            Self::Ret(Ret { val, .. }) => slice::from_mut(val.as_mut().unwrap()),
+            Self::Load(Load { addr, .. }) => slice::from_mut(addr),
+            Self::Store(Store { args, .. }) => args,
+            Self::InsertValue(InsertValue { args, .. }) => args,
+            Self::ExtractValue(ExtractValue { args, .. }) => args,
+            Self::IntBinary(IntBinary { args, .. }) => args,
+            Self::ICmp(ICmp { args, .. }) => args,
+            Self::Cast(Cast { arg, .. }) => slice::from_mut(arg),
+            Self::GetElementPtr(GetElementPtr { args, .. }) => args.as_mut_slice(),
+            Self::Call(Call { args, .. }) | Self::Invoke(Invoke { args, .. }) => args.as_mut(),
+            Self::LandingPad(LandingPad { .. }) => &mut [],
+            Self::Resume(Resume { arg, .. }) => slice::from_mut(arg),
+            Self::Br(Br { .. }) => &mut [],
+            Self::CondBr(CondBr { arg, .. }) => slice::from_mut(arg),
+            Self::Invalid => &mut [],
         }
     }
 
@@ -339,6 +373,25 @@ impl Operand {
             Self::Call(Call { tys, .. }) | Self::Invoke(Invoke { tys, .. }) => Some(tys[0]),
             _ => None,
         }
+    }
+
+    as_inst!(as_alloca, Alloca);
+    as_inst!(as_store, Store);
+}
+
+impl Alloca {
+    pub fn ty(&self) -> TypeId {
+        self.tys[0]
+    }
+}
+
+impl Store {
+    pub fn dst_val(&self) -> ValueId {
+        self.args[1]
+    }
+
+    pub fn src_val(&self) -> ValueId {
+        self.args[0]
     }
 }
 

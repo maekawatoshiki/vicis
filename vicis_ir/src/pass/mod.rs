@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod transform;
 
 use rustc_hash::FxHashMap;
 use std::any::{Any, TypeId};
