@@ -1,17 +1,15 @@
-use nom::bitvec::store;
-use rustc_hash::FxHashMap;
-
 use crate::{
     ir::{
         function::{
             basic_block::BasicBlock,
-            instruction::{Instruction, InstructionId},
+            instruction::{Instruction, InstructionId, Opcode},
             Function,
         },
         value::Value,
     },
     pass::analysis::dom_tree,
 };
+use rustc_hash::FxHashMap;
 
 pub struct Mem2Reg<'a> {
     func: &'a mut Function,
@@ -76,6 +74,10 @@ impl<'a> Mem2Reg<'a> {
         for alloca in single_store_alloca_list {
             self.promote_single_store_alloca(alloca);
         }
+
+        for alloca in single_block_alloca_list {
+            self.promote_single_block_alloca(alloca);
+        }
     }
 
     fn promote_single_store_alloca(&mut self, alloca_id: InstructionId) {
@@ -85,14 +87,13 @@ impl<'a> Mem2Reg<'a> {
 
         for &user_id in self.func.data.users_of(alloca_id) {
             let user = self.func.data.inst_ref(user_id);
-            if user.opcode.is_load() {
-                loads_to_remove.push(user_id);
-                continue;
-            }
-            if user.opcode.is_store() {
-                src = Some(user.operand.as_store().unwrap().src_val());
-                store_to_remove = Some(user_id);
-                continue;
+            match user.opcode {
+                Opcode::Load => loads_to_remove.push(user_id),
+                Opcode::Store => {
+                    src = Some(user.operand.as_store().unwrap().src_val());
+                    store_to_remove = Some(user_id);
+                }
+                _ => unreachable!(),
             }
         }
 
@@ -124,6 +125,68 @@ impl<'a> Mem2Reg<'a> {
             for user_id in self.func.data.users_of(load_id).clone() {
                 self.func.data.replace_inst_arg(user_id, load_id, src);
             }
+        }
+    }
+
+    fn promote_single_block_alloca(&mut self, alloca_id: InstructionId) {
+        fn find_nearest_store(
+            store_indexes: &Vec<(InstructionId, InstructionIndex)>,
+            load_idx: InstructionIndex,
+        ) -> Option<InstructionId> {
+            let i = store_indexes
+                .binary_search_by(|(_, store_idx)| store_idx.cmp(&load_idx))
+                .unwrap_or_else(|x| x);
+            if i == 0 {
+                return None;
+            }
+            Some(store_indexes[i - 1].0)
+        }
+
+        let mut store_indexes = vec![];
+        let mut loads = vec![];
+
+        for &user_id in self.func.data.users_of(alloca_id) {
+            let user = self.func.data.inst_ref(user_id);
+            match user.opcode {
+                Opcode::Store => {
+                    store_indexes.push((user_id, self.inst_indexes.get(self.func, user_id)))
+                }
+                Opcode::Load => loads.push(user_id),
+                _ => unreachable!(),
+            }
+        }
+
+        store_indexes.sort_by(|(_, x), (_, y)| x.cmp(y));
+
+        let mut remove_all_access = true;
+        let mut stores_to_remove = vec![];
+
+        for load_id in loads {
+            let load_idx = self.inst_indexes.get(self.func, load_id);
+            let nearest_store_id = match find_nearest_store(&store_indexes, load_idx) {
+                Some(nearest_store_id) => nearest_store_id,
+                None => {
+                    remove_all_access = false;
+                    continue;
+                }
+            };
+            let nearest_store = self.func.data.inst_ref(nearest_store_id);
+            let src = nearest_store.operand.as_store().unwrap().src_val();
+
+            stores_to_remove.push(nearest_store_id);
+
+            self.func.remove_inst(load_id);
+            for user_id in self.func.data.users_of(load_id).clone() {
+                self.func.data.replace_inst_arg(user_id, load_id, src);
+            }
+        }
+
+        if remove_all_access {
+            self.func.remove_inst(alloca_id);
+        }
+
+        for store in stores_to_remove {
+            self.func.remove_inst(store);
         }
     }
 
