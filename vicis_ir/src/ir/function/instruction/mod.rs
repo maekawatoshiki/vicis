@@ -135,6 +135,53 @@ pub struct GetElementPtr {
     pub args: Vec<ValueId>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Call {
+    pub args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
+    pub tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+    pub param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
+    pub ret_attrs: Vec<ParameterAttribute>,
+    pub func_attrs: Vec<Attribute>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Invoke {
+    pub args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
+    pub tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+    pub param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
+    pub ret_attrs: Vec<ParameterAttribute>,
+    pub func_attrs: Vec<Attribute>,
+    pub blocks: Vec<BasicBlockId>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LandingPad {
+    pub ty: TypeId,
+}
+
+#[derive(Debug, Clone)]
+pub struct Resume {
+    pub ty: TypeId,
+    pub arg: ValueId,
+}
+
+#[derive(Debug, Clone)]
+pub struct Br {
+    pub block: BasicBlockId,
+}
+
+#[derive(Debug, Clone)]
+pub struct CondBr {
+    pub arg: ValueId,
+    pub blocks: [BasicBlockId; 2], // iftrue, iffalse
+}
+
+#[derive(Debug, Clone)]
+pub struct Ret {
+    pub ty: TypeId,
+    pub val: Option<ValueId>,
+}
+
 #[derive(Clone)]
 pub enum Operand {
     Alloca(Alloca),
@@ -147,39 +194,13 @@ pub enum Operand {
     ICmp(ICmp),
     Cast(Cast),
     GetElementPtr(GetElementPtr),
-    Call {
-        args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
-        tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
-        param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
-        ret_attrs: Vec<ParameterAttribute>,
-        func_attrs: Vec<Attribute>,
-    },
-    Invoke {
-        args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
-        tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
-        param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
-        ret_attrs: Vec<ParameterAttribute>,
-        func_attrs: Vec<Attribute>,
-        blocks: Vec<BasicBlockId>,
-    },
-    LandingPad {
-        ty: TypeId,
-    },
-    Resume {
-        ty: TypeId,
-        arg: ValueId,
-    },
-    Br {
-        block: BasicBlockId,
-    },
-    CondBr {
-        arg: ValueId,
-        blocks: [BasicBlockId; 2], // iftrue, iffalse
-    },
-    Ret {
-        ty: TypeId,
-        val: Option<ValueId>,
-    },
+    Call(Call),
+    Invoke(Invoke),
+    LandingPad(LandingPad),
+    Resume(Resume),
+    Br(Br),
+    CondBr(CondBr),
+    Ret(Ret),
     Invalid,
 }
 
@@ -262,8 +283,8 @@ impl Operand {
         match self {
             Self::Alloca(_) => &[],
             Self::Phi(Phi { args, .. }) => args.as_slice(),
-            Self::Ret { val, .. } if val.is_none() => &[],
-            Self::Ret { val, .. } => slice::from_ref(val.as_ref().unwrap()),
+            Self::Ret(Ret { val, .. }) if val.is_none() => &[],
+            Self::Ret(Ret { val, .. }) => slice::from_ref(val.as_ref().unwrap()),
             Self::Load(Load { addr, .. }) => slice::from_ref(addr),
             Self::Store(Store { args, .. }) => args,
             Self::InsertValue(InsertValue { args, .. }) => args,
@@ -272,11 +293,11 @@ impl Operand {
             Self::ICmp(ICmp { args, .. }) => args,
             Self::Cast(Cast { arg, .. }) => slice::from_ref(arg),
             Self::GetElementPtr(GetElementPtr { args, .. }) => args.as_slice(),
-            Self::Call { args, .. } | Self::Invoke { args, .. } => args.as_slice(),
-            Self::LandingPad { .. } => &[],
-            Self::Resume { arg, .. } => slice::from_ref(arg),
-            Self::Br { .. } => &[],
-            Self::CondBr { arg, .. } => slice::from_ref(arg),
+            Self::Call(Call { args, .. }) | Self::Invoke(Invoke { args, .. }) => args.as_slice(),
+            Self::LandingPad(LandingPad { .. }) => &[],
+            Self::Resume(Resume { arg, .. }) => slice::from_ref(arg),
+            Self::Br(Br { .. }) => &[],
+            Self::CondBr(CondBr { arg, .. }) => slice::from_ref(arg),
             Self::Invalid => &[],
         }
     }
@@ -285,7 +306,7 @@ impl Operand {
         match self {
             Self::Alloca(Alloca { tys, .. }) => tys,
             Self::Phi(Phi { ty, .. }) => slice::from_ref(ty),
-            Self::Ret { ty, .. } => slice::from_ref(ty),
+            Self::Ret(Ret { ty, .. }) => slice::from_ref(ty),
             Self::Load(Load { tys, .. }) => tys,
             Self::Store(Store { .. }) => &[],
             Self::InsertValue(InsertValue { tys, .. }) => tys,
@@ -294,11 +315,11 @@ impl Operand {
             Self::ICmp(ICmp { ty, .. }) => slice::from_ref(ty),
             Self::Cast(Cast { tys, .. }) => tys,
             Self::GetElementPtr(GetElementPtr { tys, .. }) => tys.as_slice(),
-            Self::Call { tys, .. } | Self::Invoke { tys, .. } => tys.as_slice(),
-            Self::LandingPad { ty } => slice::from_ref(ty),
-            Self::Resume { ty, .. } => slice::from_ref(ty),
-            Self::Br { .. } => &[],
-            Self::CondBr { .. } => &[],
+            Self::Call(Call { tys, .. }) | Self::Invoke(Invoke { tys, .. }) => tys.as_slice(),
+            Self::LandingPad(LandingPad { ty }) => slice::from_ref(ty),
+            Self::Resume(Resume { ty, .. }) => slice::from_ref(ty),
+            Self::Br(Br { .. }) => &[],
+            Self::CondBr(CondBr { .. }) => &[],
             Self::Invalid => &[],
         }
     }
@@ -306,16 +327,16 @@ impl Operand {
     pub fn blocks(&self) -> &[BasicBlockId] {
         match self {
             Self::Phi(Phi { blocks, .. }) => blocks,
-            Self::Br { block } => slice::from_ref(block),
-            Self::CondBr { blocks, .. } => blocks,
-            Self::Invoke { blocks, .. } => blocks,
+            Self::Br(Br { block }) => slice::from_ref(block),
+            Self::CondBr(CondBr { blocks, .. }) => blocks,
+            Self::Invoke(Invoke { blocks, .. }) => blocks,
             _ => &[],
         }
     }
 
     pub fn call_result_ty(&self) -> Option<TypeId> {
         match self {
-            Self::Call { tys, .. } | Self::Invoke { tys, .. } => Some(tys[0]),
+            Self::Call(Call { tys, .. }) | Self::Invoke(Invoke { tys, .. }) => Some(tys[0]),
             _ => None,
         }
     }

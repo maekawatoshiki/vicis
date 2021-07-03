@@ -20,8 +20,8 @@ use vicis_ir::ir::{
         basic_block::BasicBlockId,
         data::Data as IrData,
         instruction::{
-            Alloca, Cast, ICmp, ICmpCond, Instruction as IrInstruction, InstructionId, IntBinary,
-            Load, Opcode as IrOpcode, Operand, Phi, Store,
+            Alloca, Br, Call, Cast, CondBr, ICmp, ICmpCond, Instruction as IrInstruction,
+            InstructionId, IntBinary, Load, Opcode as IrOpcode, Operand, Phi, Ret, Store,
         },
         Parameter,
     },
@@ -99,13 +99,13 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Sext => {
             lower_sext(ctx, inst.id.unwrap(), tys, arg)
         }
-        Operand::Br { block } => lower_br(ctx, block),
-        Operand::CondBr { arg, blocks } => lower_condbr(ctx, arg, blocks),
-        Operand::Call {
+        Operand::Br(Br { block }) => lower_br(ctx, block),
+        Operand::CondBr(CondBr { arg, blocks }) => lower_condbr(ctx, arg, blocks),
+        Operand::Call(Call {
             ref args, ref tys, ..
-        } => lower_call(ctx, inst.id.unwrap(), tys, args),
-        Operand::Ret { val: None, .. } => Err(LoweringError::Todo.into()),
-        Operand::Ret { val: Some(val), ty } => lower_return(ctx, ty, val),
+        }) => lower_call(ctx, inst.id.unwrap(), tys, args),
+        Operand::Ret(Ret { val: None, .. }) => Err(LoweringError::Todo.into()),
+        Operand::Ret(Ret { val: Some(val), ty }) => lower_return(ctx, ty, val),
         _ => Err(LoweringError::Todo.into()),
     }
 }

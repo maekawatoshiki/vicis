@@ -1,5 +1,3 @@
-use crate::ir::function::instruction::{ExtractValue, InsertValue};
-
 use super::{
     super::module::name::Name,
     super::types::Types,
@@ -11,6 +9,9 @@ use super::{
         Operand, Phi, Store,
     },
     Function,
+};
+use crate::ir::function::instruction::{
+    Br, Call, CondBr, ExtractValue, InsertValue, Invoke, LandingPad, Resume, Ret,
 };
 use rustc_hash::FxHashMap;
 use std::fmt;
@@ -339,14 +340,14 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .trim_end_matches(", ")
                 )
             }
-            Operand::Call {
+            Operand::Call(Call {
                 tys,
                 args,
                 param_attrs,
                 ret_attrs,
                 func_attrs,
                 ..
-            } => {
+            }) => {
                 write!(
                     self.fmt,
                     "{}call {}{} {}({}) {}",
@@ -384,14 +385,14 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
                 )
             }
-            Operand::Invoke {
+            Operand::Invoke(Invoke {
                 tys,
                 args,
                 param_attrs,
                 ret_attrs,
                 func_attrs,
                 blocks,
-            } => {
+            }) => {
                 write!(
                     self.fmt,
                     "{}invoke {}{} {}({}) {}to label %{:?} unwind label %{:?}",
@@ -431,7 +432,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.indexes[&Ids::Block(blocks[1])],
                 )
             }
-            Operand::LandingPad { ty } => {
+            Operand::LandingPad(LandingPad { ty }) => {
                 write!(
                     self.fmt,
                     "{}landingpad {} cleanup",
@@ -443,7 +444,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     types.to_string(*ty),
                 )
             }
-            Operand::Resume { ty, arg } => {
+            Operand::Resume(Resume { ty, arg }) => {
                 write!(
                     self.fmt,
                     "resume {} {}",
@@ -451,14 +452,14 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.value_to_string(data.value_ref(*arg), types),
                 )
             }
-            Operand::Br { block } => {
+            Operand::Br(Br { block }) => {
                 write!(
                     self.fmt,
                     "br label %{:?}",
                     self.indexes[&Ids::Block(*block)]
                 )
             }
-            Operand::CondBr { arg, blocks } => {
+            Operand::CondBr(CondBr { arg, blocks }) => {
                 write!(
                     self.fmt,
                     "br i1 {}, label %{:?}, label %{:?}",
@@ -467,8 +468,8 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.indexes[&Ids::Block(blocks[1])],
                 )
             }
-            Operand::Ret { val: None, .. } => write!(self.fmt, "ret void"),
-            Operand::Ret { val: Some(val), ty } => {
+            Operand::Ret(Ret { val: None, .. }) => write!(self.fmt, "ret void"),
+            Operand::Ret(Ret { val: Some(val), ty }) => {
                 write!(
                     self.fmt,
                     "ret {} {}",

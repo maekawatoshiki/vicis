@@ -1,20 +1,24 @@
-use super::super::{
-    function::{
-        basic_block::BasicBlockId,
-        data::Data,
-        instruction,
-        instruction::{Opcode, Operand},
-        layout::Layout,
-        param_attrs::parser::parse_param_attrs,
-        Function, Parameter, PersonalityFunc,
+use super::{
+    super::{
+        function::{
+            basic_block::BasicBlockId,
+            data::Data,
+            instruction,
+            instruction::{Opcode, Operand},
+            layout::Layout,
+            param_attrs::parser::parse_param_attrs,
+            Function, Parameter, PersonalityFunc,
+        },
+        module::{
+            attributes, global_variable, linkage, name, preemption_specifier, unnamed_addr,
+            visibility,
+        },
+        types,
+        types::Types,
+        util::spaces,
+        value::{Value, ValueId},
     },
-    module::{
-        attributes, global_variable, linkage, name, preemption_specifier, unnamed_addr, visibility,
-    },
-    types,
-    types::Types,
-    util::spaces,
-    value::{Value, ValueId},
+    instruction::{Br, CondBr},
 };
 use nom::{
     branch::alt,
@@ -263,11 +267,11 @@ impl<'a> ParserContext<'a> {
             }
             let br = maybe_br;
             match br.operand {
-                Operand::Br { block } => {
+                Operand::Br(Br { block }) => {
                     self.data.basic_blocks[br.parent].succs.insert(block);
                     self.data.basic_blocks[block].preds.insert(br.parent);
                 }
-                Operand::CondBr { blocks, .. } => {
+                Operand::CondBr(CondBr { blocks, .. }) => {
                     for &block in blocks.iter() {
                         self.data.basic_blocks[br.parent].succs.insert(block);
                         self.data.basic_blocks[block].preds.insert(br.parent);

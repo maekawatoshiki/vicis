@@ -10,8 +10,8 @@ use std::{alloc, ffi, os::raw::c_void, ptr};
 use vicis_ir::ir::{
     function::{
         instruction::{
-            Alloca, Cast, GetElementPtr, ICmp, ICmpCond, InstructionId, IntBinary, Load, Opcode,
-            Operand, Store,
+            Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, InstructionId,
+            IntBinary, Load, Opcode, Operand, Ret, Store,
         },
         Function, FunctionId,
     },
@@ -77,8 +77,8 @@ pub fn run_function(
                     tys,
                     args,
                 }) => run_gep(&mut frame, inst_id, tys, args),
-                Operand::Call { tys, args, .. } => run_call(&mut frame, inst_id, tys, args),
-                Operand::CondBr { arg, blocks } => {
+                Operand::Call(Call { tys, args, .. }) => run_call(&mut frame, inst_id, tys, args),
+                Operand::CondBr(CondBr { arg, blocks }) => {
                     let arg = frame.get_val(*arg).unwrap();
                     block = blocks[if matches!(arg, GenericValue::Int1(true)) {
                         0
@@ -87,15 +87,15 @@ pub fn run_function(
                     }];
                     continue 'main;
                 }
-                Operand::Br { block: b } => {
+                Operand::Br(Br { block: b }) => {
                     block = *b;
                     continue 'main;
                 }
-                Operand::Ret { val, .. } if val.is_none() => return Some(GenericValue::Void),
-                Operand::Ret {
+                Operand::Ret(Ret { val, .. }) if val.is_none() => return Some(GenericValue::Void),
+                Operand::Ret(Ret {
                     ty: _,
                     val: Some(val),
-                } => {
+                }) => {
                     let val = frame.get_val(*val).unwrap();
                     return Some(val);
                 }

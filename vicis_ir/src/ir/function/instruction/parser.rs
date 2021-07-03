@@ -1,6 +1,6 @@
 use super::{
-    Alloca, Cast, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId, IntBinary, Load,
-    Opcode, Operand, Phi, Store,
+    Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId,
+    IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store,
 };
 use crate::ir::{
     function::{
@@ -369,13 +369,13 @@ pub fn parse_call<'a, 'b>(
     }
     let inst = Opcode::Call
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Call {
+        .with_operand(Operand::Call(Call {
             tys,
             args,
             param_attrs,
             ret_attrs,
             func_attrs,
-        });
+        }));
     Ok((source, inst))
 }
 
@@ -448,14 +448,14 @@ pub fn parse_invoke<'a, 'b>(
     }
     let inst = Opcode::Invoke
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Invoke {
+        .with_operand(Operand::Invoke(Invoke {
             tys,
             args,
             param_attrs,
             ret_attrs,
             func_attrs,
             blocks: vec![normal, exception],
-        });
+        }));
     Ok((source, inst))
 }
 
@@ -468,7 +468,7 @@ pub fn parse_landingpad<'a, 'b>(
     let (source, _) = preceded(spaces, tag("cleanup"))(source)?;
     let inst = Opcode::LandingPad
         .with_block(ctx.cur_block)
-        .with_operand(Operand::LandingPad { ty });
+        .with_operand(Operand::LandingPad(LandingPad { ty }));
     Ok((source, inst))
 }
 
@@ -481,7 +481,7 @@ pub fn parse_resume<'a, 'b>(
     let (source, arg) = value::parse(source, ctx, ty)?;
     let inst = Opcode::Resume
         .with_block(ctx.cur_block)
-        .with_operand(Operand::Resume { ty, arg });
+        .with_operand(Operand::Resume(Resume { ty, arg }));
     Ok((source, inst))
 }
 
@@ -495,7 +495,7 @@ pub fn parse_br<'a, 'b>(
         let block = ctx.get_or_create_named_block(label);
         let inst = Opcode::Br
             .with_block(ctx.cur_block)
-            .with_operand(Operand::Br { block });
+            .with_operand(Operand::Br(Br { block }));
         Ok((source, inst))
     } else {
         let (source, ty) = types::parse(source, ctx.types)?;
@@ -521,10 +521,10 @@ pub fn parse_br<'a, 'b>(
         let iffalse = ctx.get_or_create_named_block(iffalse);
         let inst = Opcode::CondBr
             .with_block(ctx.cur_block)
-            .with_operand(Operand::CondBr {
+            .with_operand(Operand::CondBr(CondBr {
                 arg,
                 blocks: [iftrue, iffalse],
-            });
+            }));
         Ok((source, inst))
     }
 }
@@ -545,7 +545,7 @@ pub fn parse_ret<'a, 'b>(
         source,
         Opcode::Ret
             .with_block(ctx.cur_block)
-            .with_operand(Operand::Ret { val, ty }),
+            .with_operand(Operand::Ret(Ret { val, ty })),
     ))
 }
 
