@@ -25,6 +25,12 @@ struct InstructionIndexes(FxHashMap<InstructionId, InstructionIndex>);
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 struct BlockLevel(usize, BasicBlockId);
 
+struct RenameData {
+    cur: BasicBlockId,
+    pred: Option<BasicBlockId>,
+    incoming: FxHashMap<InstructionId, ValueId>,
+}
+
 impl<'a> Mem2Reg<'a> {
     pub fn new(func: &'a mut Function) -> Self {
         Self {
@@ -83,12 +89,13 @@ impl<'a> Mem2Reg<'a> {
             self.promote_single_block_alloca(alloca);
         }
 
-        let mut phi_block_to_allocas = FxHashMap::default();
+        let mut phi_to_alloca = FxHashMap::default();
+        let mut added_phis = FxHashMap::default();
         for &alloca in &multi_block_alloca_list {
-            self.promote_multi_block_alloca(alloca, &mut phi_block_to_allocas);
+            self.promote_multi_block_alloca(alloca, &mut phi_to_alloca, &mut added_phis);
         }
 
-        self.rename(multi_block_alloca_list, phi_block_to_allocas);
+        self.rename(multi_block_alloca_list, phi_to_alloca, added_phis);
     }
 
     fn promote_single_store_alloca(&mut self, alloca_id: InstructionId) {
@@ -204,7 +211,8 @@ impl<'a> Mem2Reg<'a> {
     fn promote_multi_block_alloca(
         &mut self,
         alloca_id: InstructionId,
-        phi_block_to_allocas: &mut FxHashMap<BasicBlockId, Vec<InstructionId>>,
+        phi_to_alloca: &mut FxHashMap<InstructionId, InstructionId>,
+        added_phis: &mut FxHashMap<BasicBlockId, Vec<InstructionId>>,
     ) {
         let mut def_blocks = vec![];
         let mut use_blocks = vec![];
@@ -247,8 +255,7 @@ impl<'a> Mem2Reg<'a> {
 
             while let Some(block_id) = worklist.pop() {
                 let block = &self.func.data.basic_blocks[block_id];
-
-                for &succ_id in block.succs() {
+                for succ_id in block.succs().clone() {
                     let succ_level = self.dom_tree.level_of(succ_id).unwrap();
                     if succ_level > root_level {
                         continue;
@@ -260,10 +267,30 @@ impl<'a> Mem2Reg<'a> {
                         continue;
                     }
 
-                    phi_block_to_allocas
-                        .entry(succ_id)
-                        .or_insert(vec![])
-                        .push(alloca_id);
+                    {
+                        let ty = self
+                            .func
+                            .data
+                            .inst_ref(alloca_id)
+                            .operand
+                            .as_alloca()
+                            .unwrap()
+                            .ty();
+                        let phi = Opcode::Phi
+                            .with_block(succ_id)
+                            .with_operand(Operand::Phi(Phi {
+                                ty,
+                                args: vec![],
+                                blocks: vec![],
+                            }));
+                        let phi_id = self.func.data.create_inst(phi);
+                        self.func.layout.insert_inst_at_start(phi_id, succ_id);
+                        added_phis
+                            .entry(succ_id)
+                            .or_insert_with(|| vec![])
+                            .push(phi_id);
+                        phi_to_alloca.insert(phi_id, alloca_id);
+                    }
 
                     if !def_blocks.contains(&succ_id) {
                         queue.push(BlockLevel(succ_level, succ_id));
@@ -283,145 +310,115 @@ impl<'a> Mem2Reg<'a> {
 
     fn rename(
         &mut self,
-        alloca_id_list: Vec<InstructionId>,
-        phi_block_to_allocas: FxHashMap<BasicBlockId, Vec<InstructionId>>,
+        alloca_list: Vec<InstructionId>,
+        phi_to_alloca: FxHashMap<InstructionId, InstructionId>,
+        mut added_phis: FxHashMap<BasicBlockId, Vec<InstructionId>>,
     ) {
-        struct Info {
-            cur: BasicBlockId,
-            pred: Option<BasicBlockId>,
-            incoming: FxHashMap<InstructionId, ValueId>,
-            incoming_updated: bool,
-        }
-
         let entry = self.func.layout.first_block.unwrap();
 
         let mut visited = FxHashSet::default();
-        let mut added_phi: FxHashMap<
-            (
-                /*phi parent*/ BasicBlockId,
-                /*alloca id*/ InstructionId,
-            ),
-            InstructionId,
-        > = FxHashMap::default();
-        let mut worklist = vec![Info {
+        let mut worklist = vec![RenameData {
             cur: entry,
             pred: None,
             incoming: FxHashMap::default(),
-            incoming_updated: false,
         }];
-        // let mut
 
-        while let Some(mut info) = worklist.pop() {
-            loop {
-                for &alloca_id in phi_block_to_allocas.get(&info.cur).unwrap_or(&vec![]) {
-                    if let Some(phi_id) = added_phi.get(&(info.cur, alloca_id)) {
-                        let incoming_val_id = info.incoming.get_mut(&alloca_id).unwrap();
-                        if !info.incoming_updated {
-                            continue;
-                        }
-                        info.incoming_updated = false;
-
-                        {
-                            let inst = self.func.data.inst_ref_mut(*phi_id);
-                            let phi = inst.operand.as_phi_mut().unwrap();
-                            phi.args_mut().push(*incoming_val_id);
-                            phi.blocks_mut().push(info.pred.unwrap());
-                        }
-                        self.func.data.validate_inst_uses(*phi_id);
-                        *incoming_val_id = self.func.data.create_value(Value::Instruction(*phi_id));
-                        info.incoming_updated = true;
-                    } else {
-                        if !info.incoming.contains_key(&alloca_id) {
-                            info.incoming
-                                .insert(alloca_id, self.func.data.create_value(Value::undef()));
-                        }
-                        let incoming_val = info.incoming.get_mut(&alloca_id).unwrap();
-                        let ty = self
-                            .func
-                            .data
-                            .inst_ref(alloca_id)
-                            .operand
-                            .as_alloca()
-                            .unwrap()
-                            .ty();
-                        let inst =
-                            Opcode::Phi
-                                .with_block(info.cur)
-                                .with_operand(Operand::Phi(Phi {
-                                    ty,
-                                    args: vec![*incoming_val],
-                                    blocks: vec![info.pred.unwrap()],
-                                }));
-                        let inst_id = self.func.data.create_inst(inst);
-                        self.func.layout.insert_inst_at_start(inst_id, info.cur);
-                        added_phi.insert((info.cur, alloca_id), inst_id);
-                        *incoming_val = self.func.data.create_value(Value::Instruction(inst_id));
-                        info.incoming_updated = true;
-                    }
-                }
-
-                if !visited.insert(info.cur) {
-                    break;
-                }
-
-                let mut removal_list = vec![];
-                for inst_id in self.func.layout.inst_iter(info.cur) {
-                    let inst = self.func.data.inst_ref(inst_id);
-                    let alloca_id = *self
-                        .func
-                        .data
-                        .value_ref(match inst.opcode {
-                            Opcode::Store => inst.operand.as_store().unwrap().dst_val(),
-                            Opcode::Load => inst.operand.as_load().unwrap().src_val(),
-                            _ => continue,
-                        })
-                        .as_inst();
-                    if !alloca_id_list.contains(&alloca_id) {
-                        continue;
-                    }
-                    match inst.opcode {
-                        Opcode::Store => {
-                            info.incoming
-                                .insert(alloca_id, inst.operand.as_store().unwrap().src_val());
-                            info.incoming_updated = true;
-                            removal_list.push(inst_id);
-                        }
-                        Opcode::Load => {
-                            if let Some(val) = info.incoming.get(&alloca_id) {
-                                self.func.data.replace_all_uses(inst_id, *val);
-                            }
-                            removal_list.push(inst_id);
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-
-                for remove in removal_list {
-                    self.func.remove_inst(remove);
-                }
-
-                let block = &self.func.data.basic_blocks[info.cur];
-
-                if block.succs().len() == 0 {
-                    break;
-                }
-
-                info.pred = Some(info.cur);
-                let mut succ_iter = block.succs().iter();
-                info.cur = *succ_iter.next().unwrap();
-                for succ in succ_iter {
-                    worklist.push(Info {
-                        cur: *succ,
-                        pred: info.pred,
-                        incoming: info.incoming.clone(),
-                        incoming_updated: false,
-                    })
-                }
-            }
+        while let Some(data) = worklist.pop() {
+            self.rename_sub(
+                &alloca_list,
+                &phi_to_alloca,
+                &mut worklist,
+                &mut added_phis,
+                &mut visited,
+                data,
+            );
         }
 
-        for alloca_id in alloca_id_list {
+        for alloca_id in alloca_list {
             self.func.remove_inst(alloca_id);
+        }
+    }
+
+    fn rename_sub(
+        &mut self,
+        alloca_list: &Vec<InstructionId>,
+        phi_to_alloca: &FxHashMap<InstructionId, InstructionId>,
+        worklist: &mut Vec<RenameData>,
+        added_phis: &mut FxHashMap<BasicBlockId, Vec<InstructionId>>,
+        visited: &mut FxHashSet<BasicBlockId>,
+        mut data: RenameData,
+    ) {
+        loop {
+            for phi_id in added_phis.get(&data.cur).unwrap_or(&vec![]) {
+                let alloca_id = phi_to_alloca[phi_id];
+                let incoming_id = data
+                    .incoming
+                    .get_mut(&alloca_id)
+                    .expect("TODO: return undef");
+                let phi = self.func.data.inst_ref_mut(*phi_id);
+                let phi = phi.operand.as_phi_mut().unwrap();
+                phi.args_mut().push(*incoming_id);
+                phi.blocks_mut().push(data.pred.unwrap());
+                self.func.data.validate_inst_uses(*phi_id);
+                *incoming_id = self.func.data.create_value(Value::Instruction(*phi_id));
+            }
+
+            if !visited.insert(data.cur) {
+                break;
+            }
+
+            let mut removal_list = vec![];
+
+            for inst_id in self.func.layout.inst_iter(data.cur) {
+                let inst = self.func.data.inst_ref(inst_id);
+                let alloca_id = *self
+                    .func
+                    .data
+                    .value_ref(match inst.opcode {
+                        Opcode::Store => inst.operand.as_store().unwrap().dst_val(),
+                        Opcode::Load => inst.operand.as_load().unwrap().src_val(),
+                        _ => continue,
+                    })
+                    .as_inst();
+                if !alloca_list.contains(&alloca_id) {
+                    continue;
+                }
+                match inst.opcode {
+                    Opcode::Store => {
+                        data.incoming
+                            .insert(alloca_id, inst.operand.as_store().unwrap().src_val());
+                        removal_list.push(inst_id);
+                    }
+                    Opcode::Load => {
+                        if let Some(val) = data.incoming.get(&alloca_id) {
+                            self.func.data.replace_all_uses(inst_id, *val);
+                        }
+                        removal_list.push(inst_id);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            for remove in removal_list {
+                self.func.remove_inst(remove);
+            }
+
+            let block = &self.func.data.basic_blocks[data.cur];
+
+            if block.succs().len() == 0 {
+                break;
+            }
+
+            data.pred = Some(data.cur);
+            let mut succ_iter = block.succs().iter();
+            data.cur = *succ_iter.next().unwrap();
+            for succ in succ_iter {
+                worklist.push(RenameData {
+                    cur: *succ,
+                    pred: data.pred,
+                    incoming: data.incoming.clone(),
+                })
+            }
         }
     }
 

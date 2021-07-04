@@ -6,7 +6,7 @@ use crate::ir::{
     function::{basic_block::BasicBlockId, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, name::Name},
     types::TypeId,
-    value::{ConstantData, Value, ValueId},
+    value::{ConstantData, ValueId},
 };
 use id_arena::Id;
 use std::{fmt, slice};

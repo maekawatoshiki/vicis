@@ -15,7 +15,7 @@ use super::{
         visibility::Visibility,
     },
     types::{TypeId, Types},
-    value::{ConstantData, ValueId},
+    value::ConstantData,
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::BasicBlock;
