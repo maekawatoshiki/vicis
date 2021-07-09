@@ -3,16 +3,12 @@
 use crate::{
     ir::{
         function::{
-            basic_block::{BasicBlock, BasicBlockId},
-            instruction::{Instruction, InstructionId, Opcode, Operand, Phi},
             Function,
         },
-        value::{Value, ValueId},
     },
-    pass::analysis::dom_tree,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cmp::Ordering, collections::BinaryHeap};
+
+
 
 pub struct SCCP<'a> {
     func: &'a mut Function,

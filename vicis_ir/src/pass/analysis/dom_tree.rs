@@ -183,7 +183,7 @@ impl<'a, BB: BasicBlock, F: BasicBlockData<BB> + BasicBlockLayout<BB>> Context<'
             if let Some(set) = bucket.get_mut(&pred) {
                 for v in &*set {
                     let y = self.ancestor_with_lowest_semi(*v);
-                    if self.semi[&y] == self.semi[&v] {
+                    if self.semi[&y] == self.semi[v] {
                         self.idom.insert(*v, pred);
                     } else {
                         self.samedom.insert(*v, y);

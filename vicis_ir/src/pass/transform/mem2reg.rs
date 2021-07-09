@@ -227,7 +227,7 @@ impl<'a> Mem2Reg<'a> {
             }
         }
 
-        let mut worklist = use_blocks.clone();
+        let mut worklist = use_blocks;
         while let Some(block) = worklist.pop() {
             if !livein_blocks.insert(block) {
                 continue;
@@ -287,7 +287,7 @@ impl<'a> Mem2Reg<'a> {
                         self.func.layout.insert_inst_at_start(phi_id, succ_id);
                         added_phis
                             .entry(succ_id)
-                            .or_insert_with(|| vec![])
+                            .or_insert_with(Vec::new)
                             .push(phi_id);
                         phi_to_alloca.insert(phi_id, alloca_id);
                     }
@@ -404,7 +404,7 @@ impl<'a> Mem2Reg<'a> {
 
             let block = &self.func.data.basic_blocks[data.cur];
 
-            if block.succs().len() == 0 {
+            if block.succs().is_empty() {
                 break;
             }
 

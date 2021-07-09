@@ -120,7 +120,7 @@ impl Data {
         if let Value::Instruction(to) = self.values[to] {
             self.users_map
                 .entry(to)
-                .or_insert_with(|| FxHashSet::default())
+                .or_insert_with(FxHashSet::default)
                 .insert(inst_id);
         }
     }
