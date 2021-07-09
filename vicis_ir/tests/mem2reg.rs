@@ -17,6 +17,7 @@ define dso_local i32 @main() {
         Mem2Reg::new(func).run();
         // println!("{:?}", func);
     }
+    // TODO: Need to run SCCP after mem2reg
     insta::assert_debug_snapshot!(module);
 }
 

@@ -157,6 +157,11 @@ impl<'a, BB: BasicBlock, F: BasicBlockData<BB> + BasicBlockLayout<BB>> Context<'
             let mut s = pred;
 
             for v in self.f.get(node).preds() {
+                if !self.dfnum.contains_key(v) {
+                    // `v` is unreachable. skip it.
+                    continue;
+                }
+
                 let s_ = if self.dfnum[v] <= self.dfnum[&node] {
                     *v
                 } else {
