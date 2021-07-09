@@ -7,7 +7,7 @@ use crate::{
         },
         value::{Value, ValueId},
     },
-    pass::analysis::dom_tree,
+    pass::{analysis::dom_tree, transform::sccp::SCCP},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cmp::Ordering, collections::BinaryHeap};
@@ -96,6 +96,8 @@ impl<'a> Mem2Reg<'a> {
         }
 
         self.rename(multi_block_alloca_list, phi_to_alloca, added_phis);
+
+        SCCP::new(self.func).run();
     }
 
     fn promote_single_store_alloca(&mut self, alloca_id: InstructionId) {

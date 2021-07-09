@@ -10,7 +10,13 @@ target triple = ""
 
 define external dso_local default i32 @main() {
 0:
-    ret i32 357
+    br label %1
+1:
+    br label %3
+2:
+    br label %3
+3:
+    ret i32 2
 }
 
 

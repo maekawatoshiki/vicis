@@ -3,10 +3,10 @@ pub mod parser;
 pub use parser::parse;
 
 use crate::ir::{
-    function::{basic_block::BasicBlockId, param_attrs::ParameterAttribute},
+    function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, name::Name},
     types::TypeId,
-    value::{ConstantData, ValueId},
+    value::{ConstantData, ConstantInt, Value, ValueId},
 };
 use id_arena::Id;
 use std::{fmt, slice};
@@ -222,6 +222,48 @@ impl Instruction {
         self.dest = Some(dest);
         self
     }
+
+    pub fn fold_consts(&self, data: &Data) -> Option<ConstantData> {
+        match self.operand {
+            Operand::IntBinary(ref i) => {
+                let args: Vec<&Value> = i.args.iter().map(|&id| data.value_ref(id)).collect();
+                match args.as_slice() {
+                    [Value::Constant(ConstantData::Int(ConstantInt::Int32(x))), Value::Constant(ConstantData::Int(ConstantInt::Int32(y)))] => {
+                        match self.opcode {
+                            Opcode::Add => Some(ConstantData::Int(ConstantInt::Int32(x + y))),
+                            Opcode::Sub => Some(ConstantData::Int(ConstantInt::Int32(x - y))),
+                            Opcode::Mul => Some(ConstantData::Int(ConstantInt::Int32(x * y))),
+                            Opcode::SRem => Some(ConstantData::Int(ConstantInt::Int32(x % y))),
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                }
+            }
+            Operand::ICmp(ref i) => {
+                let args: Vec<&Value> = i.args.iter().map(|&id| data.value_ref(id)).collect();
+                match args.as_slice() {
+                    [Value::Constant(ConstantData::Int(ConstantInt::Int32(x))), Value::Constant(ConstantData::Int(ConstantInt::Int32(y)))] => {
+                        match i.cond {
+                            ICmpCond::Eq => Some(ConstantData::Int(ConstantInt::Int1(x == y))),
+                            ICmpCond::Ne => Some(ConstantData::Int(ConstantInt::Int1(x != y))),
+                            ICmpCond::Ugt => Some(ConstantData::Int(ConstantInt::Int1(x > y))),
+                            ICmpCond::Uge => Some(ConstantData::Int(ConstantInt::Int1(x >= y))),
+                            ICmpCond::Ult => Some(ConstantData::Int(ConstantInt::Int1(x < y))),
+                            ICmpCond::Ule => Some(ConstantData::Int(ConstantInt::Int1(x <= y))),
+                            ICmpCond::Sgt => Some(ConstantData::Int(ConstantInt::Int1(x > y))),
+                            ICmpCond::Sge => Some(ConstantData::Int(ConstantInt::Int1(x >= y))),
+                            ICmpCond::Slt => Some(ConstantData::Int(ConstantInt::Int1(x < y))),
+                            ICmpCond::Sle => Some(ConstantData::Int(ConstantInt::Int1(x <= y))),
+                        }
+                    }
+                    _ => None,
+                }
+            }
+            Operand::Cast(_) => todo!(),
+            _ => None,
+        }
+    }
 }
 
 impl Opcode {
@@ -388,6 +430,7 @@ impl Operand {
     as_inst!(as_load, Load);
     as_inst!(as_phi, Phi);
     as_inst!(mut as_phi_mut, Phi);
+    as_inst!(as_condbr, CondBr);
 }
 
 impl Alloca {

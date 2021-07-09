@@ -58,9 +58,16 @@ impl Data {
         &self.basic_blocks[id]
     }
 
-    // TODO: Is this the right way?
     pub fn block_ref_mut(&mut self, id: BasicBlockId) -> &mut BasicBlock {
         &mut self.basic_blocks[id]
+    }
+
+    pub fn remove_block_pred(&mut self, id: BasicBlockId, pred: BasicBlockId) -> bool {
+        self.basic_blocks[id].preds.remove(&pred)
+    }
+
+    pub fn remove_block_succ(&mut self, id: BasicBlockId, succ: BasicBlockId) -> bool {
+        self.basic_blocks[id].succs.remove(&succ)
     }
 
     pub fn inst_ref(&self, id: InstructionId) -> &Instruction {

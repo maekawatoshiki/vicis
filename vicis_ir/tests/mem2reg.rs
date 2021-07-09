@@ -146,3 +146,36 @@ define dso_local i32 @main() {
     }
     insta::assert_debug_snapshot!(module);
 }
+
+#[test]
+fn mem2reg_5() {
+    let ir = r#"
+define dso_local i32 @main() {
+  %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  store i32 1, i32* %2, align 4
+  %3 = load i32, i32* %2, align 4
+  %4 = icmp eq i32 %3, 1
+  br i1 %4, label %5, label %6
+
+5:                                                ; preds = %0
+  store i32 2, i32* %1, align 4
+  br label %7
+
+6:                                                ; preds = %0
+  store i32 3, i32* %1, align 4
+  br label %7
+
+7:                                                ; preds = %6, %5
+  %8 = load i32, i32* %1, align 4
+  ret i32 %8
+}
+"#;
+    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    for (_, func) in module.functions_mut() {
+        Mem2Reg::new(func).run();
+        // println!("{:?}", func);
+    }
+    insta::assert_debug_snapshot!(module);
+}
