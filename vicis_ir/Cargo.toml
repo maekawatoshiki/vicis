@@ -21,3 +21,4 @@ anyhow = "= 1.0.38"
 
 [dev-dependencies]
 indicatif = "= 0.15.0"
+insta = "= 1.7.1"

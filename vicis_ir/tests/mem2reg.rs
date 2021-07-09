@@ -15,8 +15,9 @@ define dso_local i32 @main() {
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
     for (_, func) in module.functions_mut() {
         Mem2Reg::new(func).run();
-        println!("{:?}", func);
+        // println!("{:?}", func);
     }
+    insta::assert_debug_snapshot!(module);
 }
 
 #[test]
@@ -48,8 +49,9 @@ define dso_local i32 @main() {
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
     for (_, func) in module.functions_mut() {
         Mem2Reg::new(func).run();
-        println!("{:?}", func);
+        // println!("{:?}", func);
     }
+    insta::assert_debug_snapshot!(module);
 }
 
 #[test]
@@ -89,6 +91,57 @@ define dso_local i32 @main() {
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
     for (_, func) in module.functions_mut() {
         Mem2Reg::new(func).run();
-        println!("{:?}", func);
+        // println!("{:?}", func);
     }
+    insta::assert_debug_snapshot!(module);
+}
+
+#[test]
+fn mem2reg_4() {
+    let ir = r#"
+define dso_local i32 @main() {
+  %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
+  %3 = alloca i32, align 4
+  %4 = alloca i32, align 4
+  %5 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  store i32 1, i32* %2, align 4
+  store i32 1, i32* %3, align 4
+  store i32 0, i32* %4, align 4
+  br label %6
+
+6:                                                ; preds = %15, %0
+  %7 = load i32, i32* %4, align 4
+  %8 = icmp slt i32 %7, 9
+  br i1 %8, label %9, label %18
+
+9:                                                ; preds = %6
+  %10 = load i32, i32* %2, align 4
+  store i32 %10, i32* %5, align 4
+  %11 = load i32, i32* %3, align 4
+  store i32 %11, i32* %2, align 4
+  %12 = load i32, i32* %5, align 4
+  %13 = load i32, i32* %3, align 4
+  %14 = add nsw i32 %12, %13
+  store i32 %14, i32* %3, align 4
+  br label %15
+
+15:                                               ; preds = %9
+  %16 = load i32, i32* %4, align 4
+  %17 = add nsw i32 %16, 1
+  store i32 %17, i32* %4, align 4
+  br label %6
+
+18:                                               ; preds = %6
+  %19 = load i32, i32* %3, align 4
+  ret i32 %19
+}
+"#;
+    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    for (_, func) in module.functions_mut() {
+        Mem2Reg::new(func).run();
+        // println!("{:?}", func);
+    }
+    insta::assert_debug_snapshot!(module);
 }

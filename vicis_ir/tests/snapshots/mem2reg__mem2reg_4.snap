@@ -1,0 +1,30 @@
+---
+source: tests/mem2reg.rs
+expression: module
+
+---
+source_filename = ""
+target datalayout = ""
+target triple = ""
+
+
+define external dso_local default i32 @main() {
+0:
+    br label %1
+1:
+    %2 = phi i32 [0, %0], [%9, %8]
+    %3 = phi i32 [1, %0], [%7, %8]
+    %4 = phi i32 [1, %0], [%3, %8]
+    %5 = icmp slt i32 %2, 9
+    br i1 %5, label %6, label %10
+6:
+    %7 = add nsw i32 %4, %3
+    br label %8
+8:
+    %9 = add nsw i32 %2, 1
+    br label %1
+10:
+    ret i32 %3
+}
+
+

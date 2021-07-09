@@ -1,0 +1,17 @@
+---
+source: tests/mem2reg.rs
+expression: module
+
+---
+source_filename = ""
+target datalayout = ""
+target triple = ""
+
+
+define external dso_local default i32 @main() {
+0:
+    %1 = add nsw i32 234, 123
+    ret i32 %1
+}
+
+

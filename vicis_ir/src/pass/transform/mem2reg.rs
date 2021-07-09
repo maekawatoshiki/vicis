@@ -387,16 +387,15 @@ impl<'a> Mem2Reg<'a> {
                     Opcode::Store => {
                         data.incoming
                             .insert(alloca_id, inst.operand.as_store().unwrap().src_val());
-                        removal_list.push(inst_id);
                     }
                     Opcode::Load => {
                         if let Some(val) = data.incoming.get(&alloca_id) {
                             self.func.data.replace_all_uses(inst_id, *val);
                         }
-                        removal_list.push(inst_id);
                     }
                     _ => unreachable!(),
                 }
+                removal_list.push(inst_id);
             }
 
             for remove in removal_list {
