@@ -60,11 +60,35 @@ fn parse_attribute_group(source: &str) -> IResult<&str, (u32, Vec<Attribute>), V
     .map(|(i, (_, _, id, _, _, attrs, _))| (i, (id.parse().unwrap(), attrs)))
 }
 
-fn parse_metadata(source: &str) -> IResult<&str, (), VerboseError<&str>> {
-    map(
-        preceded(char('!'), terminated(take_until("\n"), char('\n'))),
-        |_| (),
-    )(source)
+fn parse_metadata(s: &str) -> IResult<&str, (&str, Vec<(&str,&str)>), VerboseError<&str>> {
+    use nom::{
+        bytes::complete::{take_while1},
+        branch::alt,
+        combinator::{cut},
+        multi::{separated_list0},
+        sequence::{separated_pair},
+    };
+    fn string_literal(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
+        preceded(char('\"'), cut(terminated(take_until("\""), char('\"'))))(s)
+    }
+    fn identifier(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
+        take_while1(|c: char| c.is_alphanumeric() || c == '.' || c == '_')(s)
+    }
+    fn mid(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
+        preceded(spaces,preceded(char('!'), identifier))(s)
+    }
+    fn mtids(s: &str) -> IResult<&str, Vec<(&str,&str)>, VerboseError<&str>> {
+        map(tuple((spaces,char('!'),spaces,char('{'),
+                separated_list0(preceded(spaces,tag(",")), mtid),spaces,char('}'))),
+            |(_,_,_,_,r,_,_)| r)(s)
+    }
+    fn mtid(s: &str) -> IResult<&str, (&str,&str), VerboseError<&str>> {
+        preceded(spaces,tuple((alt((tag("!"),identifier)),value)))(s)
+    }
+    fn value(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
+        preceded(spaces,alt((identifier,string_literal)))(s)
+    }
+    separated_pair(mid, preceded(spaces,tag("=")), mtids)(s)
 }
 
 fn parse_local_type<'a>(
@@ -193,7 +217,7 @@ fn parse_module1() {
             ; comments
             ; bluh bluh
             target triple = "x86_64-pc-linux-gnu" ; hogehoge
-            !0 = {}
+            !0 = !{}
             define dso_local i32 @main(i32 %0, i32 %1) #0 {
                 ret void
             }
@@ -256,4 +280,36 @@ fn parse_module2() {
         assert!(&attrs[key1] == val1)
     }
     println!("{:?}", result);
+}
+
+#[test]
+fn parse_metadata1() {
+    use nom::multi::many1;
+    let s = "
+        !llvm.module.flags = !{!0}
+        !llvm.ident = !{!1}
+        !0 = !{i32 1, !\"wchar_size\", i32 4}
+        !1 = !{!\"clang version 10.0.0-4ubuntu1 \"}
+        !llvm.module.flags = !{!0, !1, !2}
+        !0 = !{i32 7, !\"PIC Level\", i32 2}
+        !1 = !{i32 7, !\"PIE Level\", i32 2}
+        !2 = !{i32 2, !\"RtLibUseGOT\", i32 1}
+        !3 = !{}
+        !4 = !{i32 2849348}
+        !4 = !{i32 2849319}
+        !4 = !{i32 2849383}";
+    assert_eq!(many1(parse_metadata)(s),Ok(("",vec![
+        ("llvm.module.flags", vec![("!", "0")]),
+        ("llvm.ident", vec![("!", "1")]),
+        ("0", vec![("i32", "1"), ("!", "wchar_size"), ("i32", "4")]),
+        ("1", vec![("!", "clang version 10.0.0-4ubuntu1 ")]),
+        ("llvm.module.flags", vec![("!", "0"), ("!", "1"), ("!", "2")]),
+        ("0", vec![("i32", "7"), ("!", "PIC Level"), ("i32", "2")]),
+        ("1", vec![("i32", "7"), ("!", "PIE Level"), ("i32", "2")]),
+        ("2", vec![("i32", "2"), ("!", "RtLibUseGOT"), ("i32", "1")]),
+        ("3", vec![]),
+        ("4", vec![("i32", "2849348")]),
+        ("4", vec![("i32", "2849319")]),
+        ("4", vec![("i32", "2849383")])
+    ])));
 }
