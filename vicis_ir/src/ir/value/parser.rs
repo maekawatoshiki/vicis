@@ -48,6 +48,14 @@ pub fn parse_constant_int<'a>(
     types: &Types,
     ty: TypeId,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+    parse_constant_intv(source, types, ty).map(|(s, v)| (s, ConstantData::Int(v)))
+}
+
+pub fn parse_constant_intv<'a>(
+    source: &'a str,
+    types: &Types,
+    ty: TypeId,
+) -> IResult<&'a str, ConstantInt, VerboseError<&'a str>> {
     let (source, num) = preceded(
         spaces,
         recognize(tuple((
@@ -56,10 +64,10 @@ pub fn parse_constant_int<'a>(
         ))),
     )(source)?;
     let val = match &*types.get(ty) {
-        Type::Int(1) => ConstantData::Int(ConstantInt::Int1(num == "true")),
-        Type::Int(8) => ConstantData::Int(ConstantInt::Int8(num.parse::<i8>().unwrap())),
-        Type::Int(32) => ConstantData::Int(ConstantInt::Int32(num.parse::<i32>().unwrap())),
-        Type::Int(64) => ConstantData::Int(ConstantInt::Int64(num.parse::<i64>().unwrap())),
+        Type::Int(1) => ConstantInt::Int1(num == "true"),
+        Type::Int(8) => ConstantInt::Int8(num.parse::<i8>().unwrap()),
+        Type::Int(32) => ConstantInt::Int32(num.parse::<i32>().unwrap()),
+        Type::Int(64) => ConstantInt::Int64(num.parse::<i64>().unwrap()),
         _ => todo!(),
     };
     Ok((source, val))
