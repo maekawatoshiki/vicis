@@ -3,6 +3,7 @@ use super::Module;
 use super::{
     attributes::{parser::parse_attributes, Attribute},
     global_variable, name,
+    name::parser::identifier,
 };
 use crate::ir::{
     types,
@@ -10,11 +11,12 @@ use crate::ir::{
 };
 use nom;
 use nom::{
-    bytes::complete::{tag, take_until},
+    bytes::complete::{tag},
+    branch::alt,
     character::complete::{char, digit1},
-    combinator::map,
     error::VerboseError,
-    sequence::{preceded, terminated, tuple},
+    multi::{separated_list0},
+    sequence::{preceded, separated_pair, tuple},
     IResult,
 };
 
@@ -60,33 +62,26 @@ fn parse_attribute_group(source: &str) -> IResult<&str, (u32, Vec<Attribute>), V
     .map(|(i, (_, _, id, _, _, attrs, _))| (i, (id.parse().unwrap(), attrs)))
 }
 
-fn parse_metadata(s: &str) -> IResult<&str, (&str, Vec<(&str,&str)>), VerboseError<&str>> {
-    use nom::{
-        bytes::complete::{take_while1},
-        branch::alt,
-        combinator::{cut},
-        multi::{separated_list0},
-        sequence::{separated_pair},
-    };
-    fn string_literal(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-        preceded(char('\"'), cut(terminated(take_until("\""), char('\"'))))(s)
+fn parse_metadata(s: &str) -> IResult<&str, (String, Vec<(String,String)>), VerboseError<&str>> {
+    fn id(s: &str) -> IResult<&str, String, VerboseError<&str>> {
+        identifier(s).map(|(i,s)|(i,s.to_string()))
     }
-    fn identifier(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-        take_while1(|c: char| c.is_alphanumeric() || c == '.' || c == '_')(s)
+    fn mid(s: &str) -> IResult<&str, String, VerboseError<&str>> {
+        preceded(spaces,preceded(meta, id))(s)
     }
-    fn mid(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-        preceded(spaces,preceded(char('!'), identifier))(s)
+    fn mtids(s: &str) -> IResult<&str, Vec<(String,String)>, VerboseError<&str>> {
+        tuple((spaces,meta,spaces,char('{'),
+                separated_list0(preceded(spaces,tag(",")), mtid),spaces,char('}')))(s)
+        .map(|(i,(_,_,_,_,r,_,_))| (i,r))
     }
-    fn mtids(s: &str) -> IResult<&str, Vec<(&str,&str)>, VerboseError<&str>> {
-        map(tuple((spaces,char('!'),spaces,char('{'),
-                separated_list0(preceded(spaces,tag(",")), mtid),spaces,char('}'))),
-            |(_,_,_,_,r,_,_)| r)(s)
+    fn meta(s: &str) -> IResult<&str, String, VerboseError<&str>> {
+        tag("!")(s).map(|(i,s)| (i,s.to_string()))
     }
-    fn mtid(s: &str) -> IResult<&str, (&str,&str), VerboseError<&str>> {
-        preceded(spaces,tuple((alt((tag("!"),identifier)),value)))(s)
+    fn mtid(s: &str) -> IResult<&str, (String,String), VerboseError<&str>> {
+        preceded(spaces,tuple((alt((meta,id)),value)))(s)
     }
-    fn value(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-        preceded(spaces,alt((identifier,string_literal)))(s)
+    fn value(s: &str) -> IResult<&str, String, VerboseError<&str>> {
+        preceded(spaces,alt((id,string_literal)))(s)
     }
     separated_pair(mid, preceded(spaces,tag("=")), mtids)(s)
 }
@@ -284,6 +279,7 @@ fn parse_module2() {
 
 #[test]
 fn parse_metadata1() {
+    fn t(s:&str) -> String { s.to_string() }
     use nom::multi::many1;
     let s = "
         !llvm.module.flags = !{!0}
@@ -299,17 +295,17 @@ fn parse_metadata1() {
         !4 = !{i32 2849319}
         !4 = !{i32 2849383}";
     assert_eq!(many1(parse_metadata)(s),Ok(("",vec![
-        ("llvm.module.flags", vec![("!", "0")]),
-        ("llvm.ident", vec![("!", "1")]),
-        ("0", vec![("i32", "1"), ("!", "wchar_size"), ("i32", "4")]),
-        ("1", vec![("!", "clang version 10.0.0-4ubuntu1 ")]),
-        ("llvm.module.flags", vec![("!", "0"), ("!", "1"), ("!", "2")]),
-        ("0", vec![("i32", "7"), ("!", "PIC Level"), ("i32", "2")]),
-        ("1", vec![("i32", "7"), ("!", "PIE Level"), ("i32", "2")]),
-        ("2", vec![("i32", "2"), ("!", "RtLibUseGOT"), ("i32", "1")]),
-        ("3", vec![]),
-        ("4", vec![("i32", "2849348")]),
-        ("4", vec![("i32", "2849319")]),
-        ("4", vec![("i32", "2849383")])
+        (t("llvm.module.flags"), vec![(t("!"), t("0"))]),
+        (t("llvm.ident"), vec![(t("!"), t("1"))]),
+        (t("0"), vec![(t("i32"), t("1")), (t("!"), t("wchar_size")), (t("i32"), t("4"))]),
+        (t("1"), vec![(t("!"), t("clang version 10.0.0-4ubuntu1 "))]),
+        (t("llvm.module.flags"), vec![(t("!"), t("0")), (t("!"), t("1")), (t("!"), t("2"))]),
+        (t("0"), vec![(t("i32"), t("7")), (t("!"), t("PIC Level")), (t("i32"), t("2"))]),
+        (t("1"), vec![(t("i32"), t("7")), (t("!"), t("PIE Level")), (t("i32"), t("2"))]),
+        (t("2"), vec![(t("i32"), t("2")), (t("!"), t("RtLibUseGOT")), (t("i32"), t("1"))]),
+        (t("3"), vec![]),
+        (t("4"), vec![(t("i32"), t("2849348"))]),
+        (t("4"), vec![(t("i32"), t("2849319"))]),
+        (t("4"), vec![(t("i32"), t("2849383"))])
     ])));
 }
