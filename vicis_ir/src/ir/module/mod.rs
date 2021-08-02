@@ -13,6 +13,7 @@ use super::{
     function::{Function, FunctionId},
     types::Types,
 };
+use crate::ir::value::ConstantInt;
 use attributes::Attribute;
 use global_variable::GlobalVariable;
 use id_arena::Arena;
@@ -26,6 +27,14 @@ pub struct Target {
     datalayout: String,
 }
 
+#[derive(PartialEq, Clone)]
+pub enum Meta {
+    String(String),
+    Name(Name),
+    Int(ConstantInt),
+    Metas(Vec<Meta>),
+}
+
 pub struct Module {
     pub(crate) name: String,
     pub(crate) source_filename: String,
@@ -34,7 +43,7 @@ pub struct Module {
     pub(crate) attributes: FxHashMap<u32, Vec<Attribute>>,
     pub(crate) global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
-    // TODO: Metadata
+    pub metas: FxHashMap<Name, Meta>,
 }
 
 impl Default for Module {
@@ -47,6 +56,7 @@ impl Default for Module {
             attributes: FxHashMap::default(),
             global_variables: FxHashMap::default(),
             types: Types::new(),
+            metas: FxHashMap::default(),
         }
     }
 }
@@ -117,6 +127,35 @@ impl Target {
     }
 }
 
+impl fmt::Debug for Meta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt_metaint(s: &ConstantInt, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match s {
+                ConstantInt::Int1(i) => write!(f, "i1 {}", i),
+                ConstantInt::Int8(i) => write!(f, "i8 {}", i),
+                ConstantInt::Int32(i) => write!(f, "i32 {}", i),
+                ConstantInt::Int64(i) => write!(f, "i64 {}", i),
+            }
+        }
+        match self {
+            Meta::String(s) => write!(f, "!\"{}\"", s),
+            Meta::Name(n) => write!(f, "!{}", n),
+            Meta::Int(n) => fmt_metaint(n, f),
+            Meta::Metas(ms) => {
+                write!(f, r"!{{")?;
+                for (k, m) in ms.iter().enumerate() {
+                    if k == 0 {
+                        write!(f, "{:?}", m)?;
+                    } else {
+                        write!(f, ", {:?}", m)?;
+                    }
+                }
+                write!(f, "}}")
+            }
+        }
+    }
+}
+
 impl fmt::Debug for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
@@ -137,6 +176,9 @@ impl fmt::Debug for Module {
                 write!(f, "{:?} ", attr)?;
             }
             writeln!(f, "}}")?
+        }
+        for (n, meta) in &self.metas {
+            writeln!(f, "!{} = {:?}", n, meta)?;
         }
         Ok(())
     }
