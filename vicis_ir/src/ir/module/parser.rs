@@ -2,23 +2,18 @@ use super::super::function;
 use super::Module;
 use super::{
     attributes::{parser::parse_attributes, Attribute},
-    global_variable, name,
-    name::{parser::parse as parse_name, Name},
-    Meta,
+    global_variable, metadata, name,
 };
 use crate::ir::{
     types,
     util::{spaces, string_literal},
-    value::parser::parse_constant_intv,
 };
 use nom;
 use nom::{
-    branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
     error::VerboseError,
-    multi::separated_list0,
-    sequence::{preceded, separated_pair, tuple},
+    sequence::{preceded, tuple},
     IResult,
 };
 
@@ -62,58 +57,6 @@ fn parse_attribute_group(source: &str) -> IResult<&str, (u32, Vec<Attribute>), V
         preceded(spaces, char('}')),
     ))(source)
     .map(|(i, (_, _, id, _, _, attrs, _))| (i, (id.parse().unwrap(), attrs)))
-}
-
-fn parse_metadata(
-    types: &types::Types,
-) -> impl Fn(&str) -> IResult<&str, (Name, Meta), VerboseError<&str>> + '_ {
-    fn parse_op(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-        preceded(spaces, tag("!"))(s)
-    }
-    fn parse_mname(s: &str) -> IResult<&str, Name, VerboseError<&str>> {
-        preceded(parse_op, parse_name)(s)
-    }
-    fn meta_string(s: &str) -> IResult<&str, Meta, VerboseError<&str>> {
-        preceded(parse_op, preceded(spaces, string_literal))(s).map(|(i, s)| (i, Meta::String(s)))
-    }
-    fn meta_name(s: &str) -> IResult<&str, Meta, VerboseError<&str>> {
-        parse_mname(s).map(|(i, s)| (i, Meta::Name(s)))
-    }
-    fn parse_type(
-        types: &types::Types,
-    ) -> impl Fn(&str) -> IResult<&str, types::TypeId, VerboseError<&str>> + '_ {
-        move |s| types::parse(s, &types)
-    }
-    fn meta_int(
-        types: &types::Types,
-    ) -> impl Fn(&str) -> IResult<&str, Meta, VerboseError<&str>> + '_ {
-        move |s| {
-            let (s, (ty, _)) = tuple((parse_type(types), spaces))(s)?;
-            parse_constant_intv(s, &types, ty).map(|(s, v)| (s, Meta::Int(v)))
-        }
-    }
-    fn meta_metas(
-        types: &types::Types,
-    ) -> impl Fn(&str) -> IResult<&str, Meta, VerboseError<&str>> + '_ {
-        move |s| {
-            tuple((
-                parse_op,
-                spaces,
-                char('{'),
-                separated_list0(preceded(spaces, tag(",")), meta(types)),
-                spaces,
-                char('}'),
-            ))(s)
-            .map(|(i, (_, _, _, r, _, _))| (i, Meta::Metas(r)))
-        }
-    }
-    fn meta(
-        types: &types::Types,
-    ) -> impl Fn(&str) -> IResult<&str, Meta, VerboseError<&str>> + '_ {
-        move |s| alt((meta_string, meta_name, meta_metas(types), meta_int(types)))(s)
-    }
-
-    move |s| separated_pair(parse_mname, preceded(spaces, tag("=")), meta(types))(s)
 }
 
 fn parse_local_type<'a>(
@@ -177,7 +120,7 @@ pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
             source = source_;
             continue;
         }
-        if let Ok((source_, (name_, meta))) = parse_metadata(&module.types)(source) {
+        if let Ok((source_, (name_, meta))) = metadata::parse(&module.types)(source) {
             module.metas.insert(name_, meta);
             source = source_;
             continue;
@@ -304,98 +247,4 @@ fn parse_module2() {
         assert!(&attrs[key1] == val1)
     }
     println!("{:?}", result);
-}
-
-#[test]
-fn parse_metadata1() {
-    use super::super::value::ConstantInt;
-    let m = Module::new();
-    fn t(s: &str) -> String {
-        s.to_string()
-    }
-    fn nm(s: &str) -> Name {
-        Name::Name(s.to_string())
-    }
-    fn nn(s: usize) -> Name {
-        Name::Number(s)
-    }
-    fn i32(s: i32) -> ConstantInt {
-        ConstantInt::Int32(s)
-    }
-
-    let s = "
-        !llvm.module.flags = !{!0}
-        !llvm.ident = !{!1}
-        !0 = !{i32 1, !\"wchar_size\", i32 4}
-        !1 = !{!\"clang version 10.0.0-4ubuntu1 \"}
-        !llvm.module.flags = !{!0, !1, !2}
-        !0 = !{i32 7, !\"PIC Level\", i32 2}
-        !1 = !{i32 7, !\"PIE Level\", i32 2}
-        !2 = !{i32 2, !\"RtLibUseGOT\", i32 1}
-        !3 = !{}
-        !4 = !{i32 2849348}
-        !4 = !{i32 2849319}
-        !4 = !{i32 2849383}";
-    use nom::multi::many1;
-    assert_eq!(
-        many1(parse_metadata(&m.types))(s),
-        Ok((
-            "",
-            vec![
-                (
-                    nm("llvm.module.flags"),
-                    Meta::Metas(vec![Meta::Name(nn(0))])
-                ),
-                (nm("llvm.ident"), Meta::Metas(vec![Meta::Name(nn(1))])),
-                (
-                    nn(0),
-                    Meta::Metas(vec![
-                        Meta::Int(i32(1)),
-                        Meta::String(t("wchar_size")),
-                        Meta::Int(i32(4))
-                    ])
-                ),
-                (
-                    nn(1),
-                    Meta::Metas(vec![Meta::String(t("clang version 10.0.0-4ubuntu1 "))])
-                ),
-                (
-                    nm("llvm.module.flags"),
-                    Meta::Metas(vec![
-                        Meta::Name(nn(0)),
-                        Meta::Name(nn(1)),
-                        Meta::Name(nn(2))
-                    ])
-                ),
-                (
-                    nn(0),
-                    Meta::Metas(vec![
-                        Meta::Int(i32(7)),
-                        Meta::String(t("PIC Level")),
-                        Meta::Int(i32(2))
-                    ])
-                ),
-                (
-                    nn(1),
-                    Meta::Metas(vec![
-                        Meta::Int(i32(7)),
-                        Meta::String(t("PIE Level")),
-                        Meta::Int(i32(2))
-                    ])
-                ),
-                (
-                    nn(2),
-                    Meta::Metas(vec![
-                        Meta::Int(i32(2)),
-                        Meta::String(t("RtLibUseGOT")),
-                        Meta::Int(i32(1))
-                    ])
-                ),
-                (nn(3), Meta::Metas(vec![])),
-                (nn(4), Meta::Metas(vec![Meta::Int(i32(2849348))])),
-                (nn(4), Meta::Metas(vec![Meta::Int(i32(2849319))])),
-                (nn(4), Meta::Metas(vec![Meta::Int(i32(2849383))])),
-            ]
-        ))
-    );
 }

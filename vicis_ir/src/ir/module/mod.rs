@@ -1,6 +1,7 @@
 pub mod attributes;
 pub mod global_variable;
 pub mod linkage;
+pub mod metadata;
 pub mod name;
 pub mod parser;
 pub mod preemption_specifier;
@@ -13,10 +14,10 @@ use super::{
     function::{Function, FunctionId},
     types::Types,
 };
-use crate::ir::value::ConstantInt;
 use attributes::Attribute;
 use global_variable::GlobalVariable;
 use id_arena::Arena;
+use metadata::Metadata;
 use name::Name;
 use rustc_hash::FxHashMap;
 use std::fmt;
@@ -27,14 +28,6 @@ pub struct Target {
     datalayout: String,
 }
 
-#[derive(PartialEq, Clone)]
-pub enum Meta {
-    String(String),
-    Name(Name),
-    Int(ConstantInt),
-    Metas(Vec<Meta>),
-}
-
 pub struct Module {
     pub(crate) name: String,
     pub(crate) source_filename: String,
@@ -43,7 +36,7 @@ pub struct Module {
     pub(crate) attributes: FxHashMap<u32, Vec<Attribute>>,
     pub(crate) global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
-    pub metas: FxHashMap<Name, Meta>,
+    pub metas: FxHashMap<Name, Metadata>,
 }
 
 impl Default for Module {
@@ -124,35 +117,6 @@ impl Target {
 
     pub fn datalayout(&self) -> &str {
         self.datalayout.as_str()
-    }
-}
-
-impl fmt::Debug for Meta {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fn fmt_metaint(s: &ConstantInt, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match s {
-                ConstantInt::Int1(i) => write!(f, "i1 {}", i),
-                ConstantInt::Int8(i) => write!(f, "i8 {}", i),
-                ConstantInt::Int32(i) => write!(f, "i32 {}", i),
-                ConstantInt::Int64(i) => write!(f, "i64 {}", i),
-            }
-        }
-        match self {
-            Meta::String(s) => write!(f, "!\"{}\"", s),
-            Meta::Name(n) => write!(f, "!{}", n),
-            Meta::Int(n) => fmt_metaint(n, f),
-            Meta::Metas(ms) => {
-                write!(f, r"!{{")?;
-                for (k, m) in ms.iter().enumerate() {
-                    if k == 0 {
-                        write!(f, "{:?}", m)?;
-                    } else {
-                        write!(f, ", {:?}", m)?;
-                    }
-                }
-                write!(f, "}}")
-            }
-        }
     }
 }
 

@@ -165,6 +165,12 @@ impl ConstantInt {
     }
 }
 
+impl From<ConstantInt> for ConstantData {
+    fn from(i: ConstantInt) -> Self {
+        Self::Int(i)
+    }
+}
+
 impl fmt::Display for ConstantInt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -29,7 +29,7 @@ pub fn parse_constant<'a>(
         return Ok((source, ConstantData::Null));
     }
     if let Ok((source, id)) = parse_constant_int(source, types, ty) {
-        return Ok((source, id));
+        return Ok((source, id.into()));
     }
     if let Ok((source, id)) = parse_constant_array(source, types) {
         return Ok((source, id));
@@ -44,14 +44,6 @@ pub fn parse_constant<'a>(
 }
 
 pub fn parse_constant_int<'a>(
-    source: &'a str,
-    types: &Types,
-    ty: TypeId,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    parse_constant_intv(source, types, ty).map(|(s, v)| (s, ConstantData::Int(v)))
-}
-
-pub fn parse_constant_intv<'a>(
     source: &'a str,
     types: &Types,
     ty: TypeId,
