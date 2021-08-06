@@ -31,6 +31,7 @@ pub fn parse<'a>(
                 map(tag("i8"), |_| types.base().i8()),
                 map(tag("i32"), |_| types.base().i32()),
                 map(tag("i64"), |_| types.base().i64()),
+                map(tag("metadata"), |_| types.base().metadata()),
             )),
         )(source)?
     };
@@ -124,4 +125,12 @@ fn parse_func_type<'a>(
     let (source, _) = preceded(spaces, char(')'))(source)?;
     let func_ty = types.base_mut().function(ret, params, is_var_arg);
     Ok((source, func_ty))
+}
+
+#[test]
+fn test_metadata() {
+    let types = Types::default();
+    let source = "  metadata ";
+    let (_, ty) = parse(source, &types).unwrap();
+    assert!(types.base().metadata() == ty)
 }

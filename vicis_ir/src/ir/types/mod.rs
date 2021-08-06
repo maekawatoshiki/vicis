@@ -26,6 +26,7 @@ pub struct TypesBase {
     pointer: Cache<(TypeId, u32)>,
     array: Cache<(TypeId, u32)>,
     structs: Cache<String>,
+    metadata: TypeId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -36,6 +37,7 @@ pub enum Type {
     Array(ArrayType),
     Function(FunctionType),
     Struct(StructType),
+    Metadata,
     // TODO: Add more types
 }
 
@@ -120,6 +122,7 @@ impl Default for TypesBase {
         .into_iter()
         .map(|(bits, ty)| (bits, arena.alloc(ty)))
         .collect();
+        let metadata = arena.alloc(Type::Metadata);
         Self {
             arena,
             named_types: Cache::default(),
@@ -128,6 +131,7 @@ impl Default for TypesBase {
             pointer: Cache::default(),
             array: Cache::default(),
             structs: Cache::default(),
+            metadata,
         }
     }
 }
@@ -177,6 +181,10 @@ impl TypesBase {
 
     pub fn i64(&self) -> TypeId {
         self.int[&64]
+    }
+
+    pub fn metadata(&self) -> TypeId {
+        self.metadata
     }
 
     pub fn pointer(&mut self, inner: TypeId) -> TypeId {
@@ -273,6 +281,7 @@ impl TypesBase {
             Type::Array(ArrayType { inner, .. }) => Some(inner),
             Type::Function(_) => None,
             Type::Struct(_) => None,
+            Type::Metadata => None,
         }
     }
 
@@ -284,6 +293,7 @@ impl TypesBase {
             Type::Array(ArrayType { inner, .. }) => Some(inner),
             Type::Function(_) => None,
             Type::Struct(StructType { ref elems, .. }) => elems.get(i).copied(),
+            Type::Metadata => None,
         }
     }
 
@@ -339,6 +349,7 @@ impl TypesBase {
                 }
                 self.struct_definition_to_string(ty)
             }
+            Type::Metadata => "metadata".to_string(),
         }
     }
 
