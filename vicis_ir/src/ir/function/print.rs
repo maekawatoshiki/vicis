@@ -214,23 +214,31 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             Operand::Load(Load { tys, addr, align }) => {
                 write!(
                     self.fmt,
-                    "%{:?} = load {}, {} {}, align {}",
+                    "%{:?} = load {}, {} {}{}",
                     dest,
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
                     self.value_to_string(data.value_ref(*addr), types),
-                    align
+                    if *align == 0 {
+                        "".to_string()
+                    } else {
+                        format!(", align {}", align)
+                    }
                 )
             }
             Operand::Store(Store { tys, args, align }) => {
                 write!(
                     self.fmt,
-                    "store {} {}, {} {}, align {}",
+                    "store {} {}, {} {}{}",
                     types.to_string(tys[0]),
                     self.value_to_string(data.value_ref(args[0]), types),
                     types.to_string(tys[1]),
                     self.value_to_string(data.value_ref(args[1]), types),
-                    align
+                    if *align == 0 {
+                        "".to_string()
+                    } else {
+                        format!(", align {}", align)
+                    }
                 )
             }
             Operand::InsertValue(InsertValue { tys, args }) => {
