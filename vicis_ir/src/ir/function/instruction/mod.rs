@@ -1,10 +1,11 @@
 pub mod parser;
 
 pub use parser::parse;
+use rustc_hash::FxHashMap;
 
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
-    module::{attributes::Attribute, name::Name},
+    module::{attributes::Attribute, metadata::Metadata, name::Name},
     types::TypeId,
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
@@ -19,7 +20,7 @@ pub struct Instruction {
     pub dest: Option<Name>,
     pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
-    // pub result_ty: Option<TypeId>
+    pub metadata: FxHashMap<String, Metadata>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -225,6 +226,11 @@ impl Instruction {
         self
     }
 
+    pub fn with_metadata(mut self, metadata: FxHashMap<String, Metadata>) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
     pub fn fold_consts(&self, data: &Data) -> Option<ConstantData> {
         match self.operand {
             Operand::IntBinary(ref i) => {
@@ -276,7 +282,7 @@ impl Opcode {
             dest: None,
             id: None,
             parent,
-            // users: FxHashSet::default(),
+            metadata: FxHashMap::default(), // users: FxHashSet::default(),
         }
     }
 

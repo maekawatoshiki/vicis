@@ -8,7 +8,10 @@ use crate::ir::{
         param_attrs::{parser::parse_param_attrs, ParameterAttribute},
         parser::ParserContext,
     },
-    module::attributes::parser::parse_attributes,
+    module::{
+        attributes::parser::parse_attributes, metadata, metadata::Metadata,
+        name::parser::identifier,
+    },
     util::string_literal,
 };
 use crate::ir::{module::name, types, util::spaces, value};
@@ -22,6 +25,7 @@ use nom::{
     Err::Error,
     IResult,
 };
+use rustc_hash::FxHashMap;
 
 pub fn parse_alloca<'a, 'b>(
     source: &'a str,
@@ -569,6 +573,24 @@ fn parse_metadata<'a>(
     }
 }
 
+fn parse_metadata_if_any<'a>(
+    types: &types::Types,
+) -> impl Fn(&str) -> IResult<&str, FxHashMap<String, Metadata>, VerboseError<&str>> + '_ {
+    move |mut source| {
+        let mut metadata = FxHashMap::default();
+        loop {
+            match preceded(spaces, char(','))(source) {
+                Ok((src, _)) => source = src,
+                Err(_) => return Ok((source, metadata)),
+            }
+            let (src, kind) = preceded(spaces, preceded(char('!'), identifier))(source)?;
+            let (src, meta) = metadata::parse_operand(types)(src)?;
+            metadata.insert(kind.to_owned(), meta);
+            source = src;
+        }
+    }
+}
+
 /// Only parses `source` as Instruction. Doesn't append instruction to block.
 pub fn parse<'a, 'b>(
     source: &'a str,
@@ -596,7 +618,10 @@ pub fn parse<'a, 'b>(
     ]
     .iter()
     {
-        if let Ok((source, inst)) = f(source, ctx) {
+        if let Ok((source, mut inst)) = f(source, ctx) {
+            let (source, metadata) = parse_metadata_if_any(ctx.types)(source)?;
+            inst = inst.with_metadata(metadata);
+
             if let Some(name) = name {
                 if let Some(inner) = ctx.name_to_value.get(&name) {
                     if let value::Value::Instruction(id) = ctx.data.values[*inner] {

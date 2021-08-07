@@ -61,7 +61,7 @@ fn node(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, Verbos
     }
 }
 
-fn operand(
+pub fn operand(
     types: &types::Types,
 ) -> impl Fn(&str) -> IResult<&str, Metadata, VerboseError<&str>> + '_ {
     move |source| alt((string, name, node(types), int(types)))(source)
