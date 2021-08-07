@@ -486,7 +486,13 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 )
             }
             Operand::Invalid => panic!(),
+        }?;
+
+        for (kind, meta) in &inst.metadata {
+            write!(self.fmt, ", !{} {:?}", kind, meta)?;
         }
+
+        Ok(())
     }
 
     fn value_to_string(&self, val: &Value, types: &Types) -> String {
