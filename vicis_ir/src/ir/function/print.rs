@@ -42,7 +42,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
     }
 
     pub fn print(&mut self, f: &Function) -> fmt::Result {
-        if f.is_prototype {
+        if f.is_prototype() {
             write!(self.fmt, "declare ")?
         } else {
             write!(self.fmt, "define ")?
@@ -102,7 +102,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             )?
         }
 
-        if f.is_prototype {
+        if f.is_prototype() {
             return writeln!(self.fmt);
         }
 

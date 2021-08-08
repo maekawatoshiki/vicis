@@ -16,7 +16,7 @@ use super::{
 };
 use attributes::Attribute;
 use global_variable::GlobalVariable;
-use id_arena::Arena;
+use id_arena::{Arena, Id};
 use metadata::Metadata;
 use name::Name;
 use rustc_hash::FxHashMap;
@@ -85,6 +85,10 @@ impl Module {
 
     pub fn global_variables(&self) -> &FxHashMap<Name, GlobalVariable> {
         &self.global_variables
+    }
+
+    pub fn add_function(&mut self, f: Function) -> Id<Function> {
+        self.functions.alloc(f)
     }
 
     pub fn find_function_by_name<T: AsRef<str>>(&self, name: T) -> Option<FunctionId> {
