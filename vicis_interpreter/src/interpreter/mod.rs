@@ -33,7 +33,7 @@ pub fn run_function(
 ) -> Option<GenericValue> {
     let func = &ctx.module.functions()[func_id];
 
-    if func.is_prototype {
+    if func.is_prototype() {
         return Some(call_external_func(ctx, func, &args));
     }
 

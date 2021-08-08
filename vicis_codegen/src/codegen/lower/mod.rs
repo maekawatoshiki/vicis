@@ -223,7 +223,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
         layout,
         slots,
         types: function.types.clone(),
-        is_prototype: function.is_prototype,
+        is_prototype: function.is_prototype(),
         isa,
         call_conv,
     })
