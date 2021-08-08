@@ -51,6 +51,10 @@ impl Layout {
         Self::default()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.basic_blocks.is_empty()
+    }
+
     pub fn block_node(&self, id: BasicBlockId) -> &BasicBlockNode {
         &self.basic_blocks[&id]
     }

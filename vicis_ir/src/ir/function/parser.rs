@@ -225,7 +225,7 @@ pub fn parse(source: &str, types: Types) -> IResult<&str, Function, VerboseError
             data,
             layout,
             types,
-            is_prototype,
+            // is_prototype,
             personality,
         },
     ))

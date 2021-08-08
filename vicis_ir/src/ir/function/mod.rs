@@ -1,4 +1,5 @@
 pub mod basic_block;
+pub mod builder;
 pub mod data;
 pub mod instruction;
 pub mod layout;
@@ -43,7 +44,7 @@ pub struct Function {
     pub data: data::Data,
     pub layout: layout::Layout,
     pub types: Types,
-    pub is_prototype: bool,
+    // pub is_prototype: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +55,31 @@ pub struct Parameter {
 }
 
 impl Function {
+    pub fn new<T: AsRef<str>>(
+        name: T,
+        result_ty: TypeId,
+        params: Vec<Parameter>,
+        is_var_arg: bool,
+        types: Types,
+    ) -> Self {
+        Self {
+            name: name.as_ref().to_string(),
+            is_var_arg,
+            result_ty,
+            params,
+            linkage: Linkage::Common,
+            preemption_specifier: PreemptionSpecifier::DsoLocal,
+            visibility: Visibility::Default,
+            unnamed_addr: None,
+            func_attrs: vec![],
+            ret_attrs: vec![],
+            personality: None,
+            data: data::Data::default(),
+            layout: layout::Layout::default(),
+            types,
+        }
+    }
+
     pub fn name(&self) -> &String {
         &self.name
     }
@@ -64,6 +90,10 @@ impl Function {
 
     pub fn is_var_arg(&self) -> bool {
         self.is_var_arg
+    }
+
+    pub fn is_prototype(&self) -> bool {
+        self.layout.is_empty()
     }
 
     pub fn remove_inst(&mut self, inst: InstructionId) -> Option<()> {
