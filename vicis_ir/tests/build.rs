@@ -2,15 +2,15 @@ use vicis_ir::ir::{function, module};
 
 #[test]
 fn build() {
-    let module = module::Module::default();
-    let mut func = function::Function::new(
-        "func",
-        module.types.base().i32(),
-        vec![],
-        false,
-        module.types.clone(),
-    );
-    let mut builder = function::builder::Builder::new(&mut func);
+    let mut module = module::Module::default();
+    let int = module.types.base().i32();
+    let func = module.create_function("func", int, vec![], false);
+    let func = &mut module.functions_mut()[func];
+    let mut builder = function::builder::Builder::new(func);
     let entry = builder.create_block();
-    builder.append_block(entry);
+    builder.switch_to_block(entry);
+    let forty_two = builder.value(42i32);
+    builder.inst().ret(forty_two);
+
+    insta::assert_debug_snapshot!(module);
 }

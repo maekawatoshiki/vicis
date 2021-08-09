@@ -1,0 +1,16 @@
+---
+source: tests/build.rs
+expression: module
+
+---
+source_filename = ""
+target datalayout = ""
+target triple = ""
+
+
+define common dso_local default i32 @func() {
+0:
+    ret i32 42
+}
+
+

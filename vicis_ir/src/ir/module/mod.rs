@@ -11,8 +11,8 @@ pub mod visibility;
 pub use parser::parse as parse_assembly;
 
 use super::{
-    function::{Function, FunctionId},
-    types::Types,
+    function::{Function, FunctionId, Parameter},
+    types::{TypeId, Types},
 };
 use attributes::Attribute;
 use global_variable::GlobalVariable;
@@ -89,6 +89,22 @@ impl Module {
 
     pub fn add_function(&mut self, f: Function) -> Id<Function> {
         self.functions.alloc(f)
+    }
+
+    pub fn create_function<T: AsRef<str>>(
+        &mut self,
+        name: T,
+        result_ty: TypeId,
+        params: Vec<Parameter>,
+        is_var_arg: bool,
+    ) -> Id<Function> {
+        self.functions.alloc(Function::new(
+            name,
+            result_ty,
+            params,
+            is_var_arg,
+            self.types.clone(),
+        ))
     }
 
     pub fn find_function_by_name<T: AsRef<str>>(&self, name: T) -> Option<FunctionId> {

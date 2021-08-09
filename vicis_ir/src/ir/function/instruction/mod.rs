@@ -1,3 +1,4 @@
+pub mod builder;
 pub mod parser;
 
 pub use parser::parse;

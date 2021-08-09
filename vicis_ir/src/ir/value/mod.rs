@@ -165,23 +165,6 @@ impl ConstantInt {
     }
 }
 
-impl From<ConstantInt> for ConstantData {
-    fn from(i: ConstantInt) -> Self {
-        Self::Int(i)
-    }
-}
-
-impl fmt::Display for ConstantInt {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Int1(i) => write!(f, "{}", i),
-            Self::Int8(i) => write!(f, "{}", i),
-            Self::Int32(i) => write!(f, "{}", i),
-            Self::Int64(i) => write!(f, "{}", i),
-        }
-    }
-}
-
 impl ConstantArray {
     pub fn to_string(&self, types: &Types) -> String {
         if self.is_string {
@@ -263,6 +246,41 @@ impl ConstantExpr {
                     types.to_string(tys[1]),
                 )
             }
+        }
+    }
+}
+
+impl From<i32> for Value {
+    fn from(i: i32) -> Self {
+        Self::Constant(ConstantInt::Int32(i).into())
+    }
+}
+
+impl From<i64> for Value {
+    fn from(i: i64) -> Self {
+        Self::Constant(ConstantInt::Int64(i).into())
+    }
+}
+
+impl From<ConstantInt> for ConstantData {
+    fn from(i: ConstantInt) -> Self {
+        Self::Int(i)
+    }
+}
+
+impl From<ConstantInt> for Value {
+    fn from(i: ConstantInt) -> Self {
+        Self::Constant(i.into())
+    }
+}
+
+impl fmt::Display for ConstantInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Int1(i) => write!(f, "{}", i),
+            Self::Int8(i) => write!(f, "{}", i),
+            Self::Int32(i) => write!(f, "{}", i),
+            Self::Int64(i) => write!(f, "{}", i),
         }
     }
 }
