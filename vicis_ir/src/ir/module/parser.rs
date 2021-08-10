@@ -132,48 +132,50 @@ pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
     Ok(module)
 }
 
-#[test]
-fn parse_all_examples() {
-    use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-    use nom::error::convert_error;
-    use std::{fs, io::Write, process};
-
-    let files_count = fs::read_dir("./examples")
-        .expect("Failed to open file")
-        .count() as u64;
-    let paths = fs::read_dir("./examples").unwrap();
-    let pb = ProgressBar::with_draw_target(files_count, ProgressDrawTarget::stdout());
-    pb.set_style(ProgressStyle::default_bar().template("{bar:60} {pos:>4}/{len:>4} {msg}"));
-    for path in paths {
-        let name = path.as_ref().unwrap().path().to_str().unwrap().to_string();
-        pb.set_message(name.as_str());
-
-        let source = fs::read_to_string(name).unwrap();
-        let module = match parse(&source) {
-            Ok(ok) => ok,
-            Err(nom::Err::Error(e)) => {
-                println!("{}", convert_error(source.as_str(), e));
-                panic!()
-            }
-            Err(e) => panic!("{:?}", e),
-        };
-        // crate::ir::pass::dce::run_on_module(&mut module);
-
-        {
-            let mut file = fs::File::create("/tmp/output.ll").unwrap();
-            write!(file, "{:?}", module).unwrap();
-            file.flush().unwrap();
+macro_rules! generate_test {
+    ($fname:ident, $name:literal) => {
+        #[test]
+        fn $fname() {
+            use nom::error::convert_error;
+            use std::fs;
+            let source = fs::read_to_string(concat!("./examples/", $name)).unwrap();
+            let module = match parse(&source) {
+                Ok(ok) => ok,
+                Err(nom::Err::Error(e)) => {
+                    println!("{}", convert_error(source.as_str(), e));
+                    panic!()
+                }
+                Err(e) => panic!("{:?}", e),
+            };
+            insta::assert_debug_snapshot!(module);
         }
-        assert!(process::Command::new("llc-12")
-            .args(&["/tmp/output.ll"])
-            .stderr(process::Stdio::null())
-            .status()
-            .unwrap()
-            .success());
-        pb.inc(1);
-    }
-    pb.finish();
+    };
 }
+
+generate_test!(parse_example_addsubmul, "addsubmul.ll");
+generate_test!(parse_example_ary, "ary.ll");
+generate_test!(parse_example_br, "br.ll");
+generate_test!(parse_example_call, "call.ll");
+generate_test!(parse_example_cast, "cast.ll");
+generate_test!(parse_example_cgep, "cgep.ll");
+generate_test!(parse_example_dce, "dce.ll");
+generate_test!(parse_example_gblvar, "gblvar.ll");
+generate_test!(parse_example_icmp, "icmp.ll");
+generate_test!(parse_example_load, "load.ll");
+generate_test!(parse_example_loop, "loop.ll");
+generate_test!(parse_example_loop2, "loop2.ll");
+generate_test!(parse_example_manyargs, "manyargs.ll");
+generate_test!(parse_example_metadata, "metadata.ll");
+generate_test!(parse_example_node, "node.ll");
+generate_test!(parse_example_phi, "phi.ll");
+generate_test!(parse_example_phi_loop, "phi_loop.ll");
+generate_test!(parse_example_printf, "printf.ll");
+generate_test!(parse_example_puts, "puts.ll");
+generate_test!(parse_example_ret42, "ret42.ll");
+generate_test!(parse_example_rustc_fn_call, "rustc_fn_call.ll");
+generate_test!(parse_example_rustc_hello, "rustc_hello.ll");
+generate_test!(parse_example_rustc_minimum, "rustc_minimum.ll");
+generate_test!(parse_example_struct, "struct.ll");
 
 #[test]
 fn parse_module1() {
