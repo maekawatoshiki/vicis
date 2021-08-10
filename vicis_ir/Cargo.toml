@@ -20,5 +20,4 @@ id-arena = "= 2.2.1"
 anyhow = "= 1.0.38"
 
 [dev-dependencies]
-indicatif = "= 0.15.0"
 insta = "= 1.7.1"
