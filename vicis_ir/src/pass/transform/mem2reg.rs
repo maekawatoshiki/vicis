@@ -55,17 +55,17 @@ impl<'a> Mem2Reg<'a> {
                 let alloca = inst;
 
                 let is_promotable = self.is_promotable(alloca);
-                dbg!(is_promotable);
+                debug!(is_promotable);
 
                 if !is_promotable {
                     continue;
                 }
 
                 let is_stored_only_once = self.is_stored_only_once(alloca);
-                dbg!(is_stored_only_once);
+                debug!(is_stored_only_once);
 
                 let is_only_used_in_single_block = self.is_only_used_in_single_block(alloca);
-                dbg!(is_only_used_in_single_block);
+                debug!(is_only_used_in_single_block);
 
                 if is_stored_only_once {
                     single_store_alloca_list.push(inst_id);
