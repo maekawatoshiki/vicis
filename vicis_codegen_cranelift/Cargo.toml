@@ -1,0 +1,7 @@
+[package]
+name = "vicis_codegen_cranelift"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+vicis_ir = { path = "../vicis_ir" }
