@@ -109,6 +109,14 @@ impl fmt::Debug for Function {
 }
 
 impl Parameter {
+    pub fn new(ty: TypeId) -> Self {
+        Self {
+            name: Name::Number(0),
+            ty,
+            attrs: vec![],
+        }
+    }
+
     pub fn to_string(&self, types: &Types) -> String {
         format!("{} %{:?}", types.to_string(self.ty), self.name)
     }

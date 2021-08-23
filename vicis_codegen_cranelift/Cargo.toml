@@ -8,3 +8,4 @@ vicis_ir = { path = "../vicis_ir" }
 cranelift-jit = "= 0.76.0"
 cranelift = "= 0.76.0"
 cranelift-module = "= 0.76.0"
+cranelift-codegen = "= 0.76.0"
