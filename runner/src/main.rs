@@ -1,13 +1,13 @@
 extern crate rand;
 extern crate structopt;
 extern crate vicis_codegen;
-extern crate vicis_ir;
+extern crate vicis_core;
 
 use rand::Rng;
 use std::{fs, io::Write, process};
 use structopt::StructOpt;
 use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
-use vicis_ir::ir::module;
+use vicis_core::ir::module;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "i")]
