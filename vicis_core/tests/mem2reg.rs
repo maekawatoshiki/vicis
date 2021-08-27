@@ -1,4 +1,4 @@
-use vicis_ir::{ir::module, pass::transform::mem2reg::Mem2Reg};
+use vicis_core::{ir::module, pass::transform::mem2reg::Mem2Reg};
 
 #[test]
 fn mem2reg_1() {

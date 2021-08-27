@@ -7,7 +7,7 @@ use super::generic_value::GenericValue;
 use frame::StackFrame;
 use rustc_hash::FxHashMap;
 use std::{alloc, ffi, os::raw::c_void, ptr};
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::{
         instruction::{
             Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, InstructionId,

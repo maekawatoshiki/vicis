@@ -3,7 +3,7 @@ use crate::codegen::{
     register::{Reg, RegUnit, RegisterClass, RegisterInfo},
 };
 use std::fmt;
-use vicis_ir::ir::types::{Type, TypeId, Types};
+use vicis_core::ir::types::{Type, TypeId, Types};
 
 pub struct RegInfo;
 

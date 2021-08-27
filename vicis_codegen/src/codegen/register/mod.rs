@@ -3,7 +3,7 @@ use crate::codegen::{
     function::instruction::{InstructionData as ID, InstructionId},
 };
 use rustc_hash::FxHashMap;
-use vicis_ir::ir::types::{TypeId, Types};
+use vicis_core::ir::types::{TypeId, Types};
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Reg(pub u16, pub u16);

@@ -8,7 +8,7 @@ use crate::codegen::{
     register::{RegisterClass, RegisterInfo},
 };
 use anyhow::Result;
-use vicis_ir::ir::types::{TypeId, Types};
+use vicis_core::ir::types::{TypeId, Types};
 
 pub trait TargetIsa: Copy {
     type InstInfo: InstructionInfo;

@@ -2,7 +2,7 @@ extern crate cranelift;
 extern crate cranelift_codegen;
 extern crate cranelift_jit;
 extern crate cranelift_module;
-extern crate vicis_ir;
+extern crate vicis_core;
 
 mod instruction;
 
@@ -17,7 +17,7 @@ use cranelift::{
 };
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Linkage, Module};
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::FunctionId,
     module::Module as LlvmModule,
     types::{Type as LlvmType, TypeId as LlvmTypeId, Types},
@@ -141,7 +141,7 @@ fn test() {
 
 #[test]
 fn test2() {
-    use vicis_ir::ir::module;
+    use vicis_core::ir::module;
 
     let source = r#"
 define dso_local i32 @main() {

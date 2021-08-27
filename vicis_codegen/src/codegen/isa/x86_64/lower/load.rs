@@ -9,7 +9,7 @@ use crate::codegen::{
     lower::{LoweringContext, LoweringError},
 };
 use anyhow::Result;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
     types::{Type, TypeId},
     value::{ConstantData, ConstantInt, Value, ValueId},

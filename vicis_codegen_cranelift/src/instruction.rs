@@ -5,7 +5,7 @@ use cranelift::{
 };
 use cranelift_codegen::Context;
 use cranelift_jit::JITModule;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::{
         instruction::{InstructionId, Operand, Ret},
         Function,

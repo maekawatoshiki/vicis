@@ -1,4 +1,4 @@
-extern crate vicis_ir;
+extern crate vicis_core;
 
 #[macro_use]
 pub mod macros;

@@ -9,7 +9,7 @@ use crate::codegen::{
     isa::TargetIsa,
     register::VReg,
 };
-use vicis_ir::ir::types::Type;
+use vicis_core::ir::types::Type;
 
 pub struct Spiller<'a, T: TargetIsa> {
     function: &'a mut Function<T>,

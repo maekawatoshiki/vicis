@@ -15,7 +15,7 @@ use crate::codegen::{
 use anyhow::Result;
 use load::lower_load;
 use store::lower_store;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
         data::Data as IrData,

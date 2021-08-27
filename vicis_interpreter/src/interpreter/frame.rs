@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap;
 
 use super::Context;
 use crate::generic_value::GenericValue;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
     value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
 };

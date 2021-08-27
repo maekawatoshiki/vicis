@@ -1,5 +1,5 @@
 use rustc_hash::FxHashSet;
-use vicis_ir::{
+use vicis_core::{
     // codegen::{isa::x86_64::X86_64, lower::compile_module},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
     ir::{function::basic_block::BasicBlockId, module},

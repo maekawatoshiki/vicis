@@ -8,7 +8,7 @@ use super::{call_conv::CallConvKind, isa::TargetIsa};
 use crate::codegen::function::instruction::InstructionInfo;
 use instruction::InstructionId;
 use std::fmt;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::Parameter,
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
     types::{TypeId, Types},

@@ -7,7 +7,7 @@ pub mod register;
 use super::TargetIsa;
 use crate::codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc};
 use anyhow::Result;
-use vicis_ir::ir::types::{ArrayType, Type, TypeId, Types};
+use vicis_core::ir::types::{ArrayType, Type, TypeId, Types};
 
 #[derive(Copy, Clone)]
 pub struct X86_64;

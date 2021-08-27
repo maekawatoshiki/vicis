@@ -1,4 +1,4 @@
-use vicis_ir::ir::{function, module};
+use vicis_core::ir::{function, module};
 
 #[test]
 fn build() {

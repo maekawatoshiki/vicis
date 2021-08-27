@@ -1,6 +1,6 @@
 use crate::codegen::isa::TargetIsa;
 use id_arena::{Arena, Id};
-use vicis_ir::ir::types::TypeId;
+use vicis_core::ir::types::TypeId;
 
 pub type SlotId = Id<Slot>;
 

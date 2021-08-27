@@ -16,7 +16,7 @@ use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{error::Error, fmt, mem};
-use vicis_ir::ir::{
+use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
         data::Data as IrData,

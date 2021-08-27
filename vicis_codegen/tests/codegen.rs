@@ -1,5 +1,5 @@
 use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
-use vicis_ir::ir::module;
+use vicis_core::ir::module;
 
 #[test]
 fn compile_tests() {

@@ -9,7 +9,7 @@ use crate::codegen::{
     register::{Reg, VReg, VRegUsers},
 };
 use std::fmt;
-use vicis_ir::ir::types::Type;
+use vicis_core::ir::types::Type;
 
 pub struct InstructionInfo;
 

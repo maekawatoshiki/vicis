@@ -2,7 +2,7 @@ use super::{function::Function, isa::TargetIsa};
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
 use std::fmt;
-use vicis_ir::ir::{
+use vicis_core::ir::{
     module::{
         attributes::Attribute, global_variable::GlobalVariable, name::Name, Target as ModuleTarget,
     },
