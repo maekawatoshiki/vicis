@@ -61,14 +61,17 @@ pub fn parse_param_attr<'a>(
         ),
         map(tag("swiftself"), |_| ParameterAttribute::SwiftSelf),
         map(tag("swifterror"), |_| ParameterAttribute::SwiftError),
+        map(tag("writeonly"), |_| ParameterAttribute::WriteOnly),
         map(tag("immarg"), |_| ParameterAttribute::ImmArg),
-        map(
-            tuple((string_literal, spaces, char('='), spaces, string_literal)),
-            |(kind, _, _, _, value)| ParameterAttribute::StringAttribute { kind, value },
-        ),
-        map(preceded(char('#'), digit1), |num: &str| {
-            ParameterAttribute::Ref(num.parse::<u32>().unwrap())
-        }),
+        alt((
+            map(
+                tuple((string_literal, spaces, char('='), spaces, string_literal)),
+                |(kind, _, _, _, value)| ParameterAttribute::StringAttribute { kind, value },
+            ),
+            map(preceded(char('#'), digit1), |num: &str| {
+                ParameterAttribute::Ref(num.parse::<u32>().unwrap())
+            }),
+        )),
     ))(source)
 }
 
