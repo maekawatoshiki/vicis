@@ -43,7 +43,7 @@ fn name(source: &str) -> IResult<&str, Metadata, VerboseError<&str>> {
 fn int(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, VerboseError<&str>> + '_ {
     move |source| {
         let (source, ty) = types::parse(source, types)?;
-        parse_constant_int(source, &types, ty).map(|(source, v)| (source, Metadata::Int(v)))
+        parse_constant_int(source, types, ty).map(|(source, v)| (source, Metadata::Int(v)))
     }
 }
 

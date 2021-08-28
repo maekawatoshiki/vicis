@@ -295,32 +295,39 @@ pub fn parse_cast<'a, 'b>(
     Ok((source, inst))
 }
 
+type CallArguments = (
+    Vec<types::TypeId>,
+    Vec<Vec<ParameterAttribute>>,
+    Vec<value::ValueId>,
+);
+
 pub fn parse_call_args<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-) -> IResult<
-    &'a str,
-    Vec<(types::TypeId, Vec<ParameterAttribute>, value::ValueId)>,
-    VerboseError<&'a str>,
-> {
+) -> IResult<&'a str, CallArguments, VerboseError<&'a str>> {
     let (mut source, _) = preceded(spaces, char('('))(source)?;
 
     if let Ok((source, _)) = preceded(spaces, char(')'))(source) {
-        return Ok((source, vec![]));
+        return Ok((source, (vec![], vec![], vec![])));
     }
 
-    let mut args = vec![];
+    let mut arg_types = vec![];
+    let mut arg_attr_lists = vec![];
+    let mut arg_values = vec![];
     loop {
         let (source_, ty) = types::parse(source, ctx.types)?;
         let (source_, attrs) = parse_param_attrs(source_, ctx.types)?;
         let (source_, arg) = value::parse(source_, ctx, ty)?;
-        args.push((ty, attrs, arg));
+        arg_types.push(ty);
+        arg_attr_lists.push(attrs);
+        arg_values.push(arg);
+
         if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
             source = source_;
             continue;
         }
         if let Ok((source, _)) = preceded(spaces, char(')'))(source_) {
-            return Ok((source, args));
+            return Ok((source, (arg_types, arg_attr_lists, arg_values)));
         }
     }
 }
@@ -363,17 +370,11 @@ pub fn parse_call<'a, 'b>(
     let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = parse_callee(source, ctx, ty)?;
-    let (source, args_) = parse_call_args(source, ctx)?;
+    let (source, (mut tys, param_attrs, mut args)) = parse_call_args(source, ctx)?;
     let (source, func_attrs) = parse_attributes(source)?;
     let (source, _) = opt(parse_metadata("!srcloc"))(source)?; // TODO: FIXME: don't ignore !srcloc
-    let mut tys = vec![ty];
-    let mut args = vec![callee];
-    let mut param_attrs = vec![];
-    for (ty, attrs, arg) in args_ {
-        tys.push(ty);
-        args.push(arg);
-        param_attrs.push(attrs);
-    }
+    tys.insert(0, ty);
+    args.insert(0, callee);
     let inst = Opcode::Call
         .with_block(ctx.cur_block)
         .with_operand(Operand::Call(Call {
@@ -423,7 +424,9 @@ pub fn parse_invoke<'a, 'b>(
     let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
     let (source, ty) = types::parse(source, ctx.types)?;
     let (source, callee) = value::parse(source, ctx, ty)?;
-    let (source, args_) = parse_call_args(source, ctx)?;
+    let (source, (mut tys, param_attrs, mut args)) = parse_call_args(source, ctx)?;
+    tys.insert(0, ty);
+    args.insert(0, callee);
     let (source, func_attrs) = parse_attributes(source)?;
     let (source, (_, _, _, _, _, _, normal)) = tuple((
         spaces,
@@ -445,14 +448,6 @@ pub fn parse_invoke<'a, 'b>(
     ))(source)?;
     let normal = ctx.get_or_create_named_block(normal);
     let exception = ctx.get_or_create_named_block(exception);
-    let mut tys = vec![ty];
-    let mut args = vec![callee];
-    let mut param_attrs = vec![];
-    for (ty, attrs, arg) in args_ {
-        tys.push(ty);
-        args.push(arg);
-        param_attrs.push(attrs);
-    }
     let inst = Opcode::Invoke
         .with_block(ctx.cur_block)
         .with_operand(Operand::Invoke(Invoke {
@@ -573,7 +568,7 @@ fn parse_metadata<'a>(
     }
 }
 
-fn parse_metadata_if_any<'a>(
+fn parse_metadata_if_any(
     types: &types::Types,
 ) -> impl Fn(&str) -> IResult<&str, FxHashMap<String, Metadata>, VerboseError<&str>> + '_ {
     move |mut source| {

@@ -150,7 +150,7 @@ impl<'a> Mem2Reg<'a> {
 
     fn promote_single_block_alloca(&mut self, alloca_id: InstructionId) {
         fn find_nearest_store(
-            store_indexes: &Vec<(InstructionId, InstructionIndex)>,
+            store_indexes: &[(InstructionId, InstructionIndex)],
             load_idx: InstructionIndex,
         ) -> Option<InstructionId> {
             let i = store_indexes
@@ -250,9 +250,7 @@ impl<'a> Mem2Reg<'a> {
         let mut visited_queue = FxHashSet::default();
 
         while let Some(BlockLevel(root_level, root_block_id)) = queue.pop() {
-            let mut worklist = vec![];
-
-            worklist.push(root_block_id);
+            let mut worklist = vec![root_block_id];
             visited_worklist.insert(root_block_id);
 
             while let Some(block_id) = worklist.pop() {
@@ -343,7 +341,7 @@ impl<'a> Mem2Reg<'a> {
 
     fn rename_sub(
         &mut self,
-        alloca_list: &Vec<InstructionId>,
+        alloca_list: &[InstructionId],
         phi_to_alloca: &FxHashMap<InstructionId, InstructionId>,
         worklist: &mut Vec<RenameData>,
         added_phis: &mut FxHashMap<BasicBlockId, Vec<InstructionId>>,

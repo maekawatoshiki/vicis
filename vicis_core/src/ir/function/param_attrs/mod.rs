@@ -53,7 +53,7 @@ impl ParameterAttribute {
             Self::SwiftSelf => "swiftself".to_string(),
             Self::SwiftError => "swifterror".to_string(),
             Self::ImmArg => "immarg".to_string(),
-            Self::WriteOnly => format!("writeonly"),
+            Self::WriteOnly => "writeonly".to_string(),
             Self::StringAttribute { kind, value } => format!("\"{}\"=\"{}\"", kind, value),
             Self::Ref(i) => format!("#{}", i),
             Self::UnknownAttribute => "".to_string(),
