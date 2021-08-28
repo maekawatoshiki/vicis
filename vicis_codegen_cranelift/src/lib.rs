@@ -20,14 +20,13 @@ use cranelift_module::{Linkage, Module};
 use vicis_core::ir::{
     function::FunctionId,
     module::Module as LlvmModule,
-    types::{Type as LlvmType, TypeId as LlvmTypeId, Types},
+    types::{Type as LlvmType, TypeId as LlvmTypeId},
 };
 
-// pub fn compile_module(_module: &IrModule) {
-//     // for (_id, func) in module.functions() {
-//     //     compile_function(func);
-//     // }
-// }
+pub struct Modules<'a, M: Module> {
+    llvm_mod: &'a LlvmModule,
+    cl_mod: &'a mut M,
+}
 
 pub fn compile_function(llvm_mod: &LlvmModule, llvm_func_id: FunctionId) -> *const u8 {
     let llvm_func = &llvm_mod.functions()[llvm_func_id];
@@ -37,32 +36,21 @@ pub fn compile_function(llvm_mod: &LlvmModule, llvm_func_id: FunctionId) -> *con
     let mut cl_mod = JITModule::new(builder);
     let mut cl_ctx = cl_mod.make_context();
 
-    // let mut ctx = Context {
-    //     llvm_mod,
-    //     builder_ctx,
-    //     cl_mod,
-    //     cl_ctx,
-    // };
+    let mut modules = Modules::new(llvm_mod, &mut cl_mod);
 
     for param in &llvm_func.params {
-        let cl_ty = into_cl_type(&llvm_mod.types, &cl_mod, param.ty);
+        let cl_ty = modules.into_cl_type(param.ty);
         cl_ctx.func.signature.params.push(AbiParam::new(cl_ty));
     }
     // cl_ctx.func.signature.params.push(AbiParam::new(int));
-    let cl_result_ty = into_cl_type(&llvm_mod.types, &cl_mod, llvm_func.result_ty);
+    let cl_result_ty = modules.into_cl_type(llvm_func.result_ty);
     cl_ctx
         .func
         .signature
         .returns
         .push(AbiParam::new(cl_result_ty));
 
-    instruction::compile_function_body(
-        &mut builder_ctx,
-        &mut cl_mod,
-        &mut cl_ctx,
-        llvm_mod,
-        llvm_func,
-    );
+    instruction::compile_function_body(&mut modules, &mut builder_ctx, &mut cl_ctx, llvm_func);
 
     dbg!(&cl_ctx.func);
 
@@ -83,12 +71,18 @@ pub fn compile_function(llvm_mod: &LlvmModule, llvm_func_id: FunctionId) -> *con
     code
 }
 
-fn into_cl_type(types: &Types, cl_mod: &JITModule, ty: LlvmTypeId) -> Type {
-    match *types.get(ty) {
-        LlvmType::Int(32) => types::I32,
-        LlvmType::Int(64) => types::I64,
-        LlvmType::Pointer(_) => cl_mod.target_config().pointer_type(),
-        _ => todo!(),
+impl<'a, M: Module> Modules<'a, M> {
+    pub fn new(llvm_mod: &'a LlvmModule, cl_mod: &'a mut M) -> Self {
+        Self { llvm_mod, cl_mod }
+    }
+
+    pub fn into_cl_type(&self, ty: LlvmTypeId) -> Type {
+        match *self.llvm_mod.types.get(ty) {
+            LlvmType::Int(32) => types::I32,
+            LlvmType::Int(64) => types::I64,
+            LlvmType::Pointer(_) => self.cl_mod.target_config().pointer_type(),
+            _ => todo!(),
+        }
     }
 }
 
