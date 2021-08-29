@@ -75,6 +75,10 @@ impl Layout {
         }
     }
 
+    pub fn get_entry_block(&self) -> Option<BasicBlockId> {
+        self.first_block
+    }
+
     pub fn next_block_of(&self, block: BasicBlockId) -> Option<BasicBlockId> {
         self.basic_blocks[&block].next
     }

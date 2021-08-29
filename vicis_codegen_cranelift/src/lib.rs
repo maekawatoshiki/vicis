@@ -134,7 +134,8 @@ fn test() {
 }
 
 #[test]
-fn test2() {
+fn compile_ret_42() {
+    use std::mem::transmute;
     use vicis_core::ir::module;
 
     let source = r#"
@@ -144,5 +145,25 @@ define dso_local i32 @main() {
 
     let module = module::parse_assembly(source).unwrap();
     let func_id = module.find_function_by_name("main").unwrap();
-    compile_function(&module, func_id);
+    let code = compile_function(&module, func_id);
+    let code_fn = unsafe { transmute::<_, fn() -> i32>(code) };
+    assert_eq!(code_fn(), 42);
+}
+
+#[test]
+fn compile_add() {
+    use std::mem::transmute;
+    use vicis_core::ir::module;
+
+    let source = r#"
+define dso_local i32 @main(i32 %arg.0) {
+  %result = add nsw i32 %arg.0, 1
+  ret i32 %result
+}"#;
+
+    let module = module::parse_assembly(source).unwrap();
+    let func_id = module.find_function_by_name("main").unwrap();
+    let code = compile_function(&module, func_id);
+    let code_fn = unsafe { transmute::<_, fn(i32) -> i32>(code) };
+    assert_eq!(code_fn(41), 42);
 }

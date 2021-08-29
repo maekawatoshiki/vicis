@@ -1,13 +1,15 @@
 use super::Modules;
 use cranelift::{
     frontend::{FunctionBuilder, FunctionBuilderContext},
-    prelude::{InstBuilder, Value},
+    prelude::{Block, InstBuilder, Value},
 };
 use cranelift_codegen::Context;
 use cranelift_module::Module;
+use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
-        instruction::{InstructionId, Operand, Ret},
+        basic_block::BasicBlockId,
+        instruction::{InstructionId, IntBinary, Operand, Ret},
         Function,
     },
     types::TypeId,
@@ -22,50 +24,77 @@ pub fn compile_function_body<M: Module>(
     llvm_func: &Function,
 ) {
     let mut builder = FunctionBuilder::new(&mut cl_ctx.func, builder_ctx);
+    let mut compiler = InstCompiler {
+        modules,
+        llvm_func,
+        builder: &mut builder,
+        blocks: FxHashMap::default(),
+        insts: FxHashMap::default(),
+    };
 
     for (i, block_id) in llvm_func.layout.block_iter().enumerate() {
-        let block = builder.create_block();
+        let block = compiler.create_block_for(block_id);
         if i == 0 {
-            builder.append_block_params_for_function_params(block);
+            compiler
+                .builder
+                .append_block_params_for_function_params(block);
         }
-        builder.switch_to_block(block);
-        builder.seal_block(block);
+        compiler.builder.switch_to_block(block);
+        compiler.builder.seal_block(block);
         for inst_id in llvm_func.layout.inst_iter(block_id) {
-            compile_instruction(modules, llvm_func, &mut builder, inst_id);
+            compiler.compile(inst_id);
         }
     }
 
-    builder.finalize();
+    compiler.builder.finalize();
 }
 
-fn compile_instruction<M: Module>(
-    modules: &Modules<M>,
-    llvm_func: &Function,
-    builder: &mut FunctionBuilder,
-    inst_id: InstructionId,
-) {
-    let inst = llvm_func.data.inst_ref(inst_id);
+struct InstCompiler<'a, M: Module> {
+    modules: &'a Modules<'a, M>,
+    llvm_func: &'a Function,
+    builder: &'a mut FunctionBuilder<'a>,
+    blocks: FxHashMap<BasicBlockId, Block>,
+    insts: FxHashMap<InstructionId, Value>,
+}
 
-    match inst.operand {
-        Operand::Ret(Ret { val: Some(val), ty }) => {
-            let val = build_value(modules, llvm_func, builder, val, ty);
-            builder.ins().return_(&[val]);
-        }
-        _ => {}
+impl<'a, M: Module> InstCompiler<'a, M> {
+    fn compile(&mut self, inst_id: InstructionId) {
+        let inst = self.llvm_func.data.inst_ref(inst_id);
+
+        match inst.operand {
+            Operand::IntBinary(IntBinary { ty, args, .. }) => {
+                let lhs = self.value(args[0], ty);
+                let rhs = self.value(args[1], ty);
+                let val = self.builder.ins().iadd(lhs, rhs);
+                self.insts.insert(inst_id, val);
+            }
+            Operand::Ret(Ret { val: Some(val), ty }) => {
+                let val = self.value(val, ty);
+                self.builder.ins().return_(&[val]);
+            }
+            _ => {}
+        };
     }
-}
 
-fn build_value<M: Module>(
-    modules: &Modules<M>,
-    llvm_func: &Function,
-    builder: &mut FunctionBuilder,
-    val_id: ValueId,
-    ty: TypeId,
-) -> Value {
-    match llvm_func.data.value_ref(val_id) {
-        LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
-            builder.ins().iconst(modules.into_cl_type(ty), *i as i64)
+    fn value(&mut self, val_id: ValueId, ty: TypeId) -> Value {
+        match self.llvm_func.data.value_ref(val_id) {
+            LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => self
+                .builder
+                .ins()
+                .iconst(self.modules.into_cl_type(ty), *i as i64),
+            LlvmValue::Argument(idx) => {
+                let entry = self.llvm_func.layout.get_entry_block().unwrap();
+                let entry = self.blocks[&entry];
+                self.builder.block_params(entry)[*idx]
+            }
+            LlvmValue::Instruction(inst_id) => self.insts[inst_id],
+            _ => todo!(),
         }
-        _ => todo!(),
+    }
+
+    fn create_block_for(&mut self, block_id: BasicBlockId) -> Block {
+        let block = self.builder.create_block();
+        self.blocks.insert(block_id, block);
+        block
     }
 }
