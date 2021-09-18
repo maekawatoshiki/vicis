@@ -1,4 +1,7 @@
-use vicis_core::{ir::module, pass::transform::mem2reg::Mem2Reg};
+use vicis_core::{
+    ir::module,
+    pass::{transform::mem2reg::Mem2RegPass, PassManager},
+};
 
 #[test]
 fn mem2reg_1() {
@@ -13,11 +16,9 @@ define dso_local i32 @main() {
   ret i32 %4
 }"#;
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
-    for (_, func) in module.functions_mut() {
-        Mem2Reg::new(func).run();
-        // println!("{:?}", func);
-    }
-    // TODO: Need to run SCCP after mem2reg
+    let mut pm = PassManager::new();
+    pm.add_transform(Mem2RegPass);
+    pm.run_on_module(&mut module);
     insta::assert_debug_snapshot!(module);
 }
 
@@ -48,10 +49,9 @@ define dso_local i32 @main() {
   ret i32 %14
 }"#;
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
-    for (_, func) in module.functions_mut() {
-        Mem2Reg::new(func).run();
-        // println!("{:?}", func);
-    }
+    let mut pm = PassManager::new();
+    pm.add_transform(Mem2RegPass);
+    pm.run_on_module(&mut module);
     insta::assert_debug_snapshot!(module);
 }
 
@@ -90,10 +90,9 @@ define dso_local i32 @main() {
   ret i32 %15
 }"#;
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
-    for (_, func) in module.functions_mut() {
-        Mem2Reg::new(func).run();
-        // println!("{:?}", func);
-    }
+    let mut pm = PassManager::new();
+    pm.add_transform(Mem2RegPass);
+    pm.run_on_module(&mut module);
     insta::assert_debug_snapshot!(module);
 }
 
@@ -140,10 +139,9 @@ define dso_local i32 @main() {
 }
 "#;
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
-    for (_, func) in module.functions_mut() {
-        Mem2Reg::new(func).run();
-        // println!("{:?}", func);
-    }
+    let mut pm = PassManager::new();
+    pm.add_transform(Mem2RegPass);
+    pm.run_on_module(&mut module);
     insta::assert_debug_snapshot!(module);
 }
 
@@ -173,9 +171,8 @@ define dso_local i32 @main() {
 }
 "#;
     let mut module = module::parse_assembly(ir).expect("failed to parse ir");
-    for (_, func) in module.functions_mut() {
-        Mem2Reg::new(func).run();
-        // println!("{:?}", func);
-    }
+    let mut pm = PassManager::new();
+    pm.add_transform(Mem2RegPass);
+    pm.run_on_module(&mut module);
     insta::assert_debug_snapshot!(module);
 }

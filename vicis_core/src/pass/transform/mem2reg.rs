@@ -7,10 +7,12 @@ use crate::{
         },
         value::{Value, ValueId},
     },
-    pass::{analysis::dom_tree, transform::sccp::SCCP},
+    pass::{analysis::dom_tree, transform::sccp::SCCP, TransformPass},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cmp::Ordering, collections::BinaryHeap};
+use std::{any::Any, cmp::Ordering, collections::BinaryHeap};
+
+pub struct Mem2RegPass;
 
 pub struct Mem2Reg<'a> {
     func: &'a mut Function,
@@ -484,6 +486,12 @@ impl InstructionIndexes {
         }
 
         self.get(func, inst_id)
+    }
+}
+
+impl TransformPass<Function> for Mem2RegPass {
+    fn run_on(&self, func: &mut Function, _result: &mut Box<dyn Any>) {
+        Mem2Reg::new(func).run();
     }
 }
 
