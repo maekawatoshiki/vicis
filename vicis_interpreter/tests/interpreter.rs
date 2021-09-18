@@ -1,5 +1,5 @@
-use vicis_interpreter::{generic_value::GenericValue, interpreter};
 use vicis_core::ir::module;
+use vicis_interpreter::{generic_value::GenericValue, interpreter};
 
 #[test]
 fn exec() {
