@@ -86,6 +86,7 @@ impl<'a, M: Module> Modules<'a, M> {
     }
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn test() {
     use std::mem::transmute;
@@ -133,6 +134,7 @@ fn test() {
     assert_eq!(code_fn(), 42);
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn compile_ret_42() {
     use std::mem::transmute;
@@ -150,6 +152,7 @@ define dso_local i32 @main() {
     assert_eq!(code_fn(), 42);
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn compile_add() {
     use std::mem::transmute;

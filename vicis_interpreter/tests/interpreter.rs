@@ -387,6 +387,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
     );
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn exec9() {
     let asm = r#"
@@ -421,6 +422,7 @@ attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-
     );
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn exec10() {
     for (x, y, z, op) in vec![
