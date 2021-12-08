@@ -1,5 +1,3 @@
-#![feature(vec_into_raw_parts)]
-
 // pub mod codegen;
 // pub mod exec;
 #[macro_use]
