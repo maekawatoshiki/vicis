@@ -387,72 +387,72 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
     );
 }
 
-#[cfg(target_os = "linux")]
-#[test]
-fn exec9() {
-    let asm = r#"
-source_filename = "c.c"
-target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-pc-linux-gnu"
-
-@.str = private unnamed_addr constant [12 x i8] c"hello world\00", align 1
-
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  %2 = call i32 @puts(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @.str, i64 0, i64 0))
-  ret i32 0
-}
-
-declare dso_local i32 @puts(i8*) #1
-
-attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-    "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module)
-        .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
-        .expect("failed to load libc");
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(0),
-    );
-}
-
-#[cfg(target_os = "linux")]
-#[test]
-fn exec10() {
-    for (x, y, z, op) in vec![
-        (2, 3, 5, "add"),
-        (3, 30, -27, "sub"),
-        (5, 23, 115, "mul"),
-        (123, 23, 5, "sdiv"),
-        (39, 30, 9, "srem"),
-    ] {
-        let asm = format!(
-            "
-    define dso_local i32 @f(i32 %0, i32 %1) {{
-      %3 = {} i32 %0, %1
-      ret i32 %3
-    }}",
-            op
-        );
-        let module = module::parse_assembly(asm.as_str()).unwrap();
-        let ctx = interpreter::Context::new(&module)
-            .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
-            .expect("failed to load libc");
-        let main = module.find_function_by_name("f").unwrap();
-        assert_eq!(
-            interpreter::run_function(
-                &ctx,
-                main,
-                vec![GenericValue::Int32(x), GenericValue::Int32(y)]
-            )
-            .unwrap(),
-            GenericValue::Int32(z),
-        );
-    }
-}
+// #[cfg(target_os = "linux")]
+// #[test]
+// fn exec9() {
+//     let asm = r#"
+// source_filename = "c.c"
+// target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+// target triple = "x86_64-pc-linux-gnu"
+//
+// @.str = private unnamed_addr constant [12 x i8] c"hello world\00", align 1
+//
+// ; Function Attrs: noinline nounwind optnone uwtable
+// define dso_local i32 @main() #0 {
+//   %1 = alloca i32, align 4
+//   store i32 0, i32* %1, align 4
+//   %2 = call i32 @puts(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @.str, i64 0, i64 0))
+//   ret i32 0
+// }
+//
+// declare dso_local i32 @puts(i8*) #1
+//
+// attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+// attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+//
+//     "#;
+//     let module = module::parse_assembly(asm).unwrap();
+//     let ctx = interpreter::Context::new(&module)
+//         .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
+//         .expect("failed to load libc");
+//     let main = module.find_function_by_name("main").unwrap();
+//     assert_eq!(
+//         interpreter::run_function(&ctx, main, vec![]).unwrap(),
+//         GenericValue::Int32(0),
+//     );
+// }
+//
+// #[cfg(target_os = "linux")]
+// #[test]
+// fn exec10() {
+//     for (x, y, z, op) in vec![
+//         (2, 3, 5, "add"),
+//         (3, 30, -27, "sub"),
+//         (5, 23, 115, "mul"),
+//         (123, 23, 5, "sdiv"),
+//         (39, 30, 9, "srem"),
+//     ] {
+//         let asm = format!(
+//             "
+//     define dso_local i32 @f(i32 %0, i32 %1) {{
+//       %3 = {} i32 %0, %1
+//       ret i32 %3
+//     }}",
+//             op
+//         );
+//         let module = module::parse_assembly(asm.as_str()).unwrap();
+//         let ctx = interpreter::Context::new(&module)
+//             .with_lib("/lib/x86_64-linux-gnu/libc.so.6")
+//             .expect("failed to load libc");
+//         let main = module.find_function_by_name("f").unwrap();
+//         assert_eq!(
+//             interpreter::run_function(
+//                 &ctx,
+//                 main,
+//                 vec![GenericValue::Int32(x), GenericValue::Int32(y)]
+//             )
+//             .unwrap(),
+//             GenericValue::Int32(z),
+//         );
+//     }
+// }
