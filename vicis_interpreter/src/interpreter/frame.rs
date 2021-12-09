@@ -49,7 +49,7 @@ impl<'a> StackFrame<'a> {
                 {
                     return Some(GenericValue::id(f));
                 }
-                if let Some(g) = self.ctx.globals.get(&name) {
+                if let Some(g) = self.ctx.globals.get(name) {
                     return Some(*g);
                 }
                 None
@@ -57,7 +57,7 @@ impl<'a> StackFrame<'a> {
             Value::Argument(i) => self.args.get(*i).copied(),
             Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
                 match args[0] {
-                    ConstantData::GlobalRef(ref name) => self.ctx.globals.get(&name).copied(),
+                    ConstantData::GlobalRef(ref name) => self.ctx.globals.get(name).copied(),
                     _ => todo!(),
                 }
             }

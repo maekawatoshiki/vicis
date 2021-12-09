@@ -421,7 +421,7 @@ fn get_or_generate_inst_output(
 
     if inst.opcode.has_side_effects() {
         let vreg = new_empty_inst_output(ctx, ty, id);
-        return Ok(vreg);
+        Ok(vreg)
     } else {
         // TODO: What about instruction scheduling?
         lower(ctx, inst)?;

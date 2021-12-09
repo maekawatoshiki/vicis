@@ -199,7 +199,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
                 inst,
             )?;
 
-            insts_seq.push(mem::replace(&mut inst_seq, vec![]));
+            insts_seq.push(mem::take(&mut inst_seq));
         }
 
         insts_seq.push(prologue_seq);

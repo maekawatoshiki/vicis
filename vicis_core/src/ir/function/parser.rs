@@ -1,24 +1,19 @@
-use super::{
-    super::{
-        function::{
-            basic_block::BasicBlockId,
-            data::Data,
-            instruction,
-            instruction::{Opcode, Operand},
-            layout::Layout,
-            param_attrs::parser::parse_param_attrs,
-            Function, Parameter, PersonalityFunc,
-        },
-        module::{
-            attributes, global_variable, linkage, name, preemption_specifier, unnamed_addr,
-            visibility,
-        },
-        types,
-        types::Types,
-        util::spaces,
-        value::{Value, ValueId},
+use crate::ir::{
+    function::{
+        basic_block::BasicBlockId,
+        data::Data,
+        instruction::{self, Br, CondBr, Opcode, Operand},
+        layout::Layout,
+        param_attrs::parser::parse_param_attrs,
+        Function, Parameter, PersonalityFunc,
     },
-    instruction::{Br, CondBr},
+    module::{
+        attributes, global_variable, linkage, name, preemption_specifier, unnamed_addr, visibility,
+    },
+    types,
+    types::Types,
+    util::spaces,
+    value::{Value, ValueId},
 };
 use nom::{
     branch::alt,
