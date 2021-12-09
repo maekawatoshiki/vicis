@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "vicis_core",
-  "vicis_codegen",
-  "vicis_codegen_cranelift",
-  "vicis_interpreter",
+  "core",
+  "codegen",
+  "codegen_cranelift",
+  "interpreter",
 ]
