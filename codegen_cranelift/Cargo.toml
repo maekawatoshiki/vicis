@@ -5,8 +5,8 @@ edition = "2018"
 
 [dependencies]
 vicis_core = { path = "../core" }
-cranelift-jit = "= 0.76.0"
-cranelift = "= 0.76.0"
-cranelift-module = "= 0.76.0"
-cranelift-codegen = "= 0.76.0"
-rustc-hash = "= 1.1.0"
+cranelift-jit = "0.76.0"
+cranelift = "0.76.0"
+cranelift-module = "0.76.0"
+cranelift-codegen = "0.76.0"
+rustc-hash = "^1.1.0"

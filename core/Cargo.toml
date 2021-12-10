@@ -15,9 +15,9 @@ keywords = ["llvm", "compiler"]
 
 [dependencies]
 nom = "^6.0.1"
-rustc-hash = "= 1.1.0"
-id-arena = "= 2.2.1"
-anyhow = "= 1.0.38"
+rustc-hash = "^1.1.0"
+id-arena = "^2.2.1"
+anyhow = "^1.0.38"
 
 [target.tarpaulin.dev-dependencies]
 insta = { version = "^1.7.1", features = ["backtrace"] }

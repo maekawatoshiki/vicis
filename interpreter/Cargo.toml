@@ -7,11 +7,11 @@ edition = "2018"
 
 [dependencies]
 vicis_core = { path = "../core" }
-libffi = "= 1.0.1"
-libloading = "= 0.7.0"
-rustc-hash = "= 1.1.0"
-id-arena = "= 2.2.1"
-anyhow = "= 1.0.38"
+libffi = "^1.0.1"
+libloading = "0.7.0"
+rustc-hash = "^1.1.0"
+id-arena = "^2.2.1"
+anyhow = "^1.0.38"
 
 [dev-dependencies]
 vicis_interpreter = { path = "../interpreter" }
