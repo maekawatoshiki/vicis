@@ -13,6 +13,12 @@ use std::{fmt, str};
 
 pub type ValueId = Id<Value>;
 
+/// A value in LLVM IR.
+///
+/// The original LLVM Value class has information about its uses and users.
+/// However, `Value` here does not have such information.
+/// Instead, only for [`Instruction`](super::function::instruction::Instruction)s
+/// we track uses & users. (See [`Data`](Data) for details.)
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Instruction(InstructionId),
