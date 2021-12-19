@@ -1,4 +1,4 @@
-use super::Modules;
+use super::LowerCtx;
 use cranelift::{
     frontend::{FunctionBuilder, FunctionBuilderContext},
     prelude::{Block, InstBuilder, Value},
@@ -18,14 +18,14 @@ use vicis_core::ir::{
 };
 
 pub fn compile_function_body<M: Module>(
-    modules: &mut Modules<'_, M>,
+    lower_ctx: &mut LowerCtx<'_, M>,
     builder_ctx: &mut FunctionBuilderContext,
     cl_ctx: &mut Context,
     llvm_func: &Function,
 ) {
     let mut builder = FunctionBuilder::new(&mut cl_ctx.func, builder_ctx);
     let mut compiler = InstCompiler {
-        modules,
+        lower_ctx,
         llvm_func,
         builder: &mut builder,
         blocks: FxHashMap::default(),
@@ -50,7 +50,7 @@ pub fn compile_function_body<M: Module>(
 }
 
 struct InstCompiler<'a, M: Module> {
-    modules: &'a Modules<'a, M>,
+    lower_ctx: &'a LowerCtx<'a, M>,
     llvm_func: &'a Function,
     builder: &'a mut FunctionBuilder<'a>,
     blocks: FxHashMap<BasicBlockId, Block>,
@@ -81,7 +81,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
             LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => self
                 .builder
                 .ins()
-                .iconst(self.modules.into_cl_type(ty), *i as i64),
+                .iconst(self.lower_ctx.into_clif_ty(ty), *i as i64),
             LlvmValue::Argument(idx) => {
                 let entry = self.llvm_func.layout.get_entry_block().unwrap();
                 let entry = self.blocks[&entry];

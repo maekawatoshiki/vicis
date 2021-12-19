@@ -23,9 +23,9 @@ use vicis_core::ir::{
     types::{Type as LlvmType, TypeId as LlvmTypeId},
 };
 
-pub struct Modules<'a, M: Module> {
+pub struct LowerCtx<'a, M: Module> {
     llvm_mod: &'a LlvmModule,
-    cl_mod: &'a mut M,
+    clif_mod: &'a mut M,
 }
 
 pub fn compile_function(llvm_mod: &LlvmModule, llvm_func_id: FunctionId) -> *const u8 {
@@ -33,54 +33,53 @@ pub fn compile_function(llvm_mod: &LlvmModule, llvm_func_id: FunctionId) -> *con
 
     let builder = JITBuilder::new(cranelift_module::default_libcall_names());
     let mut builder_ctx = FunctionBuilderContext::new();
-    let mut cl_mod = JITModule::new(builder);
-    let mut cl_ctx = cl_mod.make_context();
+    let mut clif_mod = JITModule::new(builder);
+    let mut clif_ctx = clif_mod.make_context();
 
-    let mut modules = Modules::new(llvm_mod, &mut cl_mod);
+    let mut lower_ctx = LowerCtx::new(llvm_mod, &mut clif_mod);
 
     for param in &llvm_func.params {
-        let cl_ty = modules.into_cl_type(param.ty);
-        cl_ctx.func.signature.params.push(AbiParam::new(cl_ty));
+        let clif_ty = lower_ctx.into_clif_ty(param.ty);
+        clif_ctx.func.signature.params.push(AbiParam::new(clif_ty));
     }
-    // cl_ctx.func.signature.params.push(AbiParam::new(int));
-    let cl_result_ty = modules.into_cl_type(llvm_func.result_ty);
-    cl_ctx
+    let clif_result_ty = lower_ctx.into_clif_ty(llvm_func.result_ty);
+    clif_ctx
         .func
         .signature
         .returns
-        .push(AbiParam::new(cl_result_ty));
+        .push(AbiParam::new(clif_result_ty));
 
-    instruction::compile_function_body(&mut modules, &mut builder_ctx, &mut cl_ctx, llvm_func);
+    instruction::compile_function_body(&mut lower_ctx, &mut builder_ctx, &mut clif_ctx, llvm_func);
 
-    dbg!(&cl_ctx.func);
+    dbg!(&clif_ctx.func);
 
-    let id = cl_mod
-        .declare_function("func", Linkage::Export, &cl_ctx.func.signature)
+    let id = clif_mod
+        .declare_function("func", Linkage::Export, &clif_ctx.func.signature)
         .unwrap();
-    cl_mod
+    clif_mod
         .define_function(
             id,
-            &mut cl_ctx,
+            &mut clif_ctx,
             &mut NullTrapSink {},
             &mut NullStackMapSink {},
         )
         .unwrap();
-    cl_mod.clear_context(&mut cl_ctx);
-    cl_mod.finalize_definitions();
-    let code = cl_mod.get_finalized_function(id);
+    clif_mod.clear_context(&mut clif_ctx);
+    clif_mod.finalize_definitions();
+    let code = clif_mod.get_finalized_function(id);
     code
 }
 
-impl<'a, M: Module> Modules<'a, M> {
-    pub fn new(llvm_mod: &'a LlvmModule, cl_mod: &'a mut M) -> Self {
-        Self { llvm_mod, cl_mod }
+impl<'a, M: Module> LowerCtx<'a, M> {
+    pub fn new(llvm_mod: &'a LlvmModule, clif_mod: &'a mut M) -> Self {
+        Self { llvm_mod, clif_mod }
     }
 
-    pub fn into_cl_type(&self, ty: LlvmTypeId) -> Type {
+    pub fn into_clif_ty(&self, ty: LlvmTypeId) -> Type {
         match *self.llvm_mod.types.get(ty) {
             LlvmType::Int(32) => types::I32,
             LlvmType::Int(64) => types::I64,
-            LlvmType::Pointer(_) => self.cl_mod.target_config().pointer_type(),
+            LlvmType::Pointer(_) => self.clif_mod.target_config().pointer_type(),
             _ => todo!(),
         }
     }
