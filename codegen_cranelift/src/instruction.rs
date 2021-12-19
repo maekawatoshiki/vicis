@@ -1,9 +1,8 @@
 use super::LowerCtx;
 use cranelift::{
-    frontend::{FunctionBuilder, FunctionBuilderContext},
+    frontend::FunctionBuilder,
     prelude::{Block, InstBuilder, Value},
 };
-use cranelift_codegen::Context;
 use cranelift_module::Module;
 use rustc_hash::FxHashMap;
 use vicis_core::ir::{
@@ -17,54 +16,26 @@ use vicis_core::ir::{
     value::{ConstantData, ConstantInt, Value as LlvmValue},
 };
 
-pub fn compile_function_body<M: Module>(
-    lower_ctx: &mut LowerCtx<'_, M>,
-    builder_ctx: &mut FunctionBuilderContext,
-    cl_ctx: &mut Context,
-    llvm_func: &Function,
-) {
-    let mut builder = FunctionBuilder::new(&mut cl_ctx.func, builder_ctx);
-    let mut compiler = InstCompiler {
-        lower_ctx,
-        llvm_func,
-        builder: &mut builder,
-        blocks: FxHashMap::default(),
-        insts: FxHashMap::default(),
-    };
-
-    for (i, block_id) in llvm_func.layout.block_iter().enumerate() {
-        let block = compiler.create_block_for(block_id);
-        if i == 0 {
-            compiler
-                .builder
-                .append_block_params_for_function_params(block);
-        }
-        compiler.builder.switch_to_block(block);
-        compiler.builder.seal_block(block);
-        for inst_id in llvm_func.layout.inst_iter(block_id) {
-            compiler.compile(inst_id);
-        }
-    }
-
-    compiler.builder.finalize();
-}
-
-struct InstCompiler<'a, M: Module> {
-    lower_ctx: &'a LowerCtx<'a, M>,
-    llvm_func: &'a Function,
-    builder: &'a mut FunctionBuilder<'a>,
-    blocks: FxHashMap<BasicBlockId, Block>,
-    insts: FxHashMap<InstructionId, Value>,
+pub struct InstCompiler<'a, M: Module> {
+    pub lower_ctx: &'a LowerCtx<'a, M>,
+    pub llvm_func: &'a Function,
+    pub builder: &'a mut FunctionBuilder<'a>,
+    pub blocks: FxHashMap<BasicBlockId, Block>,
+    pub insts: FxHashMap<InstructionId, Value>,
 }
 
 impl<'a, M: Module> InstCompiler<'a, M> {
-    fn compile(&mut self, inst_id: InstructionId) {
+    pub fn compile(&mut self, inst_id: InstructionId) {
         let inst = self.llvm_func.data.inst_ref(inst_id);
 
         match inst.operand {
-            Operand::IntBinary(IntBinary { ty, args, .. }) => {
-                let lhs = self.value(args[0], ty);
-                let rhs = self.value(args[1], ty);
+            Operand::IntBinary(IntBinary {
+                ty,
+                args: [lhs, rhs],
+                ..
+            }) => {
+                let lhs = self.value(lhs, ty);
+                let rhs = self.value(rhs, ty);
                 let val = self.builder.ins().iadd(lhs, rhs);
                 self.insts.insert(inst_id, val);
             }
@@ -74,6 +45,12 @@ impl<'a, M: Module> InstCompiler<'a, M> {
             }
             _ => {}
         };
+    }
+
+    pub fn create_block_for(&mut self, block_id: BasicBlockId) -> Block {
+        let block = self.builder.create_block();
+        self.blocks.insert(block_id, block);
+        block
     }
 
     fn value(&mut self, val_id: ValueId, ty: TypeId) -> Value {
@@ -90,11 +67,5 @@ impl<'a, M: Module> InstCompiler<'a, M> {
             LlvmValue::Instruction(inst_id) => self.insts[inst_id],
             _ => todo!(),
         }
-    }
-
-    fn create_block_for(&mut self, block_id: BasicBlockId) -> Block {
-        let block = self.builder.create_block();
-        self.blocks.insert(block_id, block);
-        block
     }
 }
