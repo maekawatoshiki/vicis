@@ -12,8 +12,11 @@ pub struct Slots<T: TargetIsa> {
 #[derive(Debug, Clone)]
 pub struct Slot {
     pub(crate) size: u32,
+    #[allow(dead_code)]
     pub(crate) ty: TypeId,
+    #[allow(dead_code)]
     pub(crate) num_elements: u32,
+    #[allow(dead_code)]
     pub(crate) align: u32,
 }
 
