@@ -107,6 +107,18 @@ mod test {
         insta::assert_display_snapshot!(f.display());
     }
 
+    #[test]
+    fn compile_func3() {
+        let f = compile_main(
+            r#"
+        define dso_local i32 @main(i32 %0) local_unnamed_addr #0 {
+          %2 = add nsw i32 %0, 1
+          ret i32 %2
+        }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
     fn compile_main(source: &str) -> cranelift_codegen::ir::Function {
         use cranelift::prelude::Configurable;
         use cranelift_codegen::isa::CallConv;
