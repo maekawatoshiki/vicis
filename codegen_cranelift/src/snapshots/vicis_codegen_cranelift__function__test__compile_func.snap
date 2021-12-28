@@ -1,0 +1,12 @@
+---
+source: codegen_cranelift/src/function.rs
+assertion_line: 126
+expression: clif_ctx.func.display(None)
+
+---
+function u0:0() -> i32 fast {
+block0:
+    v0 = iconst.i32 42
+    return v0
+}
+

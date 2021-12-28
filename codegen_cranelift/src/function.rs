@@ -12,14 +12,15 @@ use vicis_core::ir::{
     module::Module as LlvmModule,
 };
 
+/// Compiles a llvm function to a cranelift function.
 pub fn compile_function<M: Module>(
     clif_mod: &mut M,
+    clif_ctx: &mut Context,
     llvm_mod: &LlvmModule,
     llvm_func_id: FunctionId,
-) -> FuncId {
+) {
     let llvm_func = &llvm_mod.functions()[llvm_func_id];
     let mut builder_ctx = FunctionBuilderContext::new();
-    let mut clif_ctx = clif_mod.make_context();
     let mut lower_ctx = LowerCtx::new(llvm_mod, clif_mod);
 
     for param in &llvm_func.params {
@@ -33,22 +34,18 @@ pub fn compile_function<M: Module>(
         .returns
         .push(AbiParam::new(clif_result_ty));
 
-    compile_body(&mut lower_ctx, &mut builder_ctx, &mut clif_ctx, llvm_func);
+    compile_body(&mut lower_ctx, &mut builder_ctx, clif_ctx, llvm_func);
+}
 
-    dbg!(&clif_ctx.func);
-
+/// An utility function to declare and define a cranelift function.
+pub fn declare_and_define_function<M: Module>(clif_mod: &mut M, clif_ctx: &mut Context) -> FuncId {
     let id = clif_mod
         .declare_function("func", Linkage::Export, &clif_ctx.func.signature)
         .unwrap();
     clif_mod
-        .define_function(
-            id,
-            &mut clif_ctx,
-            &mut NullTrapSink {},
-            &mut NullStackMapSink {},
-        )
+        .define_function(id, clif_ctx, &mut NullTrapSink {}, &mut NullStackMapSink {})
         .unwrap();
-    clif_mod.clear_context(&mut clif_ctx);
+    clif_mod.clear_context(clif_ctx);
     id
 }
 
@@ -84,98 +81,104 @@ fn compile_body<M: Module>(
     compiler.builder.finalize();
 }
 
-#[cfg(target_os = "linux")]
-#[test]
-fn test() {
-    use cranelift::{
-        codegen::binemit::{NullStackMapSink, NullTrapSink},
-        frontend::{FunctionBuilder, FunctionBuilderContext},
-        prelude::{AbiParam, InstBuilder},
-    };
-    use cranelift_jit::{JITBuilder, JITModule};
-    use std::mem::transmute;
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    let builder = JITBuilder::new(cranelift_module::default_libcall_names());
-    let mut builder_ctx = FunctionBuilderContext::new();
-    let mut module = JITModule::new(builder);
-    let mut ctx = module.make_context();
+    #[test]
+    fn compile_func() {
+        use cranelift::prelude::Configurable;
+        use cranelift_codegen::isa::CallConv;
+        use cranelift_codegen::{isa, settings};
+        use cranelift_object::{ObjectBuilder, ObjectModule};
+        use vicis_core::ir::module;
 
-    let int = module.target_config().pointer_type();
-    ctx.func.signature.params.push(AbiParam::new(int));
-    ctx.func.signature.returns.push(AbiParam::new(int));
-
-    {
-        let mut builder = FunctionBuilder::new(&mut ctx.func, &mut builder_ctx);
-        let entry_block = builder.create_block();
-        builder.append_block_params_for_function_params(entry_block);
-        builder.switch_to_block(entry_block);
-        builder.seal_block(entry_block);
-        let forty_two = builder.ins().iconst(int, 42);
-        builder.ins().return_(&[forty_two]);
-        builder.finalize();
-    }
-
-    println!("{}", ctx.func);
-
-    let id = module
-        .declare_function("func", Linkage::Export, &ctx.func.signature)
-        .unwrap();
-    module
-        .define_function(id, &mut ctx, &mut NullTrapSink {}, &mut NullStackMapSink {})
-        .unwrap();
-    module.clear_context(&mut ctx);
-    module.finalize_definitions();
-    let code = module.get_finalized_function(id);
-    let code_fn = unsafe { transmute::<_, fn() -> i32>(code) };
-
-    assert_eq!(code_fn(), 42);
-}
-
-#[cfg(target_os = "linux")]
-#[test]
-fn compile_ret_42() {
-    use cranelift_jit::{JITBuilder, JITModule};
-    use std::mem::transmute;
-    use vicis_core::ir::module;
-
-    let source = r#"
+        let source = r#"
 define dso_local i32 @main() {
   ret i32 42
 }"#;
 
-    let builder = JITBuilder::new(cranelift_module::default_libcall_names());
-    let mut clif_mod = JITModule::new(builder);
+        let mut flag_builder = settings::builder();
+        flag_builder.enable("is_pic").unwrap();
+        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+        let isa_builder = isa::lookup_by_name("x86_64-unknown-unknown-elf").unwrap();
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let isa_builder = isa::lookup_by_name("aarch64-apple-darwin").unwrap();
+        let isa = isa_builder.finish(settings::Flags::new(flag_builder));
 
-    let module = module::parse_assembly(source).unwrap();
-    let func_id = module.find_function_by_name("main").unwrap();
-    let id = compile_function(&mut clif_mod, &module, func_id);
-    clif_mod.finalize_definitions();
-    let code = clif_mod.get_finalized_function(id);
-    let code_fn = unsafe { transmute::<_, fn() -> i32>(code) };
-    assert_eq!(code_fn(), 42);
-}
+        let builder = ObjectBuilder::new(
+            isa,
+            "".to_owned(), // TODO: This will be embedded in the object file.
+            cranelift_module::default_libcall_names(),
+        )
+        .unwrap();
+        let mut clif_mod = ObjectModule::new(builder);
+        let mut clif_ctx = clif_mod.make_context();
 
-#[cfg(target_os = "linux")]
-#[test]
-fn compile_add() {
-    use cranelift_jit::{JITBuilder, JITModule};
-    use std::mem::transmute;
-    use vicis_core::ir::module;
+        let module = module::parse_assembly(source).unwrap();
+        let llvm_func_id = module.find_function_by_name("main").unwrap();
+        compile_function(&mut clif_mod, &mut clif_ctx, &module, llvm_func_id);
 
-    let source = r#"
+        // TODO: FIXME: Depending on OS and ISA, the calling convention may vary.
+        // This makes it difficult to do testing using insta because the text representation
+        // of a cranelift function contains the name of calling convention.
+        // So we have to reset the calling convention here.
+        clif_ctx.func.signature.call_conv = CallConv::Fast;
+        insta::assert_display_snapshot!(clif_ctx.func.display(None));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn compile_ret_42() {
+        use cranelift_jit::{JITBuilder, JITModule};
+        use std::mem::transmute;
+        use vicis_core::ir::module;
+
+        let source = r#"
+define dso_local i32 @main() {
+  ret i32 42
+}"#;
+
+        let builder = JITBuilder::new(cranelift_module::default_libcall_names());
+        let mut clif_mod = JITModule::new(builder);
+        let mut clif_ctx = clif_mod.make_context();
+
+        let module = module::parse_assembly(source).unwrap();
+        let func_id = module.find_function_by_name("main").unwrap();
+        compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
+        let func_id = declare_and_define_function(&mut clif_mod, &mut clif_ctx);
+        clif_mod.finalize_definitions();
+
+        let code = clif_mod.get_finalized_function(func_id);
+        let code_fn = unsafe { transmute::<_, fn() -> i32>(code) };
+        assert_eq!(code_fn(), 42);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn compile_add() {
+        use cranelift_jit::{JITBuilder, JITModule};
+        use std::mem::transmute;
+        use vicis_core::ir::module;
+
+        let source = r#"
 define dso_local i32 @main(i32 %arg.0) {
   %result = add nsw i32 %arg.0, 1
   ret i32 %result
 }"#;
 
-    let builder = JITBuilder::new(cranelift_module::default_libcall_names());
-    let mut clif_mod = JITModule::new(builder);
+        let builder = JITBuilder::new(cranelift_module::default_libcall_names());
+        let mut clif_mod = JITModule::new(builder);
+        let mut clif_ctx = clif_mod.make_context();
 
-    let module = module::parse_assembly(source).unwrap();
-    let func_id = module.find_function_by_name("main").unwrap();
-    let id = compile_function(&mut clif_mod, &module, func_id);
-    clif_mod.finalize_definitions();
-    let code = clif_mod.get_finalized_function(id);
-    let code_fn = unsafe { transmute::<_, fn(i32) -> i32>(code) };
-    assert_eq!(code_fn(41), 42);
+        let module = module::parse_assembly(source).unwrap();
+        let func_id = module.find_function_by_name("main").unwrap();
+        compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
+        let id = declare_and_define_function(&mut clif_mod, &mut clif_ctx);
+        clif_mod.finalize_definitions();
+
+        let code = clif_mod.get_finalized_function(id);
+        let code_fn = unsafe { transmute::<_, fn(i32) -> i32>(code) };
+        assert_eq!(code_fn(41), 42);
+    }
 }

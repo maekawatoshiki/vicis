@@ -1,6 +1,5 @@
 extern crate cranelift;
 extern crate cranelift_codegen;
-extern crate cranelift_jit;
 extern crate cranelift_module;
 extern crate vicis_core;
 
