@@ -124,7 +124,7 @@ define dso_local i32 @main() {
         // of a cranelift function contains the name of calling convention.
         // So we have to reset the calling convention here.
         clif_ctx.func.signature.call_conv = CallConv::Fast;
-        insta::assert_display_snapshot!(clif_ctx.func.display(None));
+        insta::assert_display_snapshot!(clif_ctx.func.display());
     }
 
     #[cfg(target_os = "linux")]
