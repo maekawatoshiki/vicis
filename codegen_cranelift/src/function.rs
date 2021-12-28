@@ -87,16 +87,32 @@ mod test {
 
     #[test]
     fn compile_func() {
+        let f = compile_main(
+            r#"
+        define dso_local i32 @main() {
+          ret i32 42
+        }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
+    #[test]
+    fn compile_func2() {
+        let f = compile_main(
+            r#"
+        define dso_local i32 @main(i32 returned %0) local_unnamed_addr #0 {
+          ret i32 %0
+        }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
+    fn compile_main(source: &str) -> cranelift_codegen::ir::Function {
         use cranelift::prelude::Configurable;
         use cranelift_codegen::isa::CallConv;
         use cranelift_codegen::{isa, settings};
         use cranelift_object::{ObjectBuilder, ObjectModule};
         use vicis_core::ir::module;
-
-        let source = r#"
-define dso_local i32 @main() {
-  ret i32 42
-}"#;
 
         let mut flag_builder = settings::builder();
         flag_builder.enable("is_pic").unwrap();
@@ -124,7 +140,7 @@ define dso_local i32 @main() {
         // of a cranelift function contains the name of calling convention.
         // So we have to reset the calling convention here.
         clif_ctx.func.signature.call_conv = CallConv::Fast;
-        insta::assert_display_snapshot!(clif_ctx.func.display());
+        clif_ctx.func
     }
 
     #[cfg(target_os = "linux")]
