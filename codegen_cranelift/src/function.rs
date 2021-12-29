@@ -120,7 +120,6 @@ mod test {
         insta::assert_display_snapshot!(f.display());
     }
 
-    // TODO: Enable this test once we can handle 'load' and 'store'.
     #[test]
     fn compile_func4() {
         let f = compile_main(
