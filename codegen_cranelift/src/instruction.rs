@@ -1,17 +1,18 @@
 use super::LowerCtx;
 use cranelift::{
     frontend::FunctionBuilder,
-    prelude::{Block, InstBuilder, Value},
+    prelude::{Block, InstBuilder, StackSlotData, StackSlotKind, Value},
 };
+use cranelift_codegen::ir::StackSlot;
 use cranelift_module::Module;
 use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{InstructionId, IntBinary, Operand, Ret},
+        instruction::{Alloca, InstructionId, IntBinary, Operand, Ret},
         Function,
     },
-    types::TypeId,
+    types::{Type as LlvmTy, TypeId},
     value::ValueId,
     value::{ConstantData, ConstantInt, Value as LlvmValue},
 };
@@ -22,6 +23,7 @@ pub struct InstCompiler<'a, M: Module> {
     pub builder: &'a mut FunctionBuilder<'a>,
     pub blocks: FxHashMap<BasicBlockId, Block>,
     pub insts: FxHashMap<InstructionId, Value>,
+    pub stack_slots: FxHashMap<InstructionId, StackSlot>,
 }
 
 impl<'a, M: Module> InstCompiler<'a, M> {
@@ -29,6 +31,15 @@ impl<'a, M: Module> InstCompiler<'a, M> {
         let inst = self.llvm_func.data.inst_ref(inst_id);
 
         match inst.operand {
+            Operand::Alloca(Alloca { tys: [ty, _], .. }) => {
+                assert!(*self.llvm_func.types.get(ty) == LlvmTy::Int(32));
+                let slot = self.builder.create_stack_slot(StackSlotData::new(
+                    StackSlotKind::ExplicitSlot,
+                    4, /*i32*/
+                ));
+                self.stack_slots.insert(inst_id, slot);
+            }
+            // TODO: Load, Store
             Operand::IntBinary(IntBinary {
                 ty,
                 args: [lhs, rhs],

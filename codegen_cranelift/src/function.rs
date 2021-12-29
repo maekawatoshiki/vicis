@@ -62,6 +62,7 @@ fn compile_body<M: Module>(
         builder: &mut builder,
         blocks: FxHashMap::default(),
         insts: FxHashMap::default(),
+        stack_slots: FxHashMap::default(),
     };
 
     for (i, block_id) in llvm_func.layout.block_iter().enumerate() {
@@ -118,6 +119,21 @@ mod test {
         );
         insta::assert_display_snapshot!(f.display());
     }
+
+    // TODO: Enable this test once we can handle 'load' and 'store'.
+    // #[test]
+    // fn compile_func4() {
+    //     let f = compile_main(
+    //         r#"
+    //     define dso_local i32 @main() #0 {
+    //       %1 = alloca i32, align 4
+    //       ; store i32 123, i32* %1, align 4
+    //       %2 = load i32, i32* %1, align 4
+    //       ret i32 %2
+    //     }"#,
+    //     );
+    //     insta::assert_display_snapshot!(f.display());
+    // }
 
     fn compile_main(source: &str) -> cranelift_codegen::ir::Function {
         use cranelift::prelude::Configurable;
