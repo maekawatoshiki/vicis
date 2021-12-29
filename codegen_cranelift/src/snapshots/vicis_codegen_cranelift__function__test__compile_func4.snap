@@ -8,7 +8,9 @@ function u0:0() -> i32 fast {
     ss0 = explicit_slot 4
 
 block0:
-    v0 = stack_load.i32 ss0
-    return v0
+    v0 = iconst.i32 123
+    stack_store v0, ss0
+    v1 = stack_load.i32 ss0
+    return v1
 }
 

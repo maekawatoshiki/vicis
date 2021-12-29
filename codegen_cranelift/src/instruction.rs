@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Alloca, InstructionId, IntBinary, Load, Operand, Ret},
+        instruction::{Alloca, InstructionId, IntBinary, Load, Operand, Ret, Store},
         Function,
     },
     types::{Type as LlvmTy, TypeId},
@@ -51,6 +51,19 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                     self.insts.insert(inst_id, dst);
                 }
             },
+            Operand::Store(Store {
+                args: [src, dst],
+                tys: [ty, _],
+                ..
+            }) => {
+                let src = self.value(src, ty).as_value().expect("must be value");
+                match self.value(dst, ty) {
+                    ValueKind::Value(_val) => todo!(),
+                    ValueKind::StackSlot(slot) => {
+                        self.builder.ins().stack_store(src, slot, 0);
+                    }
+                }
+            }
             Operand::IntBinary(IntBinary {
                 ty,
                 args: [lhs, rhs],
