@@ -1,8 +1,8 @@
 [package]
 name = "vicis_core"
-version = "0.1.0"
-authors = ["uint256_t <uint2p8_t@protonmail.com>"]
-edition = "2018"
+version = "0.2.0"
+authors = ["uint256_t"]
+edition = "2021"
 license-file = "LICENSE"
 description = "Manipulate LLVM-IR in Pure Rust"
 homepage = "https://github.com/maekawatoshiki/vicis"
