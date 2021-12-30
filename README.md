@@ -19,6 +19,12 @@ Manipulate LLVM-IR in Pure Rust
 
 # Example
 
+- Read `*.ll` file
+
+```sh
+cargo run --example parse FILE.ll
+```
+
 - Iterate over instructions
 
 ```rust
