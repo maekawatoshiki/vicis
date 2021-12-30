@@ -60,9 +60,6 @@ pub fn parse_init<'a>(
     types: &Types,
     ty: types::TypeId,
 ) -> IResult<&'a str, Option<value::ConstantData>, VerboseError<&'a str>> {
-    if let Ok((source, _)) = preceded(spaces, tag("zeroinitializer"))(source) {
-        return Ok((source, Some(value::ConstantData::AggregateZero)));
-    }
     if let Ok((source, init)) = value::parser::parse_constant(source, types, ty) {
         return Ok((source, Some(init)));
     }
