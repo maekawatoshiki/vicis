@@ -120,7 +120,7 @@ impl ConstantData {
     pub fn to_string(&self, types: &Types) -> String {
         match self {
             Self::Undef => "undef".to_string(),
-            Self::AggregateZero => "AggregateZero".to_string(),
+            Self::AggregateZero => "zeroinitializer".to_string(),
             Self::Null => "null".to_string(),
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
