@@ -551,6 +551,19 @@ pub fn parse_ret<'a, 'b>(
     ))
 }
 
+pub fn parse_unreachable<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, preceded(tag("unreachable"), spaces))(source)?;
+    Ok((
+        source,
+        Opcode::Unreachable
+            .with_block(ctx.cur_block)
+            .with_operand(Operand::Unreachable),
+    ))
+}
+
 fn parse_metadata<'a>(
     name: &'static str,
 ) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, VerboseError<&'a str>> {
@@ -610,6 +623,7 @@ pub fn parse<'a, 'b>(
         parse_resume,
         parse_br,
         parse_ret,
+        parse_unreachable,
     ]
     .iter()
     {

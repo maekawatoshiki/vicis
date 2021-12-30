@@ -53,6 +53,7 @@ pub enum Opcode {
     Br,
     CondBr,
     Ret,
+    Unreachable,
     Invalid,
 }
 
@@ -205,6 +206,7 @@ pub enum Operand {
     Br(Br),
     CondBr(CondBr),
     Ret(Ret),
+    Unreachable,
     Invalid,
 }
 
@@ -368,6 +370,7 @@ impl Operand {
             Self::Resume(Resume { arg, .. }) => slice::from_ref(arg),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { arg, .. }) => slice::from_ref(arg),
+            Self::Unreachable => &[],
             Self::Invalid => &[],
         }
     }
@@ -391,6 +394,7 @@ impl Operand {
             Self::Resume(Resume { arg, .. }) => slice::from_mut(arg),
             Self::Br(Br { .. }) => &mut [],
             Self::CondBr(CondBr { arg, .. }) => slice::from_mut(arg),
+            Self::Unreachable => &mut [],
             Self::Invalid => &mut [],
         }
     }
@@ -413,6 +417,7 @@ impl Operand {
             Self::Resume(Resume { ty, .. }) => slice::from_ref(ty),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { .. }) => &[],
+            Self::Unreachable => &[],
             Self::Invalid => &[],
         }
     }
@@ -506,6 +511,7 @@ impl fmt::Debug for Opcode {
                 Opcode::Resume => "resume",
                 Opcode::Br | Opcode::CondBr => "br",
                 Opcode::Ret => "ret",
+                Opcode::Unreachable => "unreachable",
                 Opcode::Invalid => "INVALID",
             }
         )

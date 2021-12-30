@@ -485,6 +485,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.value_to_string(data.value_ref(*val), types),
                 )
             }
+            Operand::Unreachable => {
+                write!(self.fmt, "unreachable")
+            }
             Operand::Invalid => panic!(),
         }?;
 
