@@ -3,7 +3,7 @@ use vicis_core::ir::{function, module};
 #[test]
 fn build() {
     let mut module = module::Module::default();
-    let int = module.types.base().i32();
+    let int = module.types.i32();
     let func = module.create_function("func", int, vec![], false);
     let func = &mut module.functions_mut()[func];
     let mut builder = function::builder::Builder::new(func);

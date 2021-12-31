@@ -106,6 +106,36 @@ impl Types {
     pub fn to_string(&self, ty: TypeId) -> String {
         self.base().to_string(ty)
     }
+
+    // TODO: We should add a trait to implement methods below.
+
+    pub fn void(&self) -> TypeId {
+        self.base().void()
+    }
+
+    pub fn i1(&self) -> TypeId {
+        self.base().i1()
+    }
+
+    pub fn i8(&self) -> TypeId {
+        self.base().i8()
+    }
+
+    pub fn i16(&self) -> TypeId {
+        self.base().i16()
+    }
+
+    pub fn i32(&self) -> TypeId {
+        self.base().i32()
+    }
+
+    pub fn i64(&self) -> TypeId {
+        self.base().i64()
+    }
+
+    pub fn metadata(&self) -> TypeId {
+        self.base().metadata()
+    }
 }
 
 impl Default for TypesBase {
@@ -418,12 +448,12 @@ impl fmt::Debug for Types {
 fn types_identity() {
     let types = Types::new();
     let i32_ptr_ty = {
-        let i32_ty = types.base().i32();
+        let i32_ty = types.i32();
         types.base_mut().pointer(i32_ty)
     };
 
     {
-        let i32_ty = types.base().i32();
+        let i32_ty = types.i32();
         let ty = types.get(i32_ptr_ty);
         assert_eq!(
             &*ty,
@@ -434,7 +464,7 @@ fn types_identity() {
         )
     }
 
-    let i32_ty = types.base().i32();
+    let i32_ty = types.i32();
     let i32_ptr_ty2 = types.base_mut().pointer(i32_ty);
 
     assert_eq!(i32_ptr_ty, i32_ptr_ty2);

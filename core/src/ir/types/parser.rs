@@ -26,12 +26,12 @@ pub fn parse<'a>(
         preceded(
             spaces,
             alt((
-                map(tag("void"), |_| types.base().void()),
-                map(tag("i1"), |_| types.base().i1()),
-                map(tag("i8"), |_| types.base().i8()),
-                map(tag("i32"), |_| types.base().i32()),
-                map(tag("i64"), |_| types.base().i64()),
-                map(tag("metadata"), |_| types.base().metadata()),
+                map(tag("void"), |_| types.void()),
+                map(tag("i1"), |_| types.i1()),
+                map(tag("i8"), |_| types.i8()),
+                map(tag("i32"), |_| types.i32()),
+                map(tag("i64"), |_| types.i64()),
+                map(tag("metadata"), |_| types.metadata()),
             )),
         )(source)?
     };
