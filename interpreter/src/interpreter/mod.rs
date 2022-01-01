@@ -366,23 +366,23 @@ trait TypeSize {
 impl TypeSize for Types {
     // Returns the size of the type in byte
     fn size_of(&self, ty: Type) -> usize {
-        match ty {
-            types::VOID => return 0,
-            types::I1 => return 1,
-            types::I8 => return 1,
-            types::I16 => return 2,
-            types::I32 => return 4,
-            _ => {}
-        }
-
-        let ty = self.get(ty);
-        match &*ty {
-            CompoundType::Array(ArrayType {
-                inner,
-                num_elements,
-            }) => self.size_of(*inner) * *num_elements as usize,
-            CompoundType::Pointer(_) => 8,
-            _ => todo!(),
+        match self.get(ty) {
+            Some(ty) => match &*ty {
+                CompoundType::Array(ArrayType {
+                    inner,
+                    num_elements,
+                }) => self.size_of(*inner) * *num_elements as usize,
+                CompoundType::Pointer(_) => 8,
+                _ => todo!(),
+            },
+            None => match ty {
+                types::VOID => return 0,
+                types::I1 => return 1,
+                types::I8 => return 1,
+                types::I16 => return 2,
+                types::I32 => return 4,
+                _ => todo!(),
+            },
         }
     }
 }

@@ -1,7 +1,6 @@
 pub mod parser;
 
 use crate::ir::module::name::Name;
-// use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -95,12 +94,20 @@ impl Types {
         self.base().to_string(ty)
     }
 
-    pub fn get(&self, ty: Type) -> Ref<CompoundType> {
-        Ref::map(self.0.borrow(), |base| base.get(ty))
+    pub fn get(&self, ty: Type) -> Option<Ref<CompoundType>> {
+        if ty.is_primitive() {
+            return None;
+        }
+        Some(Ref::map(self.0.borrow(), |base| base.get(ty).unwrap()))
     }
 
-    pub fn get_mut(&self, ty: Type) -> RefMut<CompoundType> {
-        RefMut::map(self.0.borrow_mut(), |base| base.get_mut(ty))
+    pub fn get_mut(&self, ty: Type) -> Option<RefMut<CompoundType>> {
+        if ty.is_primitive() {
+            return None;
+        }
+        Some(RefMut::map(self.0.borrow_mut(), |base| {
+            base.get_mut(ty).unwrap()
+        }))
     }
 
     pub fn get_element(&self, ty: Type) -> Option<Type> {
@@ -122,8 +129,6 @@ impl Types {
     pub fn is_struct(&self, ty: Type) -> bool {
         self.base().is_struct(ty)
     }
-
-    // Useful methods
 
     pub fn metadata(&self) -> Type {
         self.base().caches.metadata
@@ -148,21 +153,22 @@ impl TypesBase {
         }
     }
 
-    pub fn get(&self, ty: Type) -> &CompoundType {
-        assert!(ty.0 == self.arena_id);
-        &self.compound_types[ty.1 as usize]
+    pub fn get(&self, ty: Type) -> Option<&CompoundType> {
+        if ty.is_primitive() {
+            return None;
+        }
+        Some(&self.compound_types[ty.1 as usize])
     }
 
-    pub fn get_mut(&mut self, ty: Type) -> &mut CompoundType {
-        assert!(ty.0 == self.arena_id);
-        &mut self.compound_types[ty.1 as usize]
+    pub fn get_mut(&mut self, ty: Type) -> Option<&mut CompoundType> {
+        if ty.is_primitive() {
+            return None;
+        }
+        Some(&mut self.compound_types[ty.1 as usize])
     }
 
     pub fn is_pointer(&self, ty: Type) -> bool {
-        if ty.is_primitive() {
-            return false;
-        }
-        matches!(self.get(ty), CompoundType::Pointer(_))
+        matches!(self.get(ty), Some(CompoundType::Pointer(_)))
     }
 
     pub fn new_type(&mut self, ty: CompoundType) -> Type {
@@ -244,14 +250,13 @@ impl TypesBase {
     pub fn change_to_named_type(&mut self, ty: Type, name: Name) {
         let named_ty = self.empty_named_type(name.clone());
 
-        if ty.is_primitive() {
-            self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
-            return;
-        }
-
         match self.get_mut(ty) {
+            // primitive types
+            None if ty.is_primitive() => {
+                self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
+            }
             // If `ty` is a struct type, name it.
-            CompoundType::Struct(ref mut strukt) => {
+            Some(CompoundType::Struct(ref mut strukt)) => {
                 let mut strukt = mem::replace(strukt, StructType::default());
                 strukt.name = Some(name.clone());
                 if let Name::Name(name) = name {
@@ -264,10 +269,7 @@ impl TypesBase {
     }
 
     pub fn element(&self, ty: Type) -> Option<Type> {
-        if ty.is_primitive() {
-            return None;
-        }
-        match self.get(ty) {
+        match self.get(ty)? {
             CompoundType::Pointer(PointerType { inner, .. }) => Some(*inner),
             CompoundType::Array(ArrayType { inner, .. }) => Some(*inner),
             CompoundType::Struct(_) => None,
@@ -278,10 +280,7 @@ impl TypesBase {
     }
 
     pub fn element_at(&self, ty: Type, i: usize) -> Option<Type> {
-        if ty.is_primitive() {
-            return None;
-        }
-        match self.get(ty) {
+        match self.get(ty)? {
             CompoundType::Pointer(PointerType { inner, .. }) if i == 0 => Some(*inner),
             CompoundType::Pointer(_) => None,
             CompoundType::Array(ArrayType { inner, .. }) => Some(*inner),
@@ -297,7 +296,7 @@ impl TypesBase {
             return ty.to_string();
         }
 
-        let ty = &self.get(ty);
+        let ty = &self.get(ty).expect("must be compound type");
         match ty {
             CompoundType::Pointer(PointerType { inner, addr_space }) if *addr_space == 0 => {
                 format!("{}*", self.to_string(*inner))
@@ -453,18 +452,14 @@ impl From<Type> for PointerType {
 
 impl fmt::Debug for Types {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (name, &id) in &self.base().caches.named_types {
+        for (name, &ty) in &self.base().caches.named_types {
             writeln!(
                 f,
                 "%{} = type {}",
                 name,
-                if id.is_primitive() {
-                    id.to_string()
-                } else {
-                    match self.base().get(id) {
-                        CompoundType::Struct(ty) => self.base().struct_definition_to_string(ty),
-                        _ => self.to_string(id),
-                    }
+                match self.base().get(ty) {
+                    Some(CompoundType::Struct(ty)) => self.base().struct_definition_to_string(ty),
+                    _ => self.to_string(ty),
                 }
             )?
         }
@@ -484,7 +479,7 @@ fn types_identity() {
         let i32_ty = I32;
         let ty = types.get(i32_ptr_ty);
         assert_eq!(
-            &*ty,
+            &*ty.unwrap(),
             &CompoundType::Pointer(PointerType {
                 inner: i32_ty,
                 addr_space: 0

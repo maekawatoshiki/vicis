@@ -33,8 +33,19 @@ impl TargetIsa for X86_64 {
     }
 
     fn type_size(types: &Types, ty: Type) -> u32 {
-        if ty.is_primitive() {
-            return match ty {
+        match types.get(ty) {
+            Some(ty) => match &*ty {
+                CompoundType::Pointer(_) => 8,
+                CompoundType::Array(ArrayType {
+                    inner,
+                    num_elements,
+                }) => Self::type_size(types, *inner) * num_elements,
+                CompoundType::Function(_) => 0,
+                CompoundType::Struct(_) => todo!(),
+                CompoundType::Metadata => todo!(),
+                CompoundType::Alias(_) => todo!(),
+            },
+            None => match ty {
                 types::VOID => 0,
                 types::I1 => 1,
                 types::I8 => 1,
@@ -42,19 +53,7 @@ impl TargetIsa for X86_64 {
                 types::I32 => 4,
                 types::I64 => 8,
                 _ => unreachable!(),
-            };
-        }
-
-        match &*types.get(ty) {
-            CompoundType::Pointer(_) => 8,
-            CompoundType::Array(ArrayType {
-                inner,
-                num_elements,
-            }) => Self::type_size(types, *inner) * num_elements,
-            CompoundType::Function(_) => 0,
-            CompoundType::Struct(_) => todo!(),
-            CompoundType::Metadata => todo!(),
-            CompoundType::Alias(_) => todo!(),
+            },
         }
     }
 }
