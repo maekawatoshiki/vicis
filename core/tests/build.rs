@@ -1,9 +1,9 @@
-use vicis_core::ir::{function::builder::Builder, module::Module};
+use vicis_core::ir::{function::builder::Builder, module::Module, types::I32};
 
 #[test]
 fn build() {
     let mut module = Module::default();
-    let int = module.types.i32();
+    let int = I32;
 
     let func_id = module.create_function("func", int, vec![], false);
     let func = &mut module.functions_mut()[func_id];

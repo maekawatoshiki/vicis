@@ -9,7 +9,6 @@ use crate::codegen::{
     register::{Reg, VReg, VRegUsers},
 };
 use std::fmt;
-use vicis_core::ir::types::Type;
 
 pub struct InstructionInfo;
 
@@ -83,7 +82,7 @@ impl II for InstructionInfo {
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
         let ty = f.data.vregs.type_for(vreg);
-        assert_eq!(&*f.types.get(ty), &Type::Int(32));
+        assert!(ty.is_i32());
         Instruction::new(
             InstructionData {
                 opcode: Opcode::MOVmr32,
@@ -108,7 +107,7 @@ impl II for InstructionInfo {
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
         let ty = f.data.vregs.type_for(vreg);
-        assert_eq!(&*f.types.get(ty), &Type::Int(32));
+        assert!(ty.is_i32());
         Instruction::new(
             InstructionData {
                 opcode: Opcode::MOVrm32,

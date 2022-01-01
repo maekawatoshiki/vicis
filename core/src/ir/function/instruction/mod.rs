@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap;
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, metadata::Metadata, name::Name},
-    types::TypeId,
+    types::Type,
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 use id_arena::Id;
@@ -73,28 +73,28 @@ pub enum ICmpCond {
 
 #[derive(Debug, Clone)]
 pub struct Alloca {
-    pub tys: [TypeId; 2],
+    pub tys: [Type; 2],
     pub num_elements: ConstantData,
     pub align: u32,
 }
 
 #[derive(Debug, Clone)]
 pub struct Phi {
-    pub ty: TypeId,
+    pub ty: Type,
     pub args: Vec<ValueId>,
     pub blocks: Vec<BasicBlockId>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Load {
-    pub tys: [TypeId; 2],
+    pub tys: [Type; 2],
     pub addr: ValueId,
     pub align: u32,
 }
 
 #[derive(Debug, Clone)]
 pub struct IntBinary {
-    pub ty: TypeId,
+    pub ty: Type,
     pub nsw: bool,
     pub nuw: bool,
     pub exact: bool,
@@ -103,47 +103,47 @@ pub struct IntBinary {
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    pub tys: [TypeId; 2],
+    pub tys: [Type; 2],
     pub args: [ValueId; 2],
     pub align: u32,
 }
 
 #[derive(Debug, Clone)]
 pub struct InsertValue {
-    pub tys: [TypeId; 2],
+    pub tys: [Type; 2],
     pub args: Vec<ValueId>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ExtractValue {
-    pub ty: TypeId,
+    pub ty: Type,
     pub args: Vec<ValueId>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ICmp {
-    pub ty: TypeId,
+    pub ty: Type,
     pub args: [ValueId; 2],
     pub cond: ICmpCond,
 }
 
 #[derive(Debug, Clone)]
 pub struct Cast {
-    pub tys: [TypeId; 2], // from, to
+    pub tys: [Type; 2], // from, to
     pub arg: ValueId,
 }
 
 #[derive(Debug, Clone)]
 pub struct GetElementPtr {
     pub inbounds: bool,
-    pub tys: Vec<TypeId>,
+    pub tys: Vec<Type>,
     pub args: Vec<ValueId>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Call {
     pub args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
-    pub tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+    pub tys: Vec<Type>,     // tys[0] = callee's result type, args[1..] = argument types
     pub param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
     pub ret_attrs: Vec<ParameterAttribute>,
     pub func_attrs: Vec<Attribute>,
@@ -152,7 +152,7 @@ pub struct Call {
 #[derive(Debug, Clone)]
 pub struct Invoke {
     pub args: Vec<ValueId>, // args[0] = callee, args[1..] = arguments
-    pub tys: Vec<TypeId>,   // tys[0] = callee's result type, args[1..] = argument types
+    pub tys: Vec<Type>,     // tys[0] = callee's result type, args[1..] = argument types
     pub param_attrs: Vec<Vec<ParameterAttribute>>, // param_attrs[0] = attrs of args[1]
     pub ret_attrs: Vec<ParameterAttribute>,
     pub func_attrs: Vec<Attribute>,
@@ -161,12 +161,12 @@ pub struct Invoke {
 
 #[derive(Debug, Clone)]
 pub struct LandingPad {
-    pub ty: TypeId,
+    pub ty: Type,
 }
 
 #[derive(Debug, Clone)]
 pub struct Resume {
-    pub ty: TypeId,
+    pub ty: Type,
     pub arg: ValueId,
 }
 
@@ -183,7 +183,7 @@ pub struct CondBr {
 
 #[derive(Debug, Clone)]
 pub struct Ret {
-    pub ty: TypeId,
+    pub ty: Type,
     pub val: Option<ValueId>,
 }
 
@@ -399,7 +399,7 @@ impl Operand {
         }
     }
 
-    pub fn types(&self) -> &[TypeId] {
+    pub fn types(&self) -> &[Type] {
         match self {
             Self::Alloca(Alloca { tys, .. }) => tys,
             Self::Phi(Phi { ty, .. }) => slice::from_ref(ty),
@@ -432,7 +432,7 @@ impl Operand {
         }
     }
 
-    pub fn call_result_ty(&self) -> Option<TypeId> {
+    pub fn call_result_ty(&self) -> Option<Type> {
         match self {
             Self::Call(Call { tys, .. }) | Self::Invoke(Invoke { tys, .. }) => Some(tys[0]),
             _ => None,
@@ -448,7 +448,7 @@ impl Operand {
 }
 
 impl Alloca {
-    pub fn ty(&self) -> TypeId {
+    pub fn ty(&self) -> Type {
         self.tys[0]
     }
 }

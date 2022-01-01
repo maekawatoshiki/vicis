@@ -1,69 +1,82 @@
 pub mod parser;
 
 use crate::ir::module::name::Name;
-use id_arena::{Arena, Id};
+// use id_arena::{Arena, Id};
 use rustc_hash::FxHashMap;
 use std::{
     cell::{Ref, RefCell, RefMut},
     fmt, mem,
-    sync::Arc,
+    sync::{atomic, atomic::AtomicU32, Arc},
 };
 
 pub use parser::parse;
 
 pub type AddrSpace = u32;
-pub type Cache<T> = FxHashMap<T, TypeId>;
-pub type TypeId = Id<Type>;
+type Idx = u32;
+type Cache<T> = FxHashMap<T, Type>;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct Type(Idx, Idx); // (arena id, type id)
+
+pub const VOID: Type = Type(0, 0);
+pub const I1: Type = Type(0, 1);
+pub const I8: Type = Type(0, 2);
+pub const I16: Type = Type(0, 3);
+pub const I32: Type = Type(0, 4);
+pub const I64: Type = Type(0, 5);
 
 #[derive(Clone)]
 pub struct Types(Arc<RefCell<TypesBase>>);
 
 pub struct TypesBase {
-    arena: Arena<Type>,
-    named_types: Cache<Name>,
-    void: TypeId,
-    int: Cache<u32>,
-    pointer: Cache<(TypeId, u32)>,
-    array: Cache<(TypeId, u32)>,
-    structs: Cache<String>,
-    metadata: TypeId,
+    arena_id: Idx,
+    id: Idx,
+    compound_types: Vec<CompoundType>,
+    caches: Caches,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Type {
-    Void,
-    Int(u32),
+#[derive(Debug)]
+struct Caches {
+    pointer: Cache<PointerType>,
+    array: Cache<ArrayType>,
+    named_struct: Cache<String>,
+    named_types: Cache<Name>,
+    metadata: Type,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum CompoundType {
     Pointer(PointerType),
     Array(ArrayType),
     Function(FunctionType),
     Struct(StructType),
+    Alias(Type),
     Metadata,
-    // TODO: Add more types
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct PointerType {
-    pub inner: TypeId,
+    pub inner: Type,
     pub addr_space: AddrSpace,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ArrayType {
-    pub inner: TypeId,
+    pub inner: Type,
     pub num_elements: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct FunctionType {
-    pub ret: TypeId,
-    pub params: Vec<TypeId>,
+    pub ret: Type,
+    pub params: Vec<Type>,
     pub is_var_arg: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
 pub struct StructType {
     pub name: Option<Name>,
-    pub elems: Vec<TypeId>,
+    pub elems: Vec<Type>,
     pub is_packed: bool,
 }
 
@@ -78,6 +91,22 @@ impl Types {
         Self::default()
     }
 
+    pub fn to_string(&self, ty: Type) -> String {
+        self.base().to_string(ty)
+    }
+
+    pub fn get(&self, ty: Type) -> Ref<CompoundType> {
+        Ref::map(self.0.borrow(), |base| base.get(ty))
+    }
+
+    pub fn get_mut(&self, ty: Type) -> RefMut<CompoundType> {
+        RefMut::map(self.0.borrow_mut(), |base| base.get_mut(ty))
+    }
+
+    pub fn get_element(&self, ty: Type) -> Option<Type> {
+        self.base().element(ty)
+    }
+
     pub fn base(&self) -> Ref<TypesBase> {
         self.0.borrow()
     }
@@ -86,265 +115,203 @@ impl Types {
         self.0.borrow_mut()
     }
 
-    pub fn get(&self, id: TypeId) -> Ref<Type> {
-        Ref::map(self.0.borrow(), |base| &base.arena[id])
+    pub fn is_pointer(&self, ty: Type) -> bool {
+        self.base().is_pointer(ty)
     }
 
-    pub fn get_mut(&self, id: TypeId) -> RefMut<Type> {
-        RefMut::map(self.0.borrow_mut(), |base| &mut base.arena[id])
+    pub fn is_struct(&self, ty: Type) -> bool {
+        self.base().is_struct(ty)
     }
 
-    // Get element type of pointer or array type
-    pub fn get_element(&self, id: TypeId) -> Option<TypeId> {
-        self.0.borrow().element(id)
-    }
+    // Useful methods
 
-    pub fn is_atomic(&self, id: TypeId) -> bool {
-        self.base().is_atomic(id)
-    }
-
-    pub fn to_string(&self, ty: TypeId) -> String {
-        self.base().to_string(ty)
-    }
-
-    // TODO: We should add a trait to implement methods below.
-
-    pub fn void(&self) -> TypeId {
-        self.base().void()
-    }
-
-    pub fn i1(&self) -> TypeId {
-        self.base().i1()
-    }
-
-    pub fn i8(&self) -> TypeId {
-        self.base().i8()
-    }
-
-    pub fn i16(&self) -> TypeId {
-        self.base().i16()
-    }
-
-    pub fn i32(&self) -> TypeId {
-        self.base().i32()
-    }
-
-    pub fn i64(&self) -> TypeId {
-        self.base().i64()
-    }
-
-    pub fn metadata(&self) -> TypeId {
-        self.base().metadata()
-    }
-}
-
-impl Default for TypesBase {
-    fn default() -> Self {
-        let mut arena = Arena::new();
-        let void = arena.alloc(Type::Void);
-        let int: Cache<u32> = vec![
-            (1, Type::Int(1)),
-            (8, Type::Int(8)),
-            (16, Type::Int(16)),
-            (32, Type::Int(32)),
-            (64, Type::Int(64)),
-        ]
-        .into_iter()
-        .map(|(bits, ty)| (bits, arena.alloc(ty)))
-        .collect();
-        let metadata = arena.alloc(Type::Metadata);
-        Self {
-            arena,
-            named_types: Cache::default(),
-            void,
-            int,
-            pointer: Cache::default(),
-            array: Cache::default(),
-            structs: Cache::default(),
-            metadata,
-        }
+    pub fn metadata(&self) -> Type {
+        self.base().caches.metadata
     }
 }
 
 impl TypesBase {
     pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn named_type(&mut self, name: Name) -> TypeId {
-        if let Some(named) = self.named_types.get(&name) {
-            return *named;
+        static ID: AtomicU32 = AtomicU32::new(1); // 0 is reserved for primitive types
+        let arena_id = ID.fetch_add(1, atomic::Ordering::SeqCst);
+        Self {
+            arena_id,
+            id: 1,
+            compound_types: vec![CompoundType::Metadata],
+            caches: Caches {
+                metadata: Type(arena_id, 0),
+                pointer: Cache::default(),
+                array: Cache::default(),
+                named_struct: Cache::default(),
+                named_types: Cache::default(),
+            },
         }
-        let id = self.arena.alloc(Type::Void);
-        self.named_types.insert(name, id);
-        id
     }
 
-    pub fn void(&self) -> TypeId {
-        self.void
+    pub fn get(&self, ty: Type) -> &CompoundType {
+        assert!(ty.0 == self.arena_id);
+        &self.compound_types[ty.1 as usize]
     }
 
-    pub fn int(&mut self, bits: u32) -> TypeId {
-        if let Some(int) = self.int.get(&bits) {
-            return *int;
+    pub fn get_mut(&mut self, ty: Type) -> &mut CompoundType {
+        assert!(ty.0 == self.arena_id);
+        &mut self.compound_types[ty.1 as usize]
+    }
+
+    pub fn is_pointer(&self, ty: Type) -> bool {
+        if ty.is_primitive() {
+            return false;
         }
-        let id = self.arena.alloc(Type::Int(bits));
-        self.int.insert(bits, id);
-        id
+        matches!(self.get(ty), CompoundType::Pointer(_))
     }
 
-    pub fn i1(&self) -> TypeId {
-        self.int[&1]
+    pub fn new_type(&mut self, ty: CompoundType) -> Type {
+        let id = self.id;
+        self.id += 1;
+        self.compound_types.push(ty);
+        Type(self.arena_id, id)
     }
 
-    pub fn i8(&self) -> TypeId {
-        self.int[&8]
-    }
-
-    pub fn i16(&self) -> TypeId {
-        self.int[&16]
-    }
-
-    pub fn i32(&self) -> TypeId {
-        self.int[&32]
-    }
-
-    pub fn i64(&self) -> TypeId {
-        self.int[&64]
-    }
-
-    pub fn metadata(&self) -> TypeId {
-        self.metadata
-    }
-
-    pub fn pointer(&mut self, inner: TypeId) -> TypeId {
-        if let Some(pointer) = self.pointer.get(&(inner, 0)) {
-            return *pointer;
+    pub fn empty_named_type(&mut self, name: Name) -> Type {
+        if let Some(ty) = self.caches.named_types.get(&name) {
+            return *ty;
         }
-        let id = self.arena.alloc(Type::Pointer(PointerType {
-            inner,
-            addr_space: 0,
-        }));
-        self.pointer.insert((inner, 0), id);
-        id
+        let ty = self.new_type(CompoundType::Alias(VOID));
+        self.caches.named_types.insert(name, ty);
+        ty
     }
 
-    pub fn pointer_in_addr_space(&mut self, inner: TypeId, addr_space: u32) -> TypeId {
-        if let Some(pointer) = self.pointer.get(&(inner, addr_space)) {
-            return *pointer;
+    pub fn pointer(&mut self, t: impl Into<PointerType>) -> Type {
+        let t = t.into();
+        if let Some(ty) = self.caches.pointer.get(&t) {
+            return *ty;
         }
-        let id = self
-            .arena
-            .alloc(Type::Pointer(PointerType { inner, addr_space }));
-        self.pointer.insert((inner, addr_space), id);
-        id
+        let ty = self.new_type(CompoundType::Pointer(t.clone()));
+        self.caches.pointer.insert(t, ty);
+        ty
     }
 
-    pub fn array(&mut self, inner: TypeId, num_elements: u32) -> TypeId {
-        if let Some(array) = self.array.get(&(inner, num_elements)) {
-            return *array;
+    pub fn array(&mut self, t: ArrayType) -> Type {
+        if let Some(ty) = self.caches.array.get(&t) {
+            return *ty;
         }
-        let id = self.arena.alloc(Type::Array(ArrayType {
-            inner,
-            num_elements,
-        }));
-        self.array.insert((inner, num_elements), id);
-        id
+        let ty = self.new_type(CompoundType::Array(t.clone()));
+        self.caches.array.insert(t, ty);
+        ty
     }
 
-    pub fn function(&mut self, ret: TypeId, params: Vec<TypeId>, is_var_arg: bool) -> TypeId {
+    pub fn function(&mut self, t: FunctionType) -> Type {
         // TODO: FIXME: Should cache function type?
-        self.arena.alloc(Type::Function(FunctionType {
-            ret,
-            params,
-            is_var_arg,
-        }))
+        self.new_type(CompoundType::Function(t))
     }
 
-    pub fn empty_struct_named(&mut self, name: String, is_packed: bool) -> TypeId {
-        if let Some(strct) = self.structs.get(&name) {
-            return *strct;
+    pub fn metadata(&mut self) -> Type {
+        self.caches.metadata
+    }
+
+    pub fn empty_struct_named(&mut self, name: String, is_packed: bool) -> Type {
+        if let Some(ty) = self.caches.named_struct.get(&name) {
+            return *ty;
         }
-        let id = self.arena.alloc(Type::Struct(StructType {
+        let ty = self.new_type(CompoundType::Struct(StructType {
             name: Some(Name::Name(name.clone())),
             elems: vec![],
             is_packed,
         }));
-        self.structs.insert(name, id);
-        id
+        self.caches.named_struct.insert(name, ty);
+        ty
     }
 
-    pub fn anonymous_struct(&mut self, elems: Vec<TypeId>, is_packed: bool) -> TypeId {
-        self.arena.alloc(Type::Struct(StructType {
+    pub fn anonymous_struct(&mut self, elems: Vec<Type>, is_packed: bool) -> Type {
+        self.new_type(CompoundType::Struct(StructType {
             name: None,
             elems,
             is_packed,
         }))
     }
 
-    pub fn get_struct(&self, name: &str) -> Option<TypeId> {
-        self.structs.get(name).copied()
+    pub fn get_struct(&self, name: impl AsRef<str>) -> Option<Type> {
+        self.caches.named_struct.get(name.as_ref()).copied()
     }
 
-    pub fn change_to_named_type(&mut self, ty: TypeId, name: Name) {
-        let named_ty = self.named_type(name.clone());
+    pub fn is_struct(&self, ty: Type) -> bool {
+        if ty.0 != self.arena_id {
+            return false;
+        }
+        matches!(self.compound_types[ty.1 as usize], CompoundType::Struct(_))
+    }
 
-        if self.is_struct(ty) {
-            let mut strukt = mem::replace(&mut self.arena[ty], Type::Void);
-            if let Some(name) = name.to_string() {
-                strukt.as_struct_mut().name = Some(Name::Name(name.to_owned()));
-                self.structs.insert(name.to_owned(), named_ty);
-            }
-            self.arena[named_ty] = strukt;
+    pub fn change_to_named_type(&mut self, ty: Type, name: Name) {
+        let named_ty = self.empty_named_type(name.clone());
+
+        if ty.is_primitive() {
+            self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
             return;
         }
 
-        let ty = self.arena[ty].clone();
-        self.arena[named_ty] = ty;
-    }
-
-    pub fn element(&self, ty: TypeId) -> Option<TypeId> {
-        match self.arena[ty] {
-            Type::Void => None,
-            Type::Int(_) => None,
-            Type::Pointer(PointerType { inner, .. }) => Some(inner),
-            Type::Array(ArrayType { inner, .. }) => Some(inner),
-            Type::Function(_) => None,
-            Type::Struct(_) => None,
-            Type::Metadata => None,
+        match self.get_mut(ty) {
+            // If `ty` is a struct type, name it.
+            CompoundType::Struct(ref mut strukt) => {
+                let mut strukt = mem::replace(strukt, StructType::default());
+                strukt.name = Some(name.clone());
+                if let Name::Name(name) = name {
+                    self.caches.named_struct.insert(name, named_ty);
+                }
+                self.compound_types[named_ty.1 as usize] = CompoundType::Struct(strukt);
+            }
+            _ => todo!(),
         }
     }
 
-    pub fn element_at(&self, ty: TypeId, i: usize) -> Option<TypeId> {
-        match self.arena[ty] {
-            Type::Void => None,
-            Type::Int(_) => None,
-            Type::Pointer(_) => None,
-            Type::Array(ArrayType { inner, .. }) => Some(inner),
-            Type::Function(_) => None,
-            Type::Struct(StructType { ref elems, .. }) => elems.get(i).copied(),
-            Type::Metadata => None,
+    pub fn element(&self, ty: Type) -> Option<Type> {
+        if ty.is_primitive() {
+            return None;
+        }
+        match self.get(ty) {
+            CompoundType::Pointer(PointerType { inner, .. }) => Some(*inner),
+            CompoundType::Array(ArrayType { inner, .. }) => Some(*inner),
+            CompoundType::Struct(_) => None,
+            CompoundType::Function(_) => None,
+            CompoundType::Alias(t) => self.element(*t),
+            CompoundType::Metadata => None,
         }
     }
 
-    pub fn to_string(&self, ty: TypeId) -> String {
-        let ty = &self.arena[ty];
+    pub fn element_at(&self, ty: Type, i: usize) -> Option<Type> {
+        if ty.is_primitive() {
+            return None;
+        }
+        match self.get(ty) {
+            CompoundType::Pointer(PointerType { inner, .. }) if i == 0 => Some(*inner),
+            CompoundType::Pointer(_) => None,
+            CompoundType::Array(ArrayType { inner, .. }) => Some(*inner),
+            CompoundType::Struct(StructType { elems, .. }) => elems.get(i).copied(),
+            CompoundType::Function(_) => None,
+            CompoundType::Alias(t) => self.element_at(*t, i),
+            CompoundType::Metadata => None,
+        }
+    }
+
+    pub fn to_string(&self, ty: Type) -> String {
+        if ty.is_primitive() {
+            return ty.to_string();
+        }
+
+        let ty = &self.get(ty);
         match ty {
-            Type::Void => "void".to_string(),
-            Type::Int(bits) => format!("i{}", bits),
-            Type::Pointer(PointerType { inner, addr_space }) if *addr_space == 0 => {
+            CompoundType::Pointer(PointerType { inner, addr_space }) if *addr_space == 0 => {
                 format!("{}*", self.to_string(*inner))
             }
-            Type::Pointer(PointerType { inner, addr_space }) => {
+            CompoundType::Pointer(PointerType { inner, addr_space }) => {
                 format!("{} addrspace({})*", self.to_string(*inner), addr_space)
             }
-            Type::Array(ArrayType {
+            CompoundType::Array(ArrayType {
                 inner,
                 num_elements,
             }) => {
                 format!("[{} x {}]", num_elements, self.to_string(*inner))
             }
-            Type::Function(FunctionType {
+            CompoundType::Function(FunctionType {
                 ret,
                 params,
                 is_var_arg,
@@ -373,13 +340,14 @@ impl TypesBase {
                         })
                 )
             }
-            Type::Struct(ty) => {
+            CompoundType::Struct(ty) => {
                 if let Some(name) = ty.name.as_ref() {
                     return format!("%{}", name);
                 }
                 self.struct_definition_to_string(ty)
             }
-            Type::Metadata => "metadata".to_string(),
+            CompoundType::Metadata => "metadata".to_string(),
+            CompoundType::Alias(t) => t.to_string(),
         }
     }
 
@@ -398,45 +366,105 @@ impl TypesBase {
             if ty.is_packed { ">" } else { "" }
         )
     }
-
-    pub fn is_struct(&self, ty: TypeId) -> bool {
-        matches!(self.arena[ty], Type::Struct(_))
-    }
-
-    pub fn is_atomic(&self, ty: TypeId) -> bool {
-        let ty = &self.arena[ty];
-        matches!(ty, Type::Void | Type::Pointer(_) | Type::Int(_))
-    }
 }
 
 impl Type {
-    pub fn as_struct(&self) -> &StructType {
-        match self {
-            Self::Struct(strct) => strct,
-            _ => panic!(),
-        }
+    pub fn is_primitive(&self) -> bool {
+        self.0 == 0
     }
 
-    pub fn as_struct_mut(&mut self) -> &mut StructType {
-        match self {
-            Self::Struct(strct) => strct,
-            _ => panic!(),
+    pub fn is_void(&self) -> bool {
+        self == &VOID
+    }
+
+    pub fn is_i1(&self) -> bool {
+        self == &I1
+    }
+
+    pub fn is_i8(&self) -> bool {
+        self == &I8
+    }
+
+    pub fn is_i16(&self) -> bool {
+        self == &I16
+    }
+
+    pub fn is_i32(&self) -> bool {
+        self == &I32
+    }
+
+    pub fn is_i64(&self) -> bool {
+        self == &I64
+    }
+
+    pub fn is_pointer(&self, types: &Types) -> bool {
+        types.is_pointer(*self)
+    }
+
+    pub fn is_struct(&self, types: &Types) -> bool {
+        types.is_struct(*self)
+    }
+}
+
+impl ArrayType {
+    pub fn new(inner: Type, num_elements: u32) -> Self {
+        Self {
+            inner,
+            num_elements,
+        }
+    }
+}
+
+impl FunctionType {
+    pub fn new(ret: Type, params: Vec<Type>, is_var_arg: bool) -> Self {
+        Self {
+            ret,
+            params,
+            is_var_arg,
+        }
+    }
+}
+
+impl ToString for Type {
+    fn to_string(&self) -> String {
+        if self.is_primitive() {
+            return match self {
+                &VOID => "void".to_string(),
+                &I1 => "i1".to_string(),
+                &I8 => "i8".to_string(),
+                &I16 => "i16".to_string(),
+                &I32 => "i32".to_string(),
+                &I64 => "i64".to_string(),
+                _ => todo!(),
+            };
+        }
+        format!("{:?}", self)
+    }
+}
+
+impl From<Type> for PointerType {
+    fn from(t: Type) -> Self {
+        PointerType {
+            inner: t,
+            addr_space: 0,
         }
     }
 }
 
 impl fmt::Debug for Types {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (name, &id) in &self.base().named_types {
+        for (name, &id) in &self.base().caches.named_types {
             writeln!(
                 f,
                 "%{} = type {}",
                 name,
-                match &*self.get(id) {
-                    Type::Struct(ty) => {
-                        self.base().struct_definition_to_string(ty)
+                if id.is_primitive() {
+                    id.to_string()
+                } else {
+                    match self.base().get(id) {
+                        CompoundType::Struct(ty) => self.base().struct_definition_to_string(ty),
+                        _ => self.to_string(id),
                     }
-                    _ => self.to_string(id),
                 }
             )?
         }
@@ -448,23 +476,23 @@ impl fmt::Debug for Types {
 fn types_identity() {
     let types = Types::new();
     let i32_ptr_ty = {
-        let i32_ty = types.i32();
+        let i32_ty = I32;
         types.base_mut().pointer(i32_ty)
     };
 
     {
-        let i32_ty = types.i32();
+        let i32_ty = I32;
         let ty = types.get(i32_ptr_ty);
         assert_eq!(
             &*ty,
-            &Type::Pointer(PointerType {
+            &CompoundType::Pointer(PointerType {
                 inner: i32_ty,
                 addr_space: 0
             })
         )
     }
 
-    let i32_ty = types.i32();
+    let i32_ty = I32;
     let i32_ptr_ty2 = types.base_mut().pointer(i32_ty);
 
     assert_eq!(i32_ptr_ty, i32_ptr_ty2);

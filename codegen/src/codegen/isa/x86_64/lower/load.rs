@@ -11,14 +11,14 @@ use crate::codegen::{
 use anyhow::Result;
 use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
-    types::{Type, TypeId},
+    types::Type,
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 
 pub fn lower_load(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
-    tys: &[TypeId],
+    tys: &[Type],
     addr: ValueId,
     _align: u32,
 ) -> Result<()> {
@@ -28,9 +28,7 @@ pub fn lower_load(
     let sext = ctx.ir_data.only_one_user_of(id).filter(|&id| {
         let inst = ctx.ir_data.inst_ref(id);
         let types = inst.operand.types();
-        inst.opcode == IrOpcode::Sext
-            && types[0] == ctx.types.base().i32()
-            && types[1] == ctx.types.base().i64()
+        inst.opcode == IrOpcode::Sext && types[0].is_i32() && types[1].is_i64()
     });
 
     if let Value::Instruction(addr_id) = &ctx.ir_data.values[addr] {
@@ -72,7 +70,7 @@ pub fn lower_load(
             return Ok(());
         }
 
-        if matches!(&*ctx.types.get(src_ty), Type::Int(32)) {
+        if src_ty.is_i32() {
             // let output = new_empty_inst_output(ctx, src_ty, id);
             let output = ctx.inst_id_to_vreg[&id];
             ctx.inst_seq.push(MachInstruction::new(
@@ -95,7 +93,7 @@ pub fn lower_load(
 fn lower_load_gep(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
-    tys: &[TypeId],
+    tys: &[Type],
     gep_id: InstructionId,
     _align: u32,
     sext: Option<InstructionId>,
@@ -139,7 +137,7 @@ fn lower_load_gep(
             // debug!(offset);
 
             let idx1_ty = gep.operand.types()[3];
-            assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
+            assert!(idx1_ty.is_i64());
             let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
 
             assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
@@ -162,20 +160,19 @@ fn lower_load_gep(
     let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
 
     let src_ty = tys[0];
-    match &*ctx.types.get(src_ty) {
-        Type::Int(32) => {
-            ctx.inst_seq.append(&mut vec![MachInstruction::new(
-                InstructionData {
-                    opcode: sext.map_or(Opcode::MOVrm32, |_| Opcode::MOVSXDr64m32),
-                    operands: vec![MOperand::output(OperandData::VReg(output))]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            )]);
-        }
-        _ => return Err(LoweringError::Todo.into()),
+    if src_ty.is_i32() {
+        ctx.inst_seq.append(&mut vec![MachInstruction::new(
+            InstructionData {
+                opcode: sext.map_or(Opcode::MOVrm32, |_| Opcode::MOVSXDr64m32),
+                operands: vec![MOperand::output(OperandData::VReg(output))]
+                    .into_iter()
+                    .chain(mem.into_iter())
+                    .collect(),
+            },
+            ctx.block_map[&ctx.cur_block],
+        )]);
+    } else {
+        return Err(LoweringError::Todo.into());
     }
 
     Ok(())

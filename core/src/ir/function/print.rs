@@ -10,8 +10,11 @@ use super::{
     },
     Function,
 };
-use crate::ir::function::instruction::{
-    Br, Call, CondBr, ExtractValue, InsertValue, Invoke, LandingPad, Resume, Ret,
+use crate::ir::{
+    function::instruction::{
+        Br, Call, CondBr, ExtractValue, InsertValue, Invoke, LandingPad, Resume, Ret,
+    },
+    types::Type,
 };
 use rustc_hash::FxHashMap;
 use std::fmt;
@@ -128,7 +131,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 if matches!(
                     inst.opcode,
                     Opcode::Store | Opcode::Br | Opcode::CondBr | Opcode::Ret | Opcode::Resume
-                ) || (inst.operand.call_result_ty() == Some(f.types.base().void()))
+                ) || (inst
+                    .operand
+                    .call_result_ty()
+                    .as_ref()
+                    .map_or(false, Type::is_void))
                 {
                     continue;
                 }
@@ -359,7 +366,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 write!(
                     self.fmt,
                     "{}call {}{} {}({}) {}",
-                    if tys[0] == types.base().void() {
+                    if tys[0].is_void() {
                         "".to_string()
                     } else {
                         format!("%{:?} = ", dest)
@@ -404,7 +411,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 write!(
                     self.fmt,
                     "{}invoke {}{} {}({}) {}to label %{:?} unwind label %{:?}",
-                    if tys[0] == types.base().void() {
+                    if tys[0].is_void() {
                         "".to_string()
                     } else {
                         format!("%{:?} = ", dest)
@@ -444,7 +451,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 write!(
                     self.fmt,
                     "{}landingpad {} cleanup",
-                    if ty == &types.base().void() {
+                    if ty.is_void() {
                         "".to_string()
                     } else {
                         format!("%{:?} = ", dest)

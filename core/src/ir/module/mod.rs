@@ -12,7 +12,7 @@ pub use parser::parse as parse_assembly;
 
 use super::{
     function::{Function, FunctionId, Parameter},
-    types::{TypeId, Types},
+    types::{Type, Types},
 };
 use attributes::Attribute;
 use global_variable::GlobalVariable;
@@ -94,7 +94,7 @@ impl Module {
     pub fn create_function<T: AsRef<str>>(
         &mut self,
         name: T,
-        result_ty: TypeId,
+        result_ty: Type,
         params: Vec<Parameter>,
         is_var_arg: bool,
     ) -> Id<Function> {

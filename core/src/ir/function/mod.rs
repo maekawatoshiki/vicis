@@ -15,7 +15,7 @@ use super::{
         preemption_specifier::PreemptionSpecifier, unnamed_addr::UnnamedAddr,
         visibility::Visibility,
     },
-    types::{TypeId, Types},
+    types::{Type, Types},
     value::ConstantData,
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
@@ -27,12 +27,12 @@ use std::fmt;
 
 pub type FunctionId = Id<Function>;
 
-pub type PersonalityFunc = (TypeId, ConstantData);
+pub type PersonalityFunc = (Type, ConstantData);
 
 pub struct Function {
     pub name: String,
     pub is_var_arg: bool,
-    pub result_ty: TypeId,
+    pub result_ty: Type,
     pub params: Vec<Parameter>,
     pub linkage: Linkage,
     pub preemption_specifier: PreemptionSpecifier,
@@ -50,14 +50,14 @@ pub struct Function {
 #[derive(Debug, Clone)]
 pub struct Parameter {
     pub name: Name,
-    pub ty: TypeId,
+    pub ty: Type,
     pub attrs: Vec<ParameterAttribute>,
 }
 
 impl Function {
     pub fn new<T: AsRef<str>>(
         name: T,
-        result_ty: TypeId,
+        result_ty: Type,
         params: Vec<Parameter>,
         is_var_arg: bool,
         types: Types,
@@ -109,7 +109,7 @@ impl fmt::Debug for Function {
 }
 
 impl Parameter {
-    pub fn new(ty: TypeId) -> Self {
+    pub fn new(ty: Type) -> Self {
         Self {
             name: Name::Number(0),
             ty,

@@ -64,7 +64,7 @@ fn parse_local_type<'a>(
     types: &types::Types,
 ) -> IResult<&'a str, (), VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
-    types.base_mut().named_type(name.clone()); // register a named type
+    types.base_mut().empty_named_type(name.clone()); // register a named type
     let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
     let (source, ty) = types::parse(source, types)?;
     types.base_mut().change_to_named_type(ty, name);

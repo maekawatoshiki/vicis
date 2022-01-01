@@ -1,6 +1,6 @@
 use crate::codegen::isa::TargetIsa;
 use id_arena::{Arena, Id};
-use vicis_core::ir::types::TypeId;
+use vicis_core::ir::types::Type;
 
 pub type SlotId = Id<Slot>;
 
@@ -13,7 +13,7 @@ pub struct Slots<T: TargetIsa> {
 pub struct Slot {
     pub(crate) size: u32,
     #[allow(dead_code)]
-    pub(crate) ty: TypeId,
+    pub(crate) ty: Type,
     #[allow(dead_code)]
     pub(crate) num_elements: u32,
     #[allow(dead_code)]
@@ -28,7 +28,7 @@ impl<T: TargetIsa> Slots<T> {
         }
     }
 
-    pub fn add_slot(&mut self, ty: TypeId, size: u32) -> SlotId {
+    pub fn add_slot(&mut self, ty: Type, size: u32) -> SlotId {
         self.arena.alloc(Slot {
             size,
             ty,

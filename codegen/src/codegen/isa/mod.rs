@@ -8,7 +8,7 @@ use crate::codegen::{
     register::{RegisterClass, RegisterInfo},
 };
 use anyhow::Result;
-use vicis_core::ir::types::{TypeId, Types};
+use vicis_core::ir::types::{Type, Types};
 
 pub trait TargetIsa: Copy {
     type InstInfo: InstructionInfo;
@@ -18,5 +18,5 @@ pub trait TargetIsa: Copy {
 
     fn module_pass_list() -> Vec<fn(&mut Module<Self>) -> Result<()>>;
     fn default_call_conv() -> CallConvKind;
-    fn type_size(types: &Types, ty: TypeId) -> u32;
+    fn type_size(types: &Types, ty: Type) -> u32;
 }

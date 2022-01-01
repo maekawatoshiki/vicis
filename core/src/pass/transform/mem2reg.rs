@@ -427,7 +427,7 @@ impl<'a> Mem2Reg<'a> {
         let alloca_id = alloca.id.unwrap();
         let alloca = alloca.operand.as_alloca().unwrap();
         let ty = alloca.ty();
-        self.func.types.is_atomic(ty)
+        (ty.is_primitive() || ty.is_pointer(&self.func.types))
             && self.func.data.users_of(alloca_id).iter().all(|&user_id| {
                 let user = self.func.data.inst_ref(user_id);
                 user.opcode.is_load()

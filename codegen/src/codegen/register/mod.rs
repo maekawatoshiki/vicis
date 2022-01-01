@@ -3,7 +3,7 @@ use crate::codegen::{
     function::instruction::{InstructionData as ID, InstructionId},
 };
 use rustc_hash::FxHashMap;
-use vicis_core::ir::types::{TypeId, Types};
+use vicis_core::ir::types::{Type, Types};
 
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Reg(pub u16, pub u16);
@@ -21,7 +21,7 @@ pub struct VRegs {
 
 pub struct VRegData {
     pub vreg: VReg,
-    pub ty: TypeId,
+    pub ty: Type,
     // ...
 }
 
@@ -42,7 +42,7 @@ pub trait RegisterInfo {
 }
 
 pub trait RegisterClass {
-    fn for_type(types: &Types, id: TypeId) -> Self;
+    fn for_type(types: &Types, id: Type) -> Self;
     fn gpr_list(&self) -> Vec<Reg>;
     fn apply_for(&self, ru: RegUnit) -> Reg;
 }
@@ -68,7 +68,7 @@ impl VRegs {
     }
 
     // TODO: Change name
-    pub fn add_vreg_data(&mut self, ty: TypeId) -> VReg {
+    pub fn add_vreg_data(&mut self, ty: Type) -> VReg {
         let key = VReg(self.cur);
         self.map.insert(key, VRegData { vreg: key, ty });
         self.cur += 1;
@@ -80,11 +80,11 @@ impl VRegs {
         self.add_vreg_data(ty)
     }
 
-    pub fn type_for(&self, vreg: VReg) -> TypeId {
+    pub fn type_for(&self, vreg: VReg) -> Type {
         self.map[&vreg].ty
     }
 
-    pub fn change_ty(&mut self, vreg: VReg, ty: TypeId) {
+    pub fn change_ty(&mut self, vreg: VReg, ty: Type) {
         self.map.get_mut(&vreg).unwrap().ty = ty
     }
 }

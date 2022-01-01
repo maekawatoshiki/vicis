@@ -12,6 +12,7 @@ use crate::ir::{
         attributes::parser::parse_attributes, metadata, metadata::Metadata,
         name::parser::identifier,
     },
+    types::I32,
     util::string_literal,
 };
 use crate::ir::{module::name, types, util::spaces, value};
@@ -45,7 +46,7 @@ pub fn parse_alloca<'a, 'b>(
     let inst = Opcode::Alloca
         .with_block(ctx.cur_block)
         .with_operand(Operand::Alloca(Alloca {
-            tys: [ty, ctx.types.base().i32()],
+            tys: [ty, I32],
             num_elements,
             align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
         }));
@@ -149,11 +150,11 @@ pub fn parse_insertvalue<'a, 'b>(
     let (source, elt) = value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![val, elt];
-    let (mut source, idx) = value::parse(source, ctx, ctx.types.base().i32())?;
+    let (mut source, idx) = value::parse(source, ctx, I32)?;
     args.push(idx);
     loop {
         if let Ok((source_, _)) = preceded(spaces, char(','))(source) {
-            let (source_, idx) = value::parse(source_, ctx, ctx.types.base().i32())?;
+            let (source_, idx) = value::parse(source_, ctx, I32)?;
             args.push(idx);
             source = source_;
             continue;
@@ -179,11 +180,11 @@ pub fn parse_extractvalue<'a, 'b>(
     let (source, val) = value::parse(source, ctx, aggre_ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![val];
-    let (mut source, idx) = value::parse(source, ctx, ctx.types.base().i32())?;
+    let (mut source, idx) = value::parse(source, ctx, I32)?;
     args.push(idx);
     loop {
         if let Ok((source_, _)) = preceded(spaces, char(','))(source) {
-            let (source_, idx) = value::parse(source_, ctx, ctx.types.base().i32())?;
+            let (source_, idx) = value::parse(source_, ctx, I32)?;
             args.push(idx);
             source = source_;
             continue;
@@ -296,7 +297,7 @@ pub fn parse_cast<'a, 'b>(
 }
 
 type CallArguments = (
-    Vec<types::TypeId>,
+    Vec<types::Type>,
     Vec<Vec<ParameterAttribute>>,
     Vec<value::ValueId>,
 );
@@ -390,7 +391,7 @@ pub fn parse_call<'a, 'b>(
 pub fn parse_callee<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-    ty: types::TypeId,
+    ty: types::Type,
 ) -> IResult<&'a str, value::ValueId, VerboseError<&'a str>> {
     if let Ok((source, asm)) = parse_call_asm(source) {
         return Ok((source, ctx.data.create_value(value::Value::InlineAsm(asm))));
@@ -501,7 +502,7 @@ pub fn parse_br<'a, 'b>(
         Ok((source, inst))
     } else {
         let (source, ty) = types::parse(source, ctx.types)?;
-        assert_eq!(*ctx.types.get(ty), types::Type::Int(1));
+        assert!(ty.is_i1());
         let (source, arg) = value::parse(source, ctx, ty)?;
         let (source, _) = preceded(spaces, char(','))(source)?;
         let (source, iftrue) = preceded(
@@ -537,7 +538,7 @@ pub fn parse_ret<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, preceded(tag("ret"), spaces))(source)?;
     let (source, ty) = types::parse(source, ctx.types)?;
-    let (source, val) = if *ctx.types.get(ty) == types::Type::Void {
+    let (source, val) = if ty.is_void() {
         (source, None)
     } else {
         let (source, val) = value::parse(source, ctx, ty)?;

@@ -16,7 +16,7 @@ use vicis_core::ir::{
         Function, FunctionId,
     },
     module::{name::Name, Module},
-    types::{ArrayType, Type, TypeId, Types},
+    types::{self, ArrayType, CompoundType, Type, Types},
     value::{ConstantArray, ConstantData, ValueId},
 };
 
@@ -119,7 +119,7 @@ pub fn run_function(
 fn run_alloca(
     frame: &mut StackFrame,
     id: InstructionId,
-    tys: &[TypeId],
+    tys: &[Type],
     num_elements: &ConstantData,
     align: u32,
 ) {
@@ -132,7 +132,7 @@ fn run_alloca(
     frame.add_inst_val(id, GenericValue::Ptr(ptr));
 }
 
-fn run_store(frame: &mut StackFrame, _tys: &[TypeId], args: &[ValueId], _align: u32) {
+fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u32) {
     let src = args[0];
     let dst = args[1];
     let dst = frame.get_val(dst).unwrap();
@@ -148,24 +148,35 @@ fn run_store(frame: &mut StackFrame, _tys: &[TypeId], args: &[ValueId], _align: 
     }
 }
 
-fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], addr: ValueId, _align: u32) {
+fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: ValueId, _align: u32) {
     let ty = tys[0];
     let addr = frame.get_val(addr).unwrap();
-    match &*frame.func.types.get(ty) {
-        Type::Int(8) => frame.add_inst_val(
+
+    if ty.is_i8() {
+        frame.add_inst_val(
             id,
             GenericValue::Int8(unsafe { *(addr.to_ptr().unwrap() as *const i8) }),
-        ),
-        Type::Int(32) => frame.add_inst_val(
+        );
+        return;
+    }
+
+    if ty.is_i32() {
+        frame.add_inst_val(
             id,
             GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
-        ),
-        Type::Pointer(_) => frame.add_inst_val(
+        );
+        return;
+    }
+
+    if ty.is_pointer(&frame.func.types) {
+        frame.add_inst_val(
             id,
             GenericValue::Ptr(unsafe { *(addr.to_ptr().unwrap() as *const *mut u8) }),
-        ),
-        _ => todo!(),
-    };
+        );
+        return;
+    }
+
+    todo!()
 }
 
 fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, args: &[ValueId]) {
@@ -192,22 +203,16 @@ fn run_icmp(frame: &mut StackFrame, id: InstructionId, args: &[ValueId], cond: I
     frame.add_inst_val(id, res);
 }
 
-fn run_cast(
-    frame: &mut StackFrame,
-    id: InstructionId,
-    opcode: Opcode,
-    tys: &[TypeId],
-    arg: ValueId,
-) {
+fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Type], arg: ValueId) {
     let _from = tys[0];
     let to = tys[1];
     let arg = frame.get_val(arg).unwrap();
     let val = match opcode {
         Opcode::Sext => {
             let arg = arg.sext_to_i64().unwrap();
-            match &*frame.func.types.get(to) {
-                Type::Int(32) => GenericValue::Int32(arg as i32),
-                Type::Int(64) => GenericValue::Int64(arg),
+            match to {
+                types::I32 => GenericValue::Int32(arg as i32),
+                types::I64 => GenericValue::Int64(arg),
                 _ => todo!(),
             }
         }
@@ -216,12 +221,12 @@ fn run_cast(
     frame.add_inst_val(id, val)
 }
 
-fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], args: &[ValueId]) {
+fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[ValueId]) {
     let arg = frame.get_val(args[0]).unwrap().to_ptr().unwrap();
     let mut total = 0;
     let mut cur_ty = tys[1];
     for &idx in &args[1..] {
-        if matches!(&*frame.func.types.get(cur_ty), Type::Struct(_)) {
+        if cur_ty.is_struct(&frame.func.types) {
         } else {
             let inner = frame.func.types.get_element(cur_ty).unwrap();
             let idx = match frame.get_val(idx).unwrap() {
@@ -236,7 +241,7 @@ fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[TypeId], args: &[Va
     frame.add_inst_val(id, GenericValue::Ptr(unsafe { arg.add(total) }));
 }
 
-fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[TypeId], args: &[ValueId]) {
+fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[ValueId]) {
     let callee = frame.get_val(args[0]).unwrap();
     let args: Vec<GenericValue> = args[1..]
         .iter()
@@ -355,24 +360,28 @@ impl<'a> Context<'a> {
 // dummy
 
 trait TypeSize {
-    fn size_of(&self, ty: TypeId) -> usize;
+    fn size_of(&self, ty: Type) -> usize;
 }
 
 impl TypeSize for Types {
     // Returns the size of the type in byte
-    fn size_of(&self, ty: TypeId) -> usize {
+    fn size_of(&self, ty: Type) -> usize {
+        match ty {
+            types::VOID => return 0,
+            types::I1 => return 1,
+            types::I8 => return 1,
+            types::I16 => return 2,
+            types::I32 => return 4,
+            _ => {}
+        }
+
         let ty = self.get(ty);
         match &*ty {
-            Type::Void => 0,
-            Type::Int(1) => 1,
-            Type::Int(8) => 1,
-            Type::Int(16) => 2,
-            Type::Int(32) => 4,
-            Type::Array(ArrayType {
+            CompoundType::Array(ArrayType {
                 inner,
                 num_elements,
             }) => self.size_of(*inner) * *num_elements as usize,
-            Type::Pointer(_) => 8,
+            CompoundType::Pointer(_) => 8,
             _ => todo!(),
         }
     }
@@ -404,10 +413,12 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
             _ => todo!(),
         }
     }
-    let ret_ty = match &*func.types.get(func.result_ty) {
-        Type::Int(32) => unsafe { &mut libffi::low::types::sint32 },
-        Type::Pointer(_) => unsafe { &mut libffi::low::types::pointer },
-        _ => panic!(),
+    let ret_ty = if func.result_ty.is_i32() {
+        unsafe { &mut libffi::low::types::sint32 }
+    } else if func.result_ty.is_pointer(&func.types) {
+        unsafe { &mut libffi::low::types::pointer }
+    } else {
+        panic!()
     };
     let mut cif: libffi::low::ffi_cif = Default::default();
 

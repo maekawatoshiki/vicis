@@ -12,7 +12,7 @@ use vicis_core::ir::{
         instruction::{Alloca, InstructionId, IntBinary, Load, Operand, Ret, Store},
         Function,
     },
-    types::{Type as LlvmTy, TypeId},
+    types::Type as LlvmTy,
     value::ValueId,
     value::{ConstantData, ConstantInt, Value as LlvmValue},
 };
@@ -32,7 +32,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
 
         match inst.operand {
             Operand::Alloca(Alloca { tys: [ty, _], .. }) => {
-                assert!(*self.llvm_func.types.get(ty) == LlvmTy::Int(32));
+                assert!(ty.is_i32());
                 let slot = self.builder.create_stack_slot(StackSlotData::new(
                     StackSlotKind::ExplicitSlot,
                     4, /*i32*/
@@ -88,7 +88,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
         block
     }
 
-    fn value(&mut self, val_id: ValueId, ty: TypeId) -> ValueKind {
+    fn value(&mut self, val_id: ValueId, ty: LlvmTy) -> ValueKind {
         match self.llvm_func.data.value_ref(val_id) {
             LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => ValueKind::Value(
                 self.builder

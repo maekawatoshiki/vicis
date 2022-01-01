@@ -1,6 +1,6 @@
 pub mod parser;
 
-use crate::ir::types::{TypeId, Types};
+use crate::ir::types::{Type, Types};
 use std::fmt;
 
 #[derive(PartialEq, Eq, Clone)]
@@ -10,7 +10,7 @@ pub enum ParameterAttribute {
     InReg,
     ByVal,
     InAlloca,
-    SRet(Option<TypeId>),
+    SRet(Option<Type>),
     Alignment(u64),
     ReadOnly,
     NoAlias,

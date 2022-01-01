@@ -3,7 +3,7 @@ use crate::codegen::{
     register::{Reg, RegUnit, RegisterClass, RegisterInfo},
 };
 use std::fmt;
-use vicis_core::ir::types::{Type, TypeId, Types};
+use vicis_core::ir::types::{self, Type, Types};
 
 pub struct RegInfo;
 
@@ -100,11 +100,11 @@ impl RegisterInfo for RegInfo {
 }
 
 impl RegisterClass for RegClass {
-    fn for_type(types: &Types, id: TypeId) -> Self {
-        match &*types.get(id) {
-            Type::Int(32) => Self::GR32,
-            Type::Int(64) => Self::GR64,
-            Type::Pointer(_) => Self::GR64,
+    fn for_type(types: &Types, ty: Type) -> Self {
+        match ty {
+            types::I32 => RegClass::GR32,
+            types::I64 => RegClass::GR64,
+            _ if ty.is_pointer(types) => RegClass::GR64,
             _ => todo!(),
         }
     }

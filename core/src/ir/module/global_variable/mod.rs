@@ -4,7 +4,7 @@ pub use parser::{parse, parse_global_type_and_const};
 
 use crate::ir::{
     module::{linkage::Linkage, name::Name, unnamed_addr::UnnamedAddr},
-    types::{TypeId, Types},
+    types::{Type, Types},
     value::ConstantData,
 };
 
@@ -14,7 +14,7 @@ pub struct GlobalVariable {
     pub linkage: Option<Linkage>,
     pub unnamed_addr: Option<UnnamedAddr>,
     pub is_constant: bool,
-    pub ty: TypeId,
+    pub ty: Type,
     pub init: Option<ConstantData>,
     pub align: u32,
 }

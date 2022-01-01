@@ -9,7 +9,6 @@ use crate::codegen::{
     isa::TargetIsa,
     register::VReg,
 };
-use vicis_core::ir::types::Type;
 
 pub struct Spiller<'a, T: TargetIsa> {
     function: &'a mut Function<T>,
@@ -23,7 +22,7 @@ impl<'a, T: TargetIsa> Spiller<'a, T> {
 
     pub fn spill(&mut self, vreg: VReg, new_vregs: &mut Vec<VReg>) {
         let ty = self.function.data.vregs.type_for(vreg);
-        assert!(*self.function.types.get(ty) == Type::Int(32));
+        assert!(ty.is_i32());
         let slot = self
             .function
             .slots

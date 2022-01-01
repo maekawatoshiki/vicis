@@ -7,7 +7,7 @@ pub mod register;
 use super::TargetIsa;
 use crate::codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc};
 use anyhow::Result;
-use vicis_core::ir::types::{ArrayType, Type, TypeId, Types};
+use vicis_core::ir::types::{self, ArrayType, CompoundType, Type, Types};
 
 #[derive(Copy, Clone)]
 pub struct X86_64;
@@ -32,18 +32,29 @@ impl TargetIsa for X86_64 {
         CallConvKind::SystemV
     }
 
-    fn type_size(types: &Types, ty: TypeId) -> u32 {
+    fn type_size(types: &Types, ty: Type) -> u32 {
+        if ty.is_primitive() {
+            return match ty {
+                types::VOID => 0,
+                types::I1 => 1,
+                types::I8 => 1,
+                types::I16 => 2,
+                types::I32 => 4,
+                types::I64 => 8,
+                _ => unreachable!(),
+            };
+        }
+
         match &*types.get(ty) {
-            Type::Void => 0,
-            Type::Int(n) => *n / 8,
-            Type::Pointer(_) => 8,
-            Type::Array(ArrayType {
+            CompoundType::Pointer(_) => 8,
+            CompoundType::Array(ArrayType {
                 inner,
                 num_elements,
             }) => Self::type_size(types, *inner) * num_elements,
-            Type::Function(_) => 0,
-            Type::Struct(_) => todo!(),
-            Type::Metadata => todo!(),
+            CompoundType::Function(_) => 0,
+            CompoundType::Struct(_) => todo!(),
+            CompoundType::Metadata => todo!(),
+            CompoundType::Alias(_) => todo!(),
         }
     }
 }

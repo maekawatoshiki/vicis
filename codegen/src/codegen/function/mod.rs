@@ -11,13 +11,13 @@ use std::fmt;
 use vicis_core::ir::{
     function::Parameter,
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
-    types::{TypeId, Types},
+    types::{Type, Types},
 };
 
 pub struct Function<T: TargetIsa> {
     pub name: String,
     pub is_var_arg: bool,
-    pub result_ty: TypeId,
+    pub result_ty: Type,
     pub params: Vec<Parameter>,
     pub preemption_specifier: PreemptionSpecifier,
     pub attributes: Vec<Attribute>,

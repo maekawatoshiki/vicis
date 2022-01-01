@@ -11,13 +11,13 @@ use crate::codegen::{
 use anyhow::Result;
 use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
-    types::{Type, TypeId},
+    types::Type,
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 
 pub fn lower_store(
     ctx: &mut LoweringContext<X86_64>,
-    tys: &[TypeId],
+    tys: &[Type],
     args: &[ValueId],
     _align: u32,
 ) -> Result<()> {
@@ -108,7 +108,7 @@ pub fn lower_store(
 
 fn lower_store_gep(
     ctx: &mut LoweringContext<X86_64>,
-    tys: &[TypeId],
+    tys: &[Type],
     args: &[ValueId],
     _align: u32,
     gep_id: InstructionId,
@@ -155,7 +155,7 @@ fn lower_store_gep(
             // debug!(offset);
 
             let idx1_ty = gep.operand.types()[3];
-            assert_eq!(*ctx.types.get(idx1_ty), Type::Int(64));
+            assert!(idx1_ty.is_i64());
             let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
 
             assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);

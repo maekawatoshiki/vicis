@@ -5,7 +5,7 @@ pub use parser::parse;
 use super::{
     function::{data::Data, instruction::InstructionId},
     module::name::Name,
-    types::{TypeId, Types},
+    types::{Type, Types},
     util::escape,
 };
 use id_arena::Id;
@@ -49,14 +49,14 @@ pub enum ConstantInt {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConstantArray {
-    pub elem_ty: TypeId,
+    pub elem_ty: Type,
     pub elems: Vec<ConstantData>,
     pub is_string: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConstantStruct {
-    pub elems_ty: Vec<TypeId>,
+    pub elems_ty: Vec<Type>,
     pub elems: Vec<ConstantData>,
     pub is_packed: bool,
 }
@@ -65,11 +65,11 @@ pub struct ConstantStruct {
 pub enum ConstantExpr {
     GetElementPtr {
         inbounds: bool,
-        tys: Vec<TypeId>,
+        tys: Vec<Type>,
         args: Vec<ConstantData>,
     },
     Bitcast {
-        tys: [TypeId; 2],
+        tys: [Type; 2],
         arg: Box<ConstantData>,
     },
 }

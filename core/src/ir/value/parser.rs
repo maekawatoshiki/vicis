@@ -1,7 +1,7 @@
 use crate::ir::{
     function::parser::ParserContext,
     module::name,
-    types::{self, Type, TypeId, Types},
+    types::{self, Type, Types, I1, I32, I64, I8},
     util::{spaces, string_literal},
     value::{
         ConstantArray, ConstantData, ConstantExpr, ConstantInt, ConstantStruct, Value, ValueId,
@@ -20,7 +20,7 @@ use nom::{
 pub fn parse_constant<'a>(
     source: &'a str,
     types: &Types,
-    ty: TypeId,
+    ty: Type,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, tag("undef"))(source) {
         return Ok((source, ConstantData::Undef));
@@ -31,7 +31,7 @@ pub fn parse_constant<'a>(
     if let Ok((source, _)) = preceded(spaces, tag("zeroinitializer"))(source) {
         return Ok((source, ConstantData::AggregateZero));
     }
-    if let Ok((source, id)) = parse_constant_int(source, types, ty) {
+    if let Ok((source, id)) = parse_constant_int(source, ty) {
         return Ok((source, id.into()));
     }
     if let Ok((source, id)) = parse_constant_array(source, types) {
@@ -48,8 +48,7 @@ pub fn parse_constant<'a>(
 
 pub fn parse_constant_int<'a>(
     source: &'a str,
-    types: &Types,
-    ty: TypeId,
+    ty: Type,
 ) -> IResult<&'a str, ConstantInt, VerboseError<&'a str>> {
     let (source, num) = preceded(
         spaces,
@@ -58,11 +57,11 @@ pub fn parse_constant_int<'a>(
             alt((digit1, tag("true"), tag("false"))),
         ))),
     )(source)?;
-    let val = match &*types.get(ty) {
-        Type::Int(1) => ConstantInt::Int1(num == "true"),
-        Type::Int(8) => ConstantInt::Int8(num.parse::<i8>().unwrap()),
-        Type::Int(32) => ConstantInt::Int32(num.parse::<i32>().unwrap()),
-        Type::Int(64) => ConstantInt::Int64(num.parse::<i64>().unwrap()),
+    let val = match ty {
+        I1 => ConstantInt::Int1(num == "true"),
+        I8 => ConstantInt::Int8(num.parse::<i8>().unwrap()),
+        I32 => ConstantInt::Int32(num.parse::<i32>().unwrap()),
+        I64 => ConstantInt::Int64(num.parse::<i64>().unwrap()),
         _ => todo!(),
     };
     Ok((source, val))
@@ -70,14 +69,14 @@ pub fn parse_constant_int<'a>(
 
 pub fn parse_constant_array<'a>(
     source: &'a str,
-    types: &Types,
-    // ty: TypeId,
+    _types: &Types,
+    // ty: Type,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     // TODO: Support arrays in the form of [a, b, c]
     let (source, _) = preceded(spaces, char('c'))(source)?;
     let (source, s) = preceded(spaces, string_literal)(source)?;
     let val = ConstantData::Array(ConstantArray {
-        elem_ty: types.base().i8(),
+        elem_ty: I8,
         elems: s
             .as_bytes()
             .iter()
@@ -203,7 +202,7 @@ pub fn parse_constant_struct<'a>(
 pub fn parse_local<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-    _ty: TypeId,
+    _ty: Type,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
     let (source, name) = preceded(spaces, preceded(char('%'), name::parse))(source)?;
     Ok((source, ctx.get_or_create_named_value(name)))
@@ -212,7 +211,7 @@ pub fn parse_local<'a, 'b>(
 pub fn parse<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
-    ty: TypeId,
+    ty: Type,
 ) -> IResult<&'a str, ValueId, VerboseError<&'a str>> {
     if let Ok((source, konst)) = parse_constant(source, ctx.types, ty) {
         let id = ctx.data.create_value(Value::Constant(konst));

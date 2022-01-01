@@ -1,4 +1,4 @@
-use super::super::types::{TypeId, Types};
+use crate::ir::types::{ArrayType, FunctionType, Type, Types, I1, I32, I64, I8, VOID};
 use crate::ir::{module::name, util::spaces};
 use nom::{
     branch::alt,
@@ -10,10 +10,7 @@ use nom::{
     IResult,
 };
 
-pub fn parse<'a>(
-    source: &'a str,
-    types: &Types,
-) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+pub fn parse<'a>(source: &'a str, types: &Types) -> IResult<&'a str, Type, VerboseError<&'a str>> {
     let (mut source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
         parse_array(source, types)?
     } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
@@ -21,16 +18,16 @@ pub fn parse<'a>(
     } else if let Ok((source, _)) = preceded(spaces, tag("<{"))(source) {
         parse_struct(source, types, true)?
     } else if let Ok((source, name)) = preceded(spaces, preceded(char('%'), name::parse))(source) {
-        (source, types.base_mut().named_type(name))
+        (source, types.base_mut().empty_named_type(name))
     } else {
         preceded(
             spaces,
             alt((
-                map(tag("void"), |_| types.void()),
-                map(tag("i1"), |_| types.i1()),
-                map(tag("i8"), |_| types.i8()),
-                map(tag("i32"), |_| types.i32()),
-                map(tag("i64"), |_| types.i64()),
+                map(tag("void"), |_| VOID),
+                map(tag("i1"), |_| I1),
+                map(tag("i8"), |_| I8),
+                map(tag("i32"), |_| I32),
+                map(tag("i64"), |_| I64),
                 map(tag("metadata"), |_| types.metadata()),
             )),
         )(source)?
@@ -59,12 +56,14 @@ pub fn parse<'a>(
 fn parse_array<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Type, VerboseError<&'a str>> {
     let (source, n) = preceded(spaces, digit1)(source)?;
     let (source, _) = preceded(spaces, char('x'))(source)?;
     let (source, ty) = parse(source, types)?;
     let (source, _) = preceded(spaces, char(']'))(source)?;
-    let ary_ty = types.base_mut().array(ty, n.parse::<u32>().unwrap());
+    let ary_ty = types
+        .base_mut()
+        .array(ArrayType::new(ty, n.parse::<u32>().unwrap()));
     Ok((source, ary_ty))
 }
 
@@ -72,7 +71,7 @@ fn parse_struct<'a>(
     mut source: &'a str,
     types: &Types,
     is_packed: bool,
-) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+) -> IResult<&'a str, Type, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, tag(if is_packed { "}>" } else { "}" }))(source) {
         return Ok((source, types.base_mut().anonymous_struct(vec![], is_packed)));
     }
@@ -93,10 +92,12 @@ fn parse_struct<'a>(
 fn parse_func_type<'a>(
     mut source: &'a str,
     types: &Types,
-    ret: TypeId,
-) -> IResult<&'a str, TypeId, VerboseError<&'a str>> {
+    ret: Type,
+) -> IResult<&'a str, Type, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, char(')'))(source) {
-        let func_ty = types.base_mut().function(ret, vec![], false);
+        let func_ty = types
+            .base_mut()
+            .function(FunctionType::new(ret, vec![], false));
         return Ok((source, func_ty));
     }
 
@@ -123,7 +124,9 @@ fn parse_func_type<'a>(
     }
 
     let (source, _) = preceded(spaces, char(')'))(source)?;
-    let func_ty = types.base_mut().function(ret, params, is_var_arg);
+    let func_ty = types
+        .base_mut()
+        .function(FunctionType::new(ret, params, is_var_arg));
     Ok((source, func_ty))
 }
 
@@ -132,5 +135,5 @@ fn test_metadata() {
     let types = Types::default();
     let source = "  metadata ";
     let (_, ty) = parse(source, &types).unwrap();
-    assert!(types.base().metadata() == ty)
+    assert!(types.metadata() == ty)
 }

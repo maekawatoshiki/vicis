@@ -26,7 +26,7 @@ use vicis_core::ir::{
         Parameter,
     },
     module::name::Name,
-    types::{Type, TypeId},
+    types::Type,
     value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
 };
 
@@ -56,7 +56,7 @@ impl LowerTrait<X86_64> for Lower {
             let reg = args[gpr_used].apply(&RegClass::for_type(ctx.types, *ty));
             debug!(reg);
             // Copy reg to new vreg
-            assert!(*ctx.types.get(*ty) == Type::Int(32));
+            assert!(ty.is_i32());
             let output = ctx.mach_data.vregs.add_vreg_data(*ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
@@ -113,7 +113,7 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
 fn lower_alloca(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
-    tys: &[TypeId],
+    tys: &[Type],
     _num_elements: &ConstantData,
     _align: u32,
 ) -> Result<()> {
@@ -127,7 +127,7 @@ fn lower_alloca(
 fn lower_phi(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
-    ty: TypeId,
+    ty: Type,
     args: &[ValueId],
     blocks: &[BasicBlockId],
 ) -> Result<()> {
@@ -151,7 +151,7 @@ fn lower_bin(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     op: IrOpcode,
-    ty: TypeId,
+    ty: Type,
     args: &[ValueId],
 ) -> Result<()> {
     let lhs = val_to_vreg(ctx, ty, args[0])?;
@@ -204,19 +204,19 @@ fn lower_bin(
 fn lower_sext(
     ctx: &mut LoweringContext<X86_64>,
     self_id: InstructionId,
-    tys: &[TypeId; 2],
+    tys: &[Type; 2],
     arg: ValueId,
 ) -> Result<()> {
     let from = tys[0];
     let to = tys[1];
     // TODO
-    assert_eq!(*ctx.types.get(from), Type::Int(32));
-    assert_eq!(*ctx.types.get(to), Type::Int(64));
+    assert!(from.is_i32());
+    assert!(to.is_i64());
 
     let val = match ctx.ir_data.values[arg] {
         Value::Instruction(id) => {
             let is_mergeable_load =
-                ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from == ctx.types.base().i32();
+                ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from.is_i32();
 
             if is_mergeable_load {
                 let output = new_empty_inst_output(ctx, to, self_id);
@@ -261,7 +261,7 @@ fn lower_condbr(
     fn is_icmp<'a>(
         data: &'a IrData,
         val: &Value,
-    ) -> Option<(&'a TypeId, &'a [ValueId; 2], &'a ICmpCond)> {
+    ) -> Option<(&'a Type, &'a [ValueId; 2], &'a ICmpCond)> {
         match val {
             Value::Instruction(id) => {
                 let inst = data.inst_ref(*id);
@@ -323,7 +323,7 @@ fn lower_condbr(
 fn lower_call(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
-    tys: &[TypeId],
+    tys: &[Type],
     args: &[ValueId],
 ) -> Result<()> {
     let output = new_empty_inst_output(ctx, tys[0], id);
@@ -374,9 +374,9 @@ fn lower_call(
     Ok(())
 }
 
-fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) -> Result<()> {
+fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: Type, value: ValueId) -> Result<()> {
     let vreg = val_to_vreg(ctx, ty, value)?;
-    assert!(*ctx.types.get(ty) == Type::Int(32));
+    assert!(ty.is_i32());
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::MOVrr32,
@@ -404,7 +404,7 @@ fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: TypeId, value: ValueId) -
 // just create a new virtual register to store the instruction output.
 fn get_or_generate_inst_output(
     ctx: &mut LoweringContext<X86_64>,
-    ty: TypeId,
+    ty: Type,
     id: InstructionId,
 ) -> Result<VReg> {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
@@ -429,7 +429,7 @@ fn get_or_generate_inst_output(
     }
 }
 
-fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: InstructionId) -> VReg {
+fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: Type, id: InstructionId) -> VReg {
     if let Some(vreg) = ctx.inst_id_to_vreg.get(&id) {
         return *vreg;
     }
@@ -440,7 +440,7 @@ fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: TypeId, id: Inst
 
 fn val_to_operand_data(
     ctx: &mut LoweringContext<X86_64>,
-    ty: TypeId,
+    ty: Type,
     val: ValueId,
 ) -> Result<OperandData> {
     match ctx.ir_data.values[val] {
@@ -453,7 +453,7 @@ fn val_to_operand_data(
             ref args,
         })) => {
             // TODO: Split up into functions
-            assert!(matches!(&*ctx.types.get(ty), Type::Pointer(_)));
+            assert!(ty.is_pointer(&ctx.types));
             assert!(matches!(args[0], ConstantData::GlobalRef(_)));
             let all_indices_0 = args[1..]
                 .iter()
@@ -474,7 +474,7 @@ fn val_to_operand_data(
     }
 }
 
-fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: TypeId, val: ValueId) -> Result<VReg> {
+fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: Type, val: ValueId) -> Result<VReg> {
     match val_to_operand_data(ctx, ty, val)? {
         OperandData::Int32(i) => {
             let output = ctx.mach_data.vregs.add_vreg_data(ty);
