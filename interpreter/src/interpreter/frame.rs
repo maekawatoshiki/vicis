@@ -24,12 +24,12 @@ impl<'a> StackFrame<'a> {
         }
     }
 
-    pub fn add_inst_val(&mut self, id: InstructionId, val: GenericValue) {
-        self.val_map.insert(id, val);
-    }
-
     pub fn get_inst_val(&self, id: InstructionId) -> Option<GenericValue> {
         self.val_map.get(&id).copied()
+    }
+
+    pub fn set_inst_val(&mut self, id: InstructionId, val: GenericValue) {
+        self.val_map.insert(id, val);
     }
 
     pub fn get_val(&self, id: ValueId) -> Option<GenericValue> {

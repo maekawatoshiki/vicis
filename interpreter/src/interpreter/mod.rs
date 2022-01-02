@@ -9,9 +9,10 @@ use rustc_hash::FxHashMap;
 use std::{alloc, ffi, os::raw::c_void, ptr};
 use vicis_core::ir::{
     function::{
+        basic_block::BasicBlockId,
         instruction::{
             Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, InstructionId,
-            IntBinary, Load, Opcode, Operand, Ret, Store,
+            IntBinary, Load, Opcode, Operand, Phi, Ret, Store,
         },
         Function, FunctionId,
     },
@@ -39,6 +40,7 @@ pub fn run_function(
 
     let mut frame = StackFrame::new(ctx, func, args);
     let mut block = func.layout.first_block?;
+    let mut last_block = block; // TODO: We need a more elegant way.
 
     'main: loop {
         for (inst_id, inst) in func
@@ -53,6 +55,11 @@ pub fn run_function(
                     num_elements,
                     align,
                 }) => run_alloca(&mut frame, inst_id, tys, num_elements, *align),
+                Operand::Phi(Phi {
+                    ty: _,
+                    args,
+                    blocks,
+                }) => run_phi(&mut frame, last_block, inst_id, args, blocks),
                 Operand::Store(Store { tys, args, align }) => {
                     run_store(&mut frame, tys, args, *align)
                 }
@@ -80,6 +87,7 @@ pub fn run_function(
                 Operand::Call(Call { tys, args, .. }) => run_call(&mut frame, inst_id, tys, args),
                 Operand::CondBr(CondBr { arg, blocks }) => {
                     let arg = frame.get_val(*arg).unwrap();
+                    last_block = block;
                     block = blocks[if matches!(arg, GenericValue::Int1(true)) {
                         0
                     } else {
@@ -88,6 +96,7 @@ pub fn run_function(
                     continue 'main;
                 }
                 Operand::Br(Br { block: b }) => {
+                    last_block = block;
                     block = *b;
                     continue 'main;
                 }
@@ -104,6 +113,7 @@ pub fn run_function(
         }
 
         if let Some(next) = func.layout.next_block_of(block) {
+            last_block = block;
             block = next;
             continue;
         }
@@ -129,7 +139,22 @@ fn run_alloca(
     let ptr = unsafe {
         alloc::alloc(alloc::Layout::from_size_align(alloc_sz, alloc_align).expect("layout err"))
     };
-    frame.add_inst_val(id, GenericValue::Ptr(ptr));
+    frame.set_inst_val(id, GenericValue::Ptr(ptr));
+}
+
+fn run_phi(
+    frame: &mut StackFrame,
+    last_block: BasicBlockId,
+    id: InstructionId,
+    args: &[ValueId],
+    blocks: &[BasicBlockId],
+) {
+    let idx = blocks
+        .iter()
+        .position(|&block| block == last_block)
+        .unwrap(); // TODO: It may be slow to iterate over blocks.
+    let val = frame.get_val(args[idx]).unwrap();
+    frame.set_inst_val(id, val);
 }
 
 fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u32) {
@@ -153,7 +178,7 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
     let addr = frame.get_val(addr).unwrap();
 
     if ty.is_i8() {
-        frame.add_inst_val(
+        frame.set_inst_val(
             id,
             GenericValue::Int8(unsafe { *(addr.to_ptr().unwrap() as *const i8) }),
         );
@@ -161,7 +186,7 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
     }
 
     if ty.is_i32() {
-        frame.add_inst_val(
+        frame.set_inst_val(
             id,
             GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
         );
@@ -169,7 +194,7 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
     }
 
     if ty.is_pointer(&frame.func.types) {
-        frame.add_inst_val(
+        frame.set_inst_val(
             id,
             GenericValue::Ptr(unsafe { *(addr.to_ptr().unwrap() as *const *mut u8) }),
         );
@@ -183,11 +208,11 @@ fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, arg
     let x = frame.get_val(args[0]).unwrap();
     let y = frame.get_val(args[1]).unwrap();
     match opcode {
-        Opcode::Add => frame.add_inst_val(id, add(x, y).unwrap()),
-        Opcode::Sub => frame.add_inst_val(id, sub(x, y).unwrap()),
-        Opcode::Mul => frame.add_inst_val(id, mul(x, y).unwrap()),
-        Opcode::SDiv => frame.add_inst_val(id, sdiv(x, y).unwrap()),
-        Opcode::SRem => frame.add_inst_val(id, srem(x, y).unwrap()),
+        Opcode::Add => frame.set_inst_val(id, add(x, y).unwrap()),
+        Opcode::Sub => frame.set_inst_val(id, sub(x, y).unwrap()),
+        Opcode::Mul => frame.set_inst_val(id, mul(x, y).unwrap()),
+        Opcode::SDiv => frame.set_inst_val(id, sdiv(x, y).unwrap()),
+        Opcode::SRem => frame.set_inst_val(id, srem(x, y).unwrap()),
         _ => todo!(),
     };
 }
@@ -200,7 +225,7 @@ fn run_icmp(frame: &mut StackFrame, id: InstructionId, args: &[ValueId], cond: I
         ICmpCond::Sle => sle(x, y).unwrap(),
         _ => todo!(),
     };
-    frame.add_inst_val(id, res);
+    frame.set_inst_val(id, res);
 }
 
 fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Type], arg: ValueId) {
@@ -218,7 +243,7 @@ fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Ty
         }
         t => todo!("cast {:?}", t),
     };
-    frame.add_inst_val(id, val)
+    frame.set_inst_val(id, val)
 }
 
 fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[ValueId]) {
@@ -238,7 +263,7 @@ fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[Valu
             cur_ty = inner;
         }
     }
-    frame.add_inst_val(id, GenericValue::Ptr(unsafe { arg.add(total) }));
+    frame.set_inst_val(id, GenericValue::Ptr(unsafe { arg.add(total) }));
 }
 
 fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[ValueId]) {
@@ -251,7 +276,7 @@ fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[Va
     if let Some(ret) = run_function(frame.ctx, *func_id, args) {
         match ret {
             GenericValue::Void => {}
-            v => frame.add_inst_val(id, v),
+            v => frame.set_inst_val(id, v),
         }
     }
 }
