@@ -105,9 +105,9 @@ impl fmt::Debug for Attribute {
             Attribute::ShadowCallStack => write!(f, "shadowcallstack"),
             Attribute::SpeculativeLoadHardening => write!(f, "speculativeloadhardening"),
             Attribute::Speculatable => write!(f, "speculatable"),
-            Attribute::StackProtect => write!(f, "stackprotect"),
-            Attribute::StackProtectReq => write!(f, "stackprotectreq"),
-            Attribute::StackProtectStrong => write!(f, "stackprotectstrong"),
+            Attribute::StackProtect => write!(f, "ssp"),
+            Attribute::StackProtectReq => write!(f, "sspreq"),
+            Attribute::StackProtectStrong => write!(f, "sspstrong"),
             Attribute::StrictFP => write!(f, "strictfp"),
             Attribute::UWTable => write!(f, "uwtable"),
             Attribute::StringAttribute { kind, value } if value.is_empty() => {

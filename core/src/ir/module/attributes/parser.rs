@@ -64,9 +64,9 @@ pub fn parse_attribute(source: &str) -> IResult<&str, Attribute, VerboseError<&s
                 Attribute::SpeculativeLoadHardening
             }),
             map(tag("speculatable"), |_| Attribute::Speculatable),
-            map(tag("stackprotect"), |_| Attribute::StackProtect),
-            map(tag("stackprotectreq"), |_| Attribute::StackProtectReq),
-            map(tag("stackprotectstrong"), |_| Attribute::StackProtectStrong),
+            map(tag("ssp"), |_| Attribute::StackProtect),
+            map(tag("sspreq"), |_| Attribute::StackProtectReq),
+            map(tag("sspstrong"), |_| Attribute::StackProtectStrong),
             map(tag("strictfp"), |_| Attribute::StrictFP),
             map(tag("uwtable"), |_| Attribute::UWTable),
             // map(tag("unknownattribute"), |_| Attribute::UnknownAttribute),
