@@ -9,9 +9,10 @@ use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Alloca, InstructionId, IntBinary, Load, Operand, Ret, Store},
+        instruction::{Alloca, Br, CondBr, InstructionId, IntBinary, Load, Operand, Ret, Store},
         Function,
     },
+    types as llvm_types,
     types::Type as LlvmTy,
     value::ValueId,
     value::{ConstantData, ConstantInt, Value as LlvmValue},
@@ -74,6 +75,17 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                 let val = self.builder.ins().iadd(lhs, rhs);
                 self.insts.insert(inst_id, val);
             }
+            Operand::Br(Br { block }) => {
+                self.builder.ins().jump(self.blocks[&block], &[]); // TODO: Set block parameters.
+            }
+            Operand::CondBr(CondBr { arg, blocks }) => {
+                let arg = self
+                    .value(arg, llvm_types::I1)
+                    .as_value()
+                    .expect("better use ? here");
+                self.builder.ins().brnz(arg, self.blocks[&blocks[0]], &[]); // TODO: Set block parameters.
+                self.builder.ins().jump(self.blocks[&blocks[1]], &[]); // TODO: Set block parameters.
+            }
             Operand::Ret(Ret { val: Some(val), ty }) => {
                 let val = self.value(val, ty).as_value().expect("better use ? here");
                 self.builder.ins().return_(&[val]);
@@ -91,6 +103,11 @@ impl<'a, M: Module> InstCompiler<'a, M> {
     fn value(&mut self, val_id: ValueId, ty: LlvmTy) -> ValueKind {
         match self.llvm_func.data.value_ref(val_id) {
             LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => ValueKind::Value(
+                self.builder
+                    .ins()
+                    .iconst(self.lower_ctx.into_clif_ty(ty), *i as i64),
+            ),
+            LlvmValue::Constant(ConstantData::Int(ConstantInt::Int1(i))) => ValueKind::Value(
                 self.builder
                     .ins()
                     .iconst(self.lower_ctx.into_clif_ty(ty), *i as i64),

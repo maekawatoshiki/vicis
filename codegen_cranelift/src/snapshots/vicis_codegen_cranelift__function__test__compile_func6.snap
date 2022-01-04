@@ -1,0 +1,20 @@
+---
+source: codegen_cranelift/src/function.rs
+assertion_line: 171
+expression: f.display()
+
+---
+function u0:0(i32) -> i32 fast {
+block0(v0: i32):
+    v1 = iconst.i8 1
+    brnz v1, block1
+    jump block2
+
+block1:
+    return v0
+
+block2:
+    v2 = iconst.i32 0
+    return v2
+}
+

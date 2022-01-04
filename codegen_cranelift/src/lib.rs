@@ -21,6 +21,10 @@ impl<'a, M: Module> LowerCtx<'a, M> {
     }
 
     pub fn into_clif_ty(&self, ty: LlvmType) -> Type {
+        if ty.is_i1() {
+            return types::I8;
+        }
+
         if ty.is_i32() {
             return types::I32;
         }

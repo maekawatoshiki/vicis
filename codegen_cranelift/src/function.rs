@@ -69,8 +69,12 @@ fn compile_body<M: Module>(
         stack_slots: FxHashMap::default(),
     };
 
+    for block_id in llvm_func.layout.block_iter() {
+        compiler.create_block_for(block_id);
+    }
+
     for (i, block_id) in llvm_func.layout.block_iter().enumerate() {
-        let block = compiler.create_block_for(block_id);
+        let block = compiler.blocks[&block_id];
         if i == 0 {
             compiler
                 .builder
@@ -133,6 +137,35 @@ mod test {
           store i32 123, i32* %1, align 4
           %2 = load i32, i32* %1, align 4
           ret i32 %2
+        }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
+    #[test]
+    fn compile_func5() {
+        let f = compile_main(
+            r#"
+        define dso_local i32 @main(i32 %0) #0 {
+          %a = add nsw i32 %0, 1
+          br label %l
+        l:
+          ret i32 %a
+        }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
+    #[test]
+    fn compile_func6() {
+        let f = compile_main(
+            r#"
+        define dso_local i32 @main(i32 %0) #0 {
+          br i1 true, label %l, label %r
+        l:
+          ret i32 %0
+        r:
+          ret i32 0
         }"#,
         );
         insta::assert_display_snapshot!(f.display());
