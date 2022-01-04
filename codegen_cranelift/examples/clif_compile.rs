@@ -1,6 +1,5 @@
 extern crate structopt;
 extern crate vicis_core;
-// extern crate vicis_interpreter;
 
 use cranelift::prelude::Configurable;
 use cranelift_codegen::{isa, settings};
@@ -17,22 +16,14 @@ use vicis_core::ir::module;
 pub struct Opt {
     pub ir_file: String,
 
-    #[structopt(long = "load")]
-    pub libs: Vec<String>,
+    #[structopt(short = "o")]
+    pub output_file: Option<String>,
 }
 
 fn main() {
     let opt = Opt::from_args();
     let ir = fs::read_to_string(opt.ir_file).expect("failed to load *.ll file");
     let module = module::parse_assembly(ir.as_str()).expect("failed to parse LLVM Assembly");
-    // let main = module
-    //     .find_function_by_name("main")
-    //     .expect("failed to lookup 'main'");
-    // let ctx = interpreter::Context::new(&module)
-    //     .with_libs(opt.libs)
-    //     .expect("failed to load library");
-    // let ret = interpreter::run_function(&ctx, main, vec![]);
-    // process::exit(ret.expect("unknown error").sext_to_i64().unwrap_or(0) as i32)
 
     let mut flag_builder = settings::builder();
     flag_builder.enable("is_pic").unwrap();
@@ -57,7 +48,7 @@ fn main() {
 
     let product = clif_mod.finish();
     let obj = product.emit().unwrap();
-    std::fs::File::create("output.o")
+    std::fs::File::create(opt.output_file.unwrap_or("a.o".to_owned()))
         .unwrap()
         .write(&obj)
         .unwrap();
