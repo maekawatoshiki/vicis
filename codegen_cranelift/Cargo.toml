@@ -9,6 +9,7 @@ cranelift = "0.79.0"
 cranelift-module = "0.79.0"
 cranelift-codegen = "0.79.0"
 rustc-hash = "^1.1.0"
+structopt = "0.3.25"
 
 [dev-dependencies]
 cranelift-object = "0.79.0"

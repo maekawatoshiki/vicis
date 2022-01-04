@@ -38,9 +38,13 @@ pub fn compile_function<M: Module>(
 }
 
 /// An utility function to declare and define a cranelift function.
-pub fn declare_and_define_function<M: Module>(clif_mod: &mut M, clif_ctx: &mut Context) -> FuncId {
+pub fn declare_and_define_function<M: Module>(
+    clif_mod: &mut M,
+    clif_ctx: &mut Context,
+    name: impl AsRef<str>,
+) -> FuncId {
     let id = clif_mod
-        .declare_function("func", Linkage::Export, &clif_ctx.func.signature)
+        .declare_function(name.as_ref(), Linkage::Export, &clif_ctx.func.signature)
         .unwrap();
     clif_mod
         .define_function(id, clif_ctx, &mut NullTrapSink {}, &mut NullStackMapSink {})
@@ -189,7 +193,7 @@ define dso_local i32 @main() {
         let module = module::parse_assembly(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
         compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
-        let func_id = declare_and_define_function(&mut clif_mod, &mut clif_ctx);
+        let func_id = declare_and_define_function(&mut clif_mod, &mut clif_ctx, "func");
         clif_mod.finalize_definitions();
 
         let code = clif_mod.get_finalized_function(func_id);
@@ -217,7 +221,7 @@ define dso_local i32 @main(i32 %arg.0) {
         let module = module::parse_assembly(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
         compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
-        let id = declare_and_define_function(&mut clif_mod, &mut clif_ctx);
+        let id = declare_and_define_function(&mut clif_mod, &mut clif_ctx, "func");
         clif_mod.finalize_definitions();
 
         let code = clif_mod.get_finalized_function(id);
