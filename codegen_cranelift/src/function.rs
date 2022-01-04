@@ -69,6 +69,7 @@ fn compile_body<M: Module>(
         stack_slots: FxHashMap::default(),
     };
 
+    // Create all basic blocks.
     for block_id in llvm_func.layout.block_iter() {
         compiler.create_block_for(block_id);
     }
@@ -81,10 +82,15 @@ fn compile_body<M: Module>(
                 .append_block_params_for_function_params(block);
         }
         compiler.builder.switch_to_block(block);
-        compiler.builder.seal_block(block);
         for inst_id in llvm_func.layout.inst_iter(block_id) {
             compiler.compile(inst_id);
         }
+    }
+
+    // Seal all basic blocks.
+    for block_id in llvm_func.layout.block_iter() {
+        let block = compiler.blocks[&block_id];
+        compiler.builder.seal_block(block);
     }
 
     compiler.builder.finalize();
@@ -167,6 +173,46 @@ mod test {
         r:
           ret i32 0
         }"#,
+        );
+        insta::assert_display_snapshot!(f.display());
+    }
+
+    #[test]
+    fn compile_func7() {
+        let f = compile_main(
+            r#"
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
+  %3 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  store i32 0, i32* %2, align 4
+  store i32 1, i32* %3, align 4
+  br label %4
+
+4:                                                ; preds = %11, %0
+  %5 = load i32, i32* %3, align 4
+  %6 = icmp sle i32 %5, 10
+  br i1 %6, label %7, label %14
+
+7:                                                ; preds = %4
+  %8 = load i32, i32* %3, align 4
+  %9 = load i32, i32* %2, align 4
+  %10 = add nsw i32 %9, %8
+  store i32 %10, i32* %2, align 4
+  br label %11
+
+11:                                               ; preds = %7
+  %12 = load i32, i32* %3, align 4
+  %13 = add nsw i32 %12, 1
+  store i32 %13, i32* %3, align 4
+  br label %4
+
+14:                                               ; preds = %4
+  %15 = load i32, i32* %2, align 4
+  ret i32 %15
+}
+        "#,
         );
         insta::assert_display_snapshot!(f.display());
     }

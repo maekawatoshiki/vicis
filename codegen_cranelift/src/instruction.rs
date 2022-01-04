@@ -1,7 +1,7 @@
 use super::LowerCtx;
 use cranelift::{
     frontend::FunctionBuilder,
-    prelude::{Block, InstBuilder, StackSlotData, StackSlotKind, Value},
+    prelude::{Block, InstBuilder, IntCC, StackSlotData, StackSlotKind, Value},
 };
 use cranelift_codegen::ir::StackSlot;
 use cranelift_module::Module;
@@ -9,7 +9,9 @@ use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Alloca, Br, CondBr, InstructionId, IntBinary, Load, Operand, Ret, Store},
+        instruction::{
+            Alloca, Br, CondBr, ICmp, ICmpCond, InstructionId, IntBinary, Load, Operand, Ret, Store,
+        },
         Function,
     },
     types as llvm_types,
@@ -75,6 +77,25 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                 let val = self.builder.ins().iadd(lhs, rhs);
                 self.insts.insert(inst_id, val);
             }
+            Operand::ICmp(ICmp { args, cond, ty }) => {
+                let lhs = self
+                    .value(args[0], ty)
+                    .as_value()
+                    .expect("better use ? here");
+                let rhs = self
+                    .value(args[1], ty)
+                    .as_value()
+                    .expect("better use ? here");
+                let val = self.builder.ins().icmp(
+                    match cond {
+                        ICmpCond::Sle => IntCC::SignedLessThanOrEqual,
+                        _ => todo!(),
+                    },
+                    lhs,
+                    rhs,
+                );
+                self.insts.insert(inst_id, val);
+            }
             Operand::Br(Br { block }) => {
                 self.builder.ins().jump(self.blocks[&block], &[]); // TODO: Set block parameters.
             }
@@ -90,7 +111,9 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                 let val = self.value(val, ty).as_value().expect("better use ? here");
                 self.builder.ins().return_(&[val]);
             }
-            _ => {}
+            _ => {
+                todo!()
+            }
         };
     }
 

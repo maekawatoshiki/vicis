@@ -1,0 +1,46 @@
+---
+source: codegen_cranelift/src/function.rs
+assertion_line: 217
+expression: f.display()
+
+---
+function u0:0() -> i32 fast {
+    ss0 = explicit_slot 4
+    ss1 = explicit_slot 4
+    ss2 = explicit_slot 4
+
+block0:
+    v0 = iconst.i32 0
+    stack_store v0, ss0
+    v1 = iconst.i32 0
+    stack_store v1, ss1
+    v2 = iconst.i32 1
+    stack_store v2, ss2
+    jump block1
+
+block1:
+    v3 = stack_load.i32 ss2
+    v4 = iconst.i32 10
+    v5 = icmp sle v3, v4
+    brnz v5, block2
+    jump block4
+
+block2:
+    v6 = stack_load.i32 ss2
+    v7 = stack_load.i32 ss1
+    v8 = iadd v7, v6
+    stack_store v8, ss1
+    jump block3
+
+block3:
+    v9 = stack_load.i32 ss2
+    v10 = iconst.i32 1
+    v11 = iadd v9, v10
+    stack_store v11, ss2
+    jump block1
+
+block4:
+    v12 = stack_load.i32 ss1
+    return v12
+}
+
