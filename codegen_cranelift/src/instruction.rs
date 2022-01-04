@@ -118,6 +118,9 @@ impl<'a, M: Module> InstCompiler<'a, M> {
     }
 
     pub fn create_block_for(&mut self, block_id: BasicBlockId) -> Block {
+        if let Some(block) = self.blocks.get(&block_id) {
+            return *block;
+        }
         let block = self.builder.create_block();
         self.blocks.insert(block_id, block);
         block
