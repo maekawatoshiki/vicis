@@ -1,5 +1,5 @@
 [package]
-name = "vicis_codegen_cranelift"
+name = "vicis-codegen-cranelift"
 version = "0.2.0"
 edition = "2021"
 

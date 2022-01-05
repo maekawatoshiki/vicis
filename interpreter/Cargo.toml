@@ -1,5 +1,5 @@
 [package]
-name = "vicis_interpreter"
+name = "vicis-interpreter"
 version = "0.2.0"
 edition = "2021"
 
@@ -14,5 +14,5 @@ id-arena = "^2.2.1"
 anyhow = "^1.0.38"
 
 [dev-dependencies]
-vicis_interpreter = { path = "../interpreter" }
+vicis-interpreter = { path = "../interpreter" }
 structopt = "0.3.18"
