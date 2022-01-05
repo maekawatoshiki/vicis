@@ -9,14 +9,26 @@ use vicis_core::ir::module::Module as LlvmModule;
 pub fn compile_module<M: Module>(clif_mod: &mut M, clif_ctx: &mut Context, llvm_mod: &LlvmModule) {
     let mut lower_ctx = LowerCtx::new(llvm_mod, clif_mod);
 
-    for (func_id, func) in llvm_mod.functions() {
-        compile_function(&mut lower_ctx, clif_ctx, func_id);
+    let mut funcs = vec![];
+    let mut protos = vec![];
 
-        if func.is_prototype() {
-            lower_ctx.clif_mod.clear_context(clif_ctx);
-            continue;
+    for func in llvm_mod.functions() {
+        if func.1.is_prototype() {
+            protos.push(func);
+        } else {
+            funcs.push(func);
         }
+    }
 
+    // Declare prototypes first.
+    for (func_id, _) in protos {
+        compile_function(&mut lower_ctx, clif_ctx, func_id);
+        lower_ctx.clif_mod.clear_context(clif_ctx);
+    }
+
+    // Define functions.
+    for (func_id, func) in funcs {
+        compile_function(&mut lower_ctx, clif_ctx, func_id);
         declare_and_define_function(lower_ctx.clif_mod, clif_ctx, func.name().as_str());
     }
 }
