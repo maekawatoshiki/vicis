@@ -169,6 +169,15 @@ impl ConstantInt {
             Self::Int64(i) => i as usize,
         }
     }
+
+    pub fn cast_to_i64(self) -> i64 {
+        match self {
+            Self::Int1(i) => i as i64,
+            Self::Int8(i) => i as i64,
+            Self::Int32(i) => i as i64,
+            Self::Int64(i) => i as i64,
+        }
+    }
 }
 
 impl ConstantArray {

@@ -7,21 +7,16 @@ use cranelift::{
 use cranelift_codegen::Context;
 use cranelift_module::{FuncId, Linkage, Module};
 use rustc_hash::FxHashMap;
-use vicis_core::ir::{
-    function::{Function, FunctionId},
-    module::Module as LlvmModule,
-};
+use vicis_core::ir::function::{Function, FunctionId};
 
 /// Compiles a llvm function to a cranelift function.
 pub fn compile_function<M: Module>(
-    clif_mod: &mut M,
+    lower_ctx: &mut LowerCtx<'_, M>,
     clif_ctx: &mut Context,
-    llvm_mod: &LlvmModule,
     llvm_func_id: FunctionId,
 ) {
-    let llvm_func = &llvm_mod.functions()[llvm_func_id];
+    let llvm_func = &lower_ctx.llvm_mod.functions()[llvm_func_id];
     let mut builder_ctx = FunctionBuilderContext::new();
-    let mut lower_ctx = LowerCtx::new(llvm_mod, clif_mod);
 
     for param in &llvm_func.params {
         let clif_ty = lower_ctx.into_clif_ty(param.ty);
@@ -34,7 +29,22 @@ pub fn compile_function<M: Module>(
         .returns
         .push(AbiParam::new(clif_result_ty));
 
-    compile_body(&mut lower_ctx, &mut builder_ctx, clif_ctx, llvm_func);
+    if llvm_func.is_prototype() {
+        lower_ctx
+            .clif_mod
+            .declare_function(
+                llvm_func.name().as_str(),
+                Linkage::Import,
+                &clif_ctx.func.signature,
+            )
+            .unwrap();
+        return;
+    }
+
+    compile_body(lower_ctx, &mut builder_ctx, clif_ctx, llvm_func);
+
+    #[cfg(debug_assertions)]
+    dbg!(&clif_ctx.func);
 }
 
 /// An utility function to declare and define a cranelift function.
@@ -243,7 +253,11 @@ define dso_local i32 @main() #0 {
 
         let module = module::parse_assembly(source).unwrap();
         let llvm_func_id = module.find_function_by_name("main").unwrap();
-        compile_function(&mut clif_mod, &mut clif_ctx, &module, llvm_func_id);
+        compile_function(
+            &mut LowerCtx::new(&module, &mut clif_mod),
+            &mut clif_ctx,
+            llvm_func_id,
+        );
 
         // TODO: FIXME: Depending on OS and ISA, the calling convention may vary.
         // This makes it difficult to do testing using insta because the text representation
@@ -271,7 +285,11 @@ define dso_local i32 @main() {
 
         let module = module::parse_assembly(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
-        compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
+        compile_function(
+            &mut LowerCtx::new(&module, &mut clif_mod),
+            &mut clif_ctx,
+            func_id,
+        );
         let func_id = declare_and_define_function(&mut clif_mod, &mut clif_ctx, "func");
         clif_mod.finalize_definitions();
 
@@ -299,7 +317,11 @@ define dso_local i32 @main(i32 %arg.0) {
 
         let module = module::parse_assembly(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
-        compile_function(&mut clif_mod, &mut clif_ctx, &module, func_id);
+        compile_function(
+            &mut LowerCtx::new(&module, &mut clif_mod),
+            &mut clif_ctx,
+            func_id,
+        );
         let id = declare_and_define_function(&mut clif_mod, &mut clif_ctx, "func");
         clif_mod.finalize_definitions();
 

@@ -1,20 +1,23 @@
-use crate::function::compile_function;
+use crate::{
+    function::{compile_function, declare_and_define_function},
+    LowerCtx,
+};
 use cranelift_codegen::Context;
-use cranelift_module::{Linkage, Module};
+use cranelift_module::Module;
 use vicis_core::ir::module::Module as LlvmModule;
 
 pub fn compile_module<M: Module>(clif_mod: &mut M, clif_ctx: &mut Context, llvm_mod: &LlvmModule) {
+    let mut lower_ctx = LowerCtx::new(llvm_mod, clif_mod);
+
     for (func_id, func) in llvm_mod.functions() {
+        compile_function(&mut lower_ctx, clif_ctx, func_id);
+
         if func.is_prototype() {
-            // dbg!(func);
-            let sig = clif_mod.make_signature();
-            clif_mod
-                .declare_function(func.name().as_str(), Linkage::Import, &sig)
-                .expect("?");
+            lower_ctx.clif_mod.clear_context(clif_ctx);
             continue;
         }
 
-        compile_function(clif_mod, clif_ctx, llvm_mod, func_id)
+        declare_and_define_function(lower_ctx.clif_mod, clif_ctx, func.name().as_str());
     }
 }
 
@@ -24,17 +27,16 @@ mod test {
 
     #[test]
     fn test1() {
-        // compile(
-        //     r#"
-        // declare dso_local i32 @putchar(i8 signext)
-        // define dso_local i32 @main() {
-        //   call i32 @putchar(i8 signext 65)
-        //   ret i32 0
-        // }"#,
-        // );
+        compile(
+            r#"
+        declare dso_local i32 @putchar(i8 signext)
+        define dso_local i32 @main() {
+          call i32 @putchar(i8 signext 65)
+          ret i32 0
+        }"#,
+        );
     }
 
-    #[allow(dead_code)]
     fn compile(source: &str) {
         use cranelift::prelude::Configurable;
         use cranelift_codegen::{isa, settings};
@@ -60,5 +62,7 @@ mod test {
 
         let module = module::parse_assembly(source).unwrap();
         compile_module(&mut clif_mod, &mut clif_ctx, &module);
+
+        clif_mod.finish();
     }
 }

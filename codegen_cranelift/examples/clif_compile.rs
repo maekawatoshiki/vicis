@@ -8,7 +8,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 use std::fs;
 use std::io::Write;
 use structopt::StructOpt;
-use vicis_codegen_cranelift::function::{compile_function, declare_and_define_function};
+use vicis_codegen_cranelift::module::compile_module;
 use vicis_core::ir::module;
 
 #[derive(Debug, StructOpt)]
@@ -42,9 +42,7 @@ fn main() {
     let mut clif_mod = ObjectModule::new(builder);
     let mut clif_ctx = clif_mod.make_context();
 
-    let llvm_func_id = module.find_function_by_name("main").unwrap();
-    compile_function(&mut clif_mod, &mut clif_ctx, &module, llvm_func_id);
-    let _id = declare_and_define_function(&mut clif_mod, &mut clif_ctx, "main");
+    compile_module(&mut clif_mod, &mut clif_ctx, &module);
 
     let product = clif_mod.finish();
     let obj = product.emit().unwrap();

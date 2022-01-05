@@ -26,6 +26,10 @@ impl<'a, M: Module> LowerCtx<'a, M> {
             return types::I8;
         }
 
+        if ty.is_i8() {
+            return types::I8;
+        }
+
         if ty.is_i32() {
             return types::I32;
         }

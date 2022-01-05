@@ -4,20 +4,22 @@ use cranelift::{
     prelude::{Block, InstBuilder, IntCC, StackSlotData, StackSlotKind, Value},
 };
 use cranelift_codegen::ir::StackSlot;
-use cranelift_module::Module;
+use cranelift_module::{FuncOrDataId, Module};
 use rustc_hash::FxHashMap;
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId,
         instruction::{
-            Alloca, Br, CondBr, ICmp, ICmpCond, InstructionId, IntBinary, Load, Operand, Ret, Store,
+            Alloca, Br, Call, CondBr, ICmp, ICmpCond, InstructionId, IntBinary, Load, Operand, Ret,
+            Store,
         },
         Function,
     },
+    module::name::Name,
     types as llvm_types,
     types::Type as LlvmTy,
     value::ValueId,
-    value::{ConstantData, ConstantInt, Value as LlvmValue},
+    value::{ConstantData, Value as LlvmValue},
 };
 
 pub struct InstCompiler<'a, M: Module> {
@@ -53,6 +55,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                             .stack_load(self.lower_ctx.into_clif_ty(ty), slot, 0);
                     self.insts.insert(inst_id, dst);
                 }
+                _ => todo!(),
             },
             Operand::Store(Store {
                 args: [src, dst],
@@ -65,6 +68,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                     ValueKind::StackSlot(slot) => {
                         self.builder.ins().stack_store(src, slot, 0);
                     }
+                    _ => todo!(),
                 }
             }
             Operand::IntBinary(IntBinary {
@@ -107,6 +111,33 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                 self.builder.ins().brnz(arg, self.blocks[&blocks[0]], &[]); // TODO: Set block parameters.
                 self.builder.ins().jump(self.blocks[&blocks[1]], &[]); // TODO: Set block parameters.
             }
+            Operand::Call(Call {
+                ref args, ref tys, ..
+            }) => {
+                let callee = self.value(args[0], llvm_types::VOID);
+                let args = args[1..]
+                    .iter()
+                    .zip(&tys[1..])
+                    .map(|(&arg, &ty)| self.value(arg, ty).as_value().unwrap())
+                    .collect::<Vec<_>>();
+                let name = callee
+                    .as_global_name()
+                    .expect("Only support calling named global function");
+                let func_id = match self.lower_ctx.clif_mod.get_name(name.as_str()).unwrap() {
+                    FuncOrDataId::Func(func_id) => func_id,
+                    _ => todo!(),
+                };
+                let callee = self
+                    .lower_ctx
+                    .clif_mod
+                    .declare_func_in_func(func_id, &mut self.builder.func);
+                let call = self.builder.ins().call(callee, &args);
+                let result_ty = tys[0];
+                if !result_ty.is_void() {
+                    let result = self.builder.inst_results(call)[0];
+                    self.insts.insert(inst_id, result);
+                }
+            }
             Operand::Ret(Ret { val: Some(val), ty }) => {
                 let val = self.value(val, ty).as_value().expect("better use ? here");
                 self.builder.ins().return_(&[val]);
@@ -128,16 +159,14 @@ impl<'a, M: Module> InstCompiler<'a, M> {
 
     fn value(&mut self, val_id: ValueId, ty: LlvmTy) -> ValueKind {
         match self.llvm_func.data.value_ref(val_id) {
-            LlvmValue::Constant(ConstantData::Int(ConstantInt::Int32(i))) => ValueKind::Value(
+            LlvmValue::Constant(ConstantData::Int(i)) => ValueKind::Value(
                 self.builder
                     .ins()
-                    .iconst(self.lower_ctx.into_clif_ty(ty), *i as i64),
+                    .iconst(self.lower_ctx.into_clif_ty(ty), i.cast_to_i64()),
             ),
-            LlvmValue::Constant(ConstantData::Int(ConstantInt::Int1(i))) => ValueKind::Value(
-                self.builder
-                    .ins()
-                    .iconst(self.lower_ctx.into_clif_ty(ty), *i as i64),
-            ),
+            LlvmValue::Constant(ConstantData::GlobalRef(Name::Name(name))) => {
+                ValueKind::GlobalName(name.to_owned())
+            }
             LlvmValue::Argument(idx) => {
                 let entry = self.llvm_func.layout.get_entry_block().unwrap();
                 let entry = self.blocks[&entry];
@@ -160,6 +189,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
 enum ValueKind {
     Value(Value),
     StackSlot(StackSlot),
+    GlobalName(String),
 }
 
 impl ValueKind {
@@ -177,6 +207,15 @@ impl ValueKind {
     fn as_stack_slot(&self) -> Option<StackSlot> {
         match self {
             ValueKind::StackSlot(s) => Some(*s),
+            _ => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    #[inline(always)]
+    fn as_global_name(&self) -> Option<&String> {
+        match self {
+            ValueKind::GlobalName(s) => Some(s),
             _ => None,
         }
     }
