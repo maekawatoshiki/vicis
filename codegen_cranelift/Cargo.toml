@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-vicis_core = { path = "../core" }
+vicis-core = { path = "../core" }
 cranelift = "0.79.0"
 cranelift-module = "0.79.0"
 cranelift-codegen = "0.79.0"
