@@ -4,25 +4,27 @@
 [![codecov](https://codecov.io/gh/maekawatoshiki/vicis/branch/master/graph/badge.svg)](https://codecov.io/gh/maekawatoshiki/vicis)
 [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Manipulate LLVM-IR in Pure Rust
+Vicis enables you to manipulate LLVM IR in pure Rust (without LLVM!).
 
-# TODO
-
-- [ ] Implement parser for all LLVM Assembly features 
-- [ ] Implement interpreter and code generator for some architectures (WIP x86)
-- [ ] Write documents
+Feel free to create issues and pull requests!
 
 # Requirements
 
 - ~~llvm (== 12.0.0) is used for tests~~
   - You don't need it anymore!
 
-# Example
+# Examples
 
 - Read `*.ll` file
 
 ```sh
 cargo run --example parse FILE.ll
+```
+
+- Interpret `*.ll` file
+
+```
+cargo run --example interpreter FILE.ll
 ```
 
 - Iterate over instructions
@@ -66,7 +68,7 @@ fn run_on_function(func: &Function) {
 }
 ```
 
-- Compile LLVM-IR into machine code
+- Compile LLVM IR into machine code
 
 ```rust
 // LLVM Assembly
