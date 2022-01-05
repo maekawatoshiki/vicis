@@ -5,6 +5,7 @@ extern crate vicis_core;
 
 pub mod function;
 mod instruction;
+pub mod module;
 
 use cranelift::codegen::{ir::types, ir::types::Type};
 use cranelift_module::Module;
