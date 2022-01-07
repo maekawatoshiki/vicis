@@ -221,9 +221,16 @@ fn run_icmp(frame: &mut StackFrame, id: InstructionId, args: &[ValueId], cond: I
     let x = frame.get_val(args[0]).unwrap();
     let y = frame.get_val(args[1]).unwrap();
     let res = match cond {
+        ICmpCond::Eq => eq(x, y).unwrap(),
+        ICmpCond::Ne => ne(x, y).unwrap(),
+        ICmpCond::Ugt => ugt(x, y).unwrap(),
+        ICmpCond::Uge => uge(x, y).unwrap(),
+        ICmpCond::Ult => ult(x, y).unwrap(),
+        ICmpCond::Ule => ule(x, y).unwrap(),
         ICmpCond::Slt => slt(x, y).unwrap(),
         ICmpCond::Sle => sle(x, y).unwrap(),
-        _ => todo!(),
+        ICmpCond::Sgt => sgt(x, y).unwrap(),
+        ICmpCond::Sge => sge(x, y).unwrap(),
     };
     frame.set_inst_val(id, res);
 }
@@ -318,6 +325,48 @@ fn srem(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     }
 }
 
+fn eq(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x == y)),
+        _ => None,
+    }
+}
+
+fn ne(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x != y)),
+        _ => None,
+    }
+}
+
+fn ult(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x < y)),
+        _ => None,
+    }
+}
+
+fn ule(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x <= y)),
+        _ => None,
+    }
+}
+
+fn ugt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x > y)),
+        _ => None,
+    }
+}
+
+fn uge(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x >= y)),
+        _ => None,
+    }
+}
+
 fn slt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x < y)),
@@ -328,6 +377,20 @@ fn slt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn sle(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x <= y)),
+        _ => None,
+    }
+}
+
+fn sgt(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x > y)),
+        _ => None,
+    }
+}
+
+fn sge(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x >= y)),
         _ => None,
     }
 }
