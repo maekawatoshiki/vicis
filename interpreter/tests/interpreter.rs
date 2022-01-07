@@ -4,31 +4,25 @@ use vicis_interpreter::{generic_value::GenericValue, interpreter};
 #[test]
 fn exec() {
     let asm = r#"
-source_filename = "asm.c"                                                                          
-target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"     
-target triple = "x86_64-pc-linux-gnu"                                                            
-                                                                                                 
-; Function Attrs: noinline nounwind optnone uwtable                                              
-define dso_local i32 @main() #0 {                                                                
-  %1 = alloca i32, align 4                                                                       
-  %2 = alloca i32, align 4                                                                       
-  store i32 0, i32* %1, align 4                                                                  
-  store i32 5, i32* %2, align 4                                                                 
-  %3 = load i32, i32* %2, align 4                                                                
+source_filename = "asm.c"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-pc-linux-gnu"
+
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  store i32 5, i32* %2, align 4
+  %3 = load i32, i32* %2, align 4
   %4 = add nsw i32 %3, 2
   %5 = sub nsw i32 %4, 7
-  ret i32 %5 ; must be 0 
-}                                                                                                
-                                                                                                 
+  ret i32 %5 ; must be 0
+}
+
 attributes #0 = { noinline nounwind optnone uwtable }
 "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(0)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(0));
 }
 
 #[test]
@@ -80,13 +74,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(55)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(55));
 }
 
 #[test]
@@ -118,13 +106,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(123)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(123));
 }
 
 #[test]
@@ -160,13 +142,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(42)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(42));
 }
 
 #[test]
@@ -222,13 +198,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(89)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(89));
 }
 
 #[test]
@@ -264,13 +234,7 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 !0 = !{i32 1, !"wchar_size", i32 4}
 !1 = !{!"clang version 10.0.0-4ubuntu1 "}
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(3)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(3));
 }
 
 #[test]
@@ -345,13 +309,7 @@ define dso_local i32 @main() #0 {
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(55)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(55));
 }
 
 #[test]
@@ -378,14 +336,47 @@ define dso_local i32 @main() #0 {
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
     "#;
-    let module = module::parse_assembly(asm).unwrap();
-    let ctx = interpreter::Context::new(&module);
-    let main = module.find_function_by_name("main").unwrap();
-    assert_eq!(
-        interpreter::run_function(&ctx, main, vec![]).unwrap(),
-        GenericValue::Int32(101)
-    );
+    assert_eq!(run(asm, vec![]), GenericValue::Int32(101));
 }
+
+macro_rules! icmp_test {
+    ($name:ident, $op:expr, $cases:expr) => {
+        #[test]
+        fn $name() {
+            let asm = format!(
+                r#"
+            define dso_local i32 @main(i32 %arg) #0 {{
+              %t = icmp {} i32 %arg, 0
+              br i1 %t, label %l1, label %l2
+            l1:
+              ret i32 0
+            l2:
+              ret i32 1
+            }}
+            "#,
+                $op
+            );
+            for (arg, expected) in $cases {
+                assert_eq!(
+                    run(&asm, vec![GenericValue::Int32(arg)]), // ok -> 0, err -> 1
+                    GenericValue::Int32(expected)
+                );
+            }
+        }
+    };
+}
+
+// TODO: We need a better way for testing operators.
+icmp_test!(exec_icmp_eq, "eq", [(0, 0), (1, 1)]);
+icmp_test!(exec_icmp_ne, "ne", [(0, 1), (1, 0)]);
+icmp_test!(exec_icmp_slt, "slt", [(0, 1), (-1, 0), (1, 1)]);
+icmp_test!(exec_icmp_sle, "sle", [(0, 0), (-1, 0), (1, 1)]);
+icmp_test!(exec_icmp_sgt, "sgt", [(0, 1), (-1, 1), (1, 0)]);
+icmp_test!(exec_icmp_sge, "sge", [(0, 0), (-1, 1), (1, 0)]);
+icmp_test!(exec_icmp_ult, "ult", [(0, 1), (1, 1)]);
+icmp_test!(exec_icmp_ule, "ule", [(0, 0), (1, 1)]);
+icmp_test!(exec_icmp_ugt, "ugt", [(0, 1), (1, 0)]);
+icmp_test!(exec_icmp_uge, "uge", [(0, 0), (1, 0)]);
 
 // #[cfg(target_os = "linux")]
 // #[test]
@@ -458,219 +449,9 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 // }
 
 #[cfg(test)]
-fn run(asm:&str) -> GenericValue {
-  let module = module::parse_assembly(asm).unwrap();
-  let ctx = interpreter::Context::new(&module);
-  let main = module.find_function_by_name("main").unwrap();
-  interpreter::run_function(&ctx, main, vec![]).unwrap()
-}
-
-#[test]
-fn exec_eq() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp eq i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      %c = icmp eq i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l2:
-      ret i32 2
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_ne() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp ne i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      ret i32 1
-    l2:
-      %c = icmp ne i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l3:
-      ret i32 0
-    l4:
-      ret i32 4
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_slt() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 1
-      %b = icmp slt i32 %a, 1
-      br i1 %b, label %l1, label %l2
-    l1:
-      ret i32 1
-    l2:
-      %c = icmp slt i32 %a, 0
-      br i1 %c, label %l3, label %l4
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_sle() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 1, 0
-      %b = icmp sle i32 %a, 1
-      br i1 %b, label %l1, label %l2
-    l1:
-      %c = icmp sle i32 %a, 0
-      br i1 %c, label %l3, label %l4
-    l2:
-      ret i32 2
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_sgt() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp sgt i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      ret i32 1
-    l2:
-      %c = icmp sgt i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_sge() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp sge i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      %c = icmp sge i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l2:
-      ret i32 2
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_ult() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 1
-      %b = icmp ult i32 %a, 1
-      br i1 %b, label %l1, label %l2
-    l1:
-      ret i32 1
-    l2:
-      %c = icmp ult i32 %a, 0
-      br i1 %c, label %l3, label %l4
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_ule() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 1, 0
-      %b = icmp ule i32 %a, 1
-      br i1 %b, label %l1, label %l2
-    l1:
-      %c = icmp ule i32 %a, 0
-      br i1 %c, label %l3, label %l4
-    l2:
-      ret i32 2
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_ugt() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp ugt i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      ret i32 1
-    l2:
-      %c = icmp ugt i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
-}
-
-#[test]
-fn exec_uge() {
-    let asm = r#"
-    define dso_local i32 @main() #0 {
-      %a = add i32 0, 0
-      %b = icmp uge i32 %a, 0
-      br i1 %b, label %l1, label %l2
-    l1:
-      %c = icmp uge i32 %a, 1
-      br i1 %c, label %l3, label %l4
-    l2:
-      ret i32 2
-    l3:
-      ret i32 3
-    l4:
-      ret i32 0
-    }
-    "#;
-    assert_eq!(run(asm), GenericValue::Int32(0));
+fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
+    let module = module::parse_assembly(asm).unwrap();
+    let ctx = interpreter::Context::new(&module);
+    let main = module.find_function_by_name("main").unwrap();
+    interpreter::run_function(&ctx, main, args).unwrap()
 }
