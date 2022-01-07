@@ -456,3 +456,221 @@ attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sq
 //         );
 //     }
 // }
+
+#[cfg(test)]
+fn run(asm:&str) -> GenericValue {
+  let module = module::parse_assembly(asm).unwrap();
+  let ctx = interpreter::Context::new(&module);
+  let main = module.find_function_by_name("main").unwrap();
+  interpreter::run_function(&ctx, main, vec![]).unwrap()
+}
+
+#[test]
+fn exec_eq() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp eq i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      %c = icmp eq i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l2:
+      ret i32 2
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_ne() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp ne i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      ret i32 1
+    l2:
+      %c = icmp ne i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l3:
+      ret i32 0
+    l4:
+      ret i32 4
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_slt() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 1
+      %b = icmp slt i32 %a, 1
+      br i1 %b, label %l1, label %l2
+    l1:
+      ret i32 1
+    l2:
+      %c = icmp slt i32 %a, 0
+      br i1 %c, label %l3, label %l4
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_sle() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 1, 0
+      %b = icmp sle i32 %a, 1
+      br i1 %b, label %l1, label %l2
+    l1:
+      %c = icmp sle i32 %a, 0
+      br i1 %c, label %l3, label %l4
+    l2:
+      ret i32 2
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_sgt() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp sgt i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      ret i32 1
+    l2:
+      %c = icmp sgt i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_sge() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp sge i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      %c = icmp sge i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l2:
+      ret i32 2
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_ult() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 1
+      %b = icmp ult i32 %a, 1
+      br i1 %b, label %l1, label %l2
+    l1:
+      ret i32 1
+    l2:
+      %c = icmp ult i32 %a, 0
+      br i1 %c, label %l3, label %l4
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_ule() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 1, 0
+      %b = icmp ule i32 %a, 1
+      br i1 %b, label %l1, label %l2
+    l1:
+      %c = icmp ule i32 %a, 0
+      br i1 %c, label %l3, label %l4
+    l2:
+      ret i32 2
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_ugt() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp ugt i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      ret i32 1
+    l2:
+      %c = icmp ugt i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
+
+#[test]
+fn exec_uge() {
+    let asm = r#"
+    define dso_local i32 @main() #0 {
+      %a = add i32 0, 0
+      %b = icmp uge i32 %a, 0
+      br i1 %b, label %l1, label %l2
+    l1:
+      %c = icmp uge i32 %a, 1
+      br i1 %c, label %l3, label %l4
+    l2:
+      ret i32 2
+    l3:
+      ret i32 3
+    l4:
+      ret i32 0
+    }
+    "#;
+    assert_eq!(run(asm), GenericValue::Int32(0));
+}
