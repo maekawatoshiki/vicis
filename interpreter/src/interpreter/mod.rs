@@ -163,8 +163,17 @@ fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u3
     let dst = frame.get_val(dst).unwrap();
     let src = frame.get_val(src).unwrap();
     match src {
+        GenericValue::Int1(i) => unsafe {
+            *(dst.to_ptr().unwrap() as *mut bool) = i;
+        },
+        GenericValue::Int8(i) => unsafe {
+            *(dst.to_ptr().unwrap() as *mut i8) = i;
+        },
         GenericValue::Int32(i) => unsafe {
             *(dst.to_ptr().unwrap() as *mut i32) = i;
+        },
+        GenericValue::Int64(i) => unsafe {
+            *(dst.to_ptr().unwrap() as *mut i64) = i;
         },
         GenericValue::Ptr(p) => unsafe {
             *(dst.to_ptr().unwrap() as *mut *mut u8) = p;
@@ -189,6 +198,14 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
         frame.set_inst_val(
             id,
             GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
+        );
+        return;
+    }
+
+    if ty.is_i64() {
+        frame.set_inst_val(
+            id,
+            GenericValue::Int64(unsafe { *(addr.to_ptr().unwrap() as *const i64) }),
         );
         return;
     }
@@ -241,6 +258,14 @@ fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Ty
     let arg = frame.get_val(arg).unwrap();
     let val = match opcode {
         Opcode::Sext => {
+            let arg = arg.sext_to_i64().unwrap();
+            match to {
+                types::I32 => GenericValue::Int32(arg as i32),
+                types::I64 => GenericValue::Int64(arg),
+                _ => todo!(),
+            }
+        }
+        Opcode::Trunc => {
             let arg = arg.sext_to_i64().unwrap();
             match to {
                 types::I32 => GenericValue::Int32(arg as i32),
@@ -327,6 +352,7 @@ fn srem(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 
 fn eq(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
+        (GenericValue::Int1(x), GenericValue::Int1(y)) => Some(GenericValue::Int1(x != y)),
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x == y)),
         _ => None,
     }
@@ -334,6 +360,7 @@ fn eq(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 
 fn ne(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
+        (GenericValue::Int1(x), GenericValue::Int1(y)) => Some(GenericValue::Int1(x != y)),
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x != y)),
         _ => None,
     }
@@ -417,6 +444,9 @@ impl<'a> Context<'a> {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
+                    ConstantData::AggregateZero => {
+                        unsafe{ptr::write_bytes(ptr, 0, sz)};
+                    },
                     _ => todo!(),
                 }
             }
@@ -433,6 +463,12 @@ impl<'a> Context<'a> {
     pub fn with_lib<T: AsRef<ffi::OsStr>>(mut self, lib: T) -> Option<Self> {
         self.libs
             .push(unsafe { libloading::Library::new(lib).ok()? });
+        Some(self)
+    }
+
+    pub fn with_lib_file(mut self, lib: &str) -> Option<Self> {
+        self.libs
+            .push(unsafe { libloading::Library::new(libloading::library_filename(lib)).ok()? });
         Some(self)
     }
 
@@ -469,7 +505,8 @@ impl TypeSize for Types {
                 types::I8 => return 1,
                 types::I16 => return 2,
                 types::I32 => return 4,
-                _ => todo!(),
+                types::I64 => return 8,
+                a => {println!("sizeof {:?}",a); todo!()},
             },
         }
     }
@@ -484,9 +521,8 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
             .iter()
             .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
     }
-
-    let mut args_ty = Vec::with_capacity(100);
-    let mut new_args = Vec::with_capacity(100);
+    let mut args_ty = Vec::with_capacity(args.len());
+    let mut new_args = Vec::with_capacity(args.len());
     let mut args: Vec<GenericValue> = args.to_vec();
     for arg in &mut args {
         match arg {
@@ -494,29 +530,36 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
                 args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
                 new_args.push(i as *mut _ as *mut c_void)
             }
-            GenericValue::Ptr(p) => {
+            GenericValue::Int64(ref mut i) => {
+                args_ty.push(unsafe { &mut libffi::low::types::sint64 as *mut _ });
+                new_args.push(i as *mut _ as *mut c_void)
+            }
+            GenericValue::Ptr(ref mut p) => {
                 args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
-                new_args.push(&mut (*p as *mut u8) as *mut _ as *mut c_void)
+                new_args.push(&mut *p as *mut _ as *mut c_void);
             }
             _ => todo!(),
         }
     }
     let ret_ty = if func.result_ty.is_i32() {
         unsafe { &mut libffi::low::types::sint32 }
+    } else if func.result_ty.is_i64() {
+        unsafe { &mut libffi::low::types::sint64 }
     } else if func.result_ty.is_pointer(&func.types) {
         unsafe { &mut libffi::low::types::pointer }
     } else {
         panic!()
     };
     let mut cif: libffi::low::ffi_cif = Default::default();
-
-    let func = lookup(ctx, func.name()).unwrap();
-    let func = libffi::low::CodePtr(unsafe { func.into_raw() }.into_raw());
+    let prms_len = func.params.len();
+    let func1 = lookup(ctx, func.name()).unwrap();
+    let func1 = libffi::low::CodePtr(unsafe { func1.into_raw() }.into_raw());
 
     unsafe {
-        libffi::low::prep_cif(
+        libffi::low::prep_cif_var(
             &mut cif,
             libffi::low::ffi_abi_FFI_DEFAULT_ABI,
+            prms_len,
             args_ty.len(),
             ret_ty,
             args_ty.as_mut_ptr(),
@@ -524,5 +567,16 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
     }
     .unwrap();
 
-    unsafe { libffi::low::call(&mut cif, func, new_args.as_mut_ptr()) }
+    if func.result_ty.is_i32() {
+        let r:i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+        GenericValue::Int32(r)
+    } else if func.result_ty.is_i64() {
+        let r:i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+        GenericValue::Int64(r)
+    } else if func.result_ty.is_pointer(&func.types) {
+        let r:*mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+        GenericValue::Ptr(r)
+    } else {
+        panic!()
+    }
 }

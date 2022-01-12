@@ -1,7 +1,10 @@
 use rustc_hash::FxHashMap;
 
 use super::Context;
-use crate::generic_value::GenericValue;
+use crate::{
+    generic_value::GenericValue,
+    interpreter::TypeSize
+};
 use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
     value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
@@ -35,6 +38,12 @@ impl<'a> StackFrame<'a> {
     pub fn get_val(&self, id: ValueId) -> Option<GenericValue> {
         match self.func.data.value_ref(id) {
             Value::Instruction(id) => self.get_inst_val(*id),
+            Value::Constant(ConstantData::Int(ConstantInt::Int1(i))) => {
+                Some(GenericValue::Int1(*i))
+            }
+            Value::Constant(ConstantData::Int(ConstantInt::Int8(i))) => {
+                Some(GenericValue::Int8(*i))
+            }
             Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
                 Some(GenericValue::Int32(*i))
             }
@@ -57,7 +66,23 @@ impl<'a> StackFrame<'a> {
             Value::Argument(i) => self.args.get(*i).copied(),
             Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
                 match args[0] {
-                    ConstantData::GlobalRef(ref name) => self.ctx.globals.get(name).copied(),
+                    ConstantData::GlobalRef(ref name) => {
+                        let n = match args[2] {
+                            ConstantData::Int(ConstantInt::Int32(n)) => n as i64,
+                            ConstantData::Int(ConstantInt::Int64(n)) => n,
+                            _ => todo!(),
+                        };
+                        match self.ctx.globals.get(name).copied() {
+                            Some(GenericValue::Ptr(v)) => {
+                                let types = &self.ctx.module.types;
+                                let ty = types.get_element(self.ctx.module.global_variables().get(name).unwrap().ty).unwrap();
+                                let sz = types.size_of(ty) as i64;
+                                Some(GenericValue::Ptr( ((v as i64) + n*sz) as *mut u8))
+                            }
+                            Some(a) => Some(a),
+                            None => None
+                        }
+                    }
                     _ => todo!(),
                 }
             }
