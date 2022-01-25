@@ -160,65 +160,30 @@ fn run_phi(
 fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u32) {
     let src = args[0];
     let dst = args[1];
-    let dst = frame.get_val(dst).unwrap();
+    let dst = frame.get_val(dst).unwrap().to_ptr().unwrap();
     let src = frame.get_val(src).unwrap();
     match src {
-        GenericValue::Int1(i) => unsafe {
-            *(dst.to_ptr().unwrap() as *mut bool) = i;
-        },
-        GenericValue::Int8(i) => unsafe {
-            *(dst.to_ptr().unwrap() as *mut i8) = i;
-        },
-        GenericValue::Int32(i) => unsafe {
-            *(dst.to_ptr().unwrap() as *mut i32) = i;
-        },
-        GenericValue::Int64(i) => unsafe {
-            *(dst.to_ptr().unwrap() as *mut i64) = i;
-        },
-        GenericValue::Ptr(p) => unsafe {
-            *(dst.to_ptr().unwrap() as *mut *mut u8) = p;
-        },
+        GenericValue::Int1(i) => unsafe { *(dst as *mut bool) = i }
+        GenericValue::Int8(i) => unsafe { *(dst as *mut i8) = i }
+        GenericValue::Int32(i) => unsafe { *(dst as *mut i32) = i }
+        GenericValue::Int64(i) => unsafe { *(dst as *mut i64) = i }
+        GenericValue::Ptr(p) => unsafe { *(dst as *mut *mut u8) = p }
         t => todo!("{:?}", t),
     }
 }
 
 fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: ValueId, _align: u32) {
     let ty = tys[0];
-    let addr = frame.get_val(addr).unwrap();
-
-    if ty.is_i8() {
-        frame.set_inst_val(
-            id,
-            GenericValue::Int8(unsafe { *(addr.to_ptr().unwrap() as *const i8) }),
-        );
-        return;
-    }
-
-    if ty.is_i32() {
-        frame.set_inst_val(
-            id,
-            GenericValue::Int32(unsafe { *(addr.to_ptr().unwrap() as *const i32) }),
-        );
-        return;
-    }
-
-    if ty.is_i64() {
-        frame.set_inst_val(
-            id,
-            GenericValue::Int64(unsafe { *(addr.to_ptr().unwrap() as *const i64) }),
-        );
-        return;
-    }
-
-    if ty.is_pointer(&frame.func.types) {
-        frame.set_inst_val(
-            id,
-            GenericValue::Ptr(unsafe { *(addr.to_ptr().unwrap() as *const *mut u8) }),
-        );
-        return;
-    }
-
-    todo!()
+    let addr = frame.get_val(addr).unwrap().to_ptr().unwrap();
+    let val = match ty {
+        types::I8 => GenericValue::Int8(unsafe { *(addr as *const i8) }),
+        types::I32 => GenericValue::Int32(unsafe { *(addr as *const i32) }),
+        types::I64 => GenericValue::Int64(unsafe { *(addr as *const i64) }),
+        _ if ty.is_pointer(&frame.func.types) =>
+            GenericValue::Ptr(unsafe { *(addr as *const *mut u8) }),
+        _ => todo!(),
+    };
+    frame.set_inst_val(id, val);
 }
 
 fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, args: &[ValueId]) {
@@ -512,6 +477,16 @@ impl TypeSize for Types {
     }
 }
 
+fn ffitype(ty:Type,types: &Types) -> libffi::low::ffi_type {
+    match ty {
+        types::I32 => unsafe { libffi::low::types::sint32 },
+        types::I64 => unsafe { libffi::low::types::sint64 },
+        ty if ty.is_pointer(types) =>
+            unsafe { libffi::low::types::pointer },
+        _ => panic!()
+    }
+}
+
 fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> GenericValue {
     fn lookup<'a>(
         ctx: &'a Context,
@@ -541,15 +516,7 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
             _ => todo!(),
         }
     }
-    let ret_ty = if func.result_ty.is_i32() {
-        unsafe { &mut libffi::low::types::sint32 }
-    } else if func.result_ty.is_i64() {
-        unsafe { &mut libffi::low::types::sint64 }
-    } else if func.result_ty.is_pointer(&func.types) {
-        unsafe { &mut libffi::low::types::pointer }
-    } else {
-        panic!()
-    };
+    let mut ret_ty = ffitype(func.result_ty, &func.types);
     let mut cif: libffi::low::ffi_cif = Default::default();
     let prms_len = func.params.len();
     let func1 = lookup(ctx, func.name()).unwrap();
@@ -561,22 +528,25 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
             libffi::low::ffi_abi_FFI_DEFAULT_ABI,
             prms_len,
             args_ty.len(),
-            ret_ty,
+            &mut ret_ty,
             args_ty.as_mut_ptr(),
         )
     }
     .unwrap();
-
-    if func.result_ty.is_i32() {
-        let r:i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-        GenericValue::Int32(r)
-    } else if func.result_ty.is_i64() {
-        let r:i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-        GenericValue::Int64(r)
-    } else if func.result_ty.is_pointer(&func.types) {
-        let r:*mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-        GenericValue::Ptr(r)
-    } else {
-        panic!()
+    match func.result_ty {
+        types::I32 => {
+                let r:i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+                GenericValue::Int32(r)
+            }
+        types::I64 => {
+                let r:i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+                GenericValue::Int64(r)
+            }
+        ty if ty.is_pointer(&func.types) => {
+                let r:*mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+                GenericValue::Ptr(r)
+            }
+        _ => panic!()
     }
 }
+

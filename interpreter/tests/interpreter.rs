@@ -559,6 +559,33 @@ fn exec_array_load_store() {
       assert_eq!(str_,"vww");
 }
 
+#[test]
+fn exec_test_phi() {
+    let asm = r#"
+    define i32 @main() {
+    enter1:
+      %result_0 = add i32 0, 1
+      %i_0 = add i32 0, 8
+      br label %for.cond.2
+    for.cond.2:
+      %i_1 = phi i32 [%i_0, %enter1], [%v12_1, %for.body.2]
+      %result_1 = phi i32 [%result_0, %enter1], [%v9_1, %for.body.2]
+      %v5_1 = add i32 0, 0
+      %v6_1 = icmp sgt i32 %i_1, %v5_1
+      %0 = icmp ne i1 %v6_1, 0
+      br i1 %0, label %for.body.2, label %for.end.2
+    for.body.2:
+      %v9_1 = mul i32 %result_1, %i_1
+      %v11_1 = add i32 0, 1
+      %v12_1 = sub i32 %i_1, %v11_1
+      br label %for.cond.2
+    for.end.2:
+      ret i32 %result_1
+    }
+    "#;
+    let rc = run(asm,vec![]);
+    assert_eq!(rc,GenericValue::Int32(40320));
+}
 #[cfg(test)]
 fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
     let module = module::parse_assembly(asm).unwrap();
