@@ -1,0 +1,14 @@
+pub mod attributes;
+pub mod function;
+pub mod global_variable;
+pub mod instruction;
+pub mod linkage;
+pub mod metadata;
+pub mod module;
+pub mod name;
+pub mod param_attrs;
+pub mod preemption_specifier;
+pub mod types;
+pub mod unnamed_addr;
+pub mod value;
+pub mod visibility;

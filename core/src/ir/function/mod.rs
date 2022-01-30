@@ -4,10 +4,7 @@ pub mod data;
 pub mod instruction;
 pub mod layout;
 pub mod param_attrs;
-pub mod parser;
 pub mod print;
-
-pub use parser::parse;
 
 use super::{
     module::{

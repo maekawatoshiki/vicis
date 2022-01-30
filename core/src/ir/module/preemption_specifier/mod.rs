@@ -1,7 +1,3 @@
-pub mod parser;
-
-pub use parser::parse;
-
 use std::fmt;
 
 #[derive(Clone, Copy, Eq, PartialEq)]

@@ -232,7 +232,7 @@ define dso_local i32 @main() #0 {
         use cranelift_codegen::isa::CallConv;
         use cranelift_codegen::{isa, settings};
         use cranelift_object::{ObjectBuilder, ObjectModule};
-        use vicis_core::ir::module;
+        use vicis_core::ir::module::Module;
 
         let mut flag_builder = settings::builder();
         flag_builder.enable("is_pic").unwrap();
@@ -251,7 +251,7 @@ define dso_local i32 @main() #0 {
         let mut clif_mod = ObjectModule::new(builder);
         let mut clif_ctx = clif_mod.make_context();
 
-        let module = module::parse_assembly(source).unwrap();
+        let module = Module::try_from(source).unwrap();
         let llvm_func_id = module.find_function_by_name("main").unwrap();
         compile_function(
             &mut LowerCtx::new(&module, &mut clif_mod),
@@ -272,7 +272,7 @@ define dso_local i32 @main() #0 {
     fn compile_ret_42() {
         use cranelift_jit::{JITBuilder, JITModule};
         use std::mem::transmute;
-        use vicis_core::ir::module;
+        use vicis_core::ir::module::Module;
 
         let source = r#"
 define dso_local i32 @main() {
@@ -283,7 +283,7 @@ define dso_local i32 @main() {
         let mut clif_mod = JITModule::new(builder);
         let mut clif_ctx = clif_mod.make_context();
 
-        let module = module::parse_assembly(source).unwrap();
+        let module = Module::try_from(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
         compile_function(
             &mut LowerCtx::new(&module, &mut clif_mod),
@@ -303,7 +303,7 @@ define dso_local i32 @main() {
     fn compile_add() {
         use cranelift_jit::{JITBuilder, JITModule};
         use std::mem::transmute;
-        use vicis_core::ir::module;
+        use vicis_core::ir::module::Module;
 
         let source = r#"
 define dso_local i32 @main(i32 %arg.0) {
@@ -315,7 +315,7 @@ define dso_local i32 @main(i32 %arg.0) {
         let mut clif_mod = JITModule::new(builder);
         let mut clif_ctx = clif_mod.make_context();
 
-        let module = module::parse_assembly(source).unwrap();
+        let module = Module::try_from(source).unwrap();
         let func_id = module.find_function_by_name("main").unwrap();
         compile_function(
             &mut LowerCtx::new(&module, &mut clif_mod),

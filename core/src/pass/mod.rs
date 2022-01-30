@@ -106,9 +106,9 @@ impl<T> Pass<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ir::{
-        function::Function,
-        module::{parse_assembly, Module},
+    use crate::{
+        ir::{function::Function, module::Module},
+        parser::assembly::module::parse as parse_assembly,
     };
 
     pub struct TestFunctionAnalysisPass {}

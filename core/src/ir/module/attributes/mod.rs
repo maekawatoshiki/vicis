@@ -1,5 +1,3 @@
-pub mod parser;
-
 use std::fmt;
 
 #[derive(PartialEq, Eq, Clone)]

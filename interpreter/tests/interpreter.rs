@@ -1,4 +1,4 @@
-use vicis_core::ir::module;
+use vicis_core::ir::module::Module;
 use vicis_interpreter::{generic_value::GenericValue, interpreter};
 
 #[test]
@@ -450,7 +450,7 @@ icmp_test!(exec_icmp_uge, "uge", [(0, 0), (1, 0)]);
 
 #[cfg(test)]
 fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
-    let module = module::parse_assembly(asm).unwrap();
+    let module = Module::try_from(asm).unwrap();
     let ctx = interpreter::Context::new(&module);
     let main = module.find_function_by_name("main").unwrap();
     interpreter::run_function(&ctx, main, args).unwrap()

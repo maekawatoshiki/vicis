@@ -1,5 +1,6 @@
 ---
-source: tests/build.rs
+source: core/tests/build.rs
+assertion_line: 17
 expression: module
 
 ---

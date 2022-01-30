@@ -1,7 +1,3 @@
-pub mod parser;
-
-pub use parser::parse_visibility as parse;
-
 use std::fmt;
 
 pub enum Visibility {

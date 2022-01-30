@@ -1,8 +1,4 @@
 pub mod builder;
-pub mod parser;
-
-pub use parser::parse;
-use rustc_hash::FxHashMap;
 
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
@@ -11,6 +7,7 @@ use crate::ir::{
     value::{ConstantData, ConstantInt, Value, ValueId},
 };
 use id_arena::Id;
+use rustc_hash::FxHashMap;
 use std::{fmt, slice};
 
 pub type InstructionId = Id<Instruction>;

@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 use vicis_core::{
     // codegen::{isa::x86_64::X86_64, lower::compile_module},
     // exec::{generic_value::GenericValue, interpreter::Interpreter},
-    ir::{function::basic_block::BasicBlockId, module},
+    ir::{function::basic_block::BasicBlockId, module::Module},
     pass::analysis::dom_tree::DominatorTree,
 };
 
@@ -42,7 +42,7 @@ define dso_local i32 @main() {
 }
         "#;
 
-    let module = module::parse_assembly(src).unwrap();
+    let module = Module::try_from(src).unwrap();
 
     for (_, func) in module.functions() {
         let blocks: Vec<BasicBlockId> = func.data.basic_blocks.iter().map(|(id, _)| id).collect();

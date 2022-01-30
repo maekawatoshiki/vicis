@@ -1,5 +1,5 @@
 use vicis_core::{
-    ir::module,
+    ir::module::Module,
     pass::{transform::mem2reg::Mem2RegPass, PassManager},
 };
 
@@ -15,7 +15,7 @@ define dso_local i32 @main() {
   %4 = add nsw i32 %3, 123
   ret i32 %4
 }"#;
-    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    let mut module = Module::try_from(ir).expect("failed to parse ir");
     let mut pm = PassManager::new();
     pm.add_transform(Mem2RegPass);
     pm.run_on_module(&mut module);
@@ -48,7 +48,7 @@ define dso_local i32 @main() {
   %14 = add nsw i32 %12, %13
   ret i32 %14
 }"#;
-    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    let mut module = Module::try_from(ir).expect("failed to parse ir");
     let mut pm = PassManager::new();
     pm.add_transform(Mem2RegPass);
     pm.run_on_module(&mut module);
@@ -89,7 +89,7 @@ define dso_local i32 @main() {
   %15 = load i32, i32* %2, align 4
   ret i32 %15
 }"#;
-    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    let mut module = Module::try_from(ir).expect("failed to parse ir");
     let mut pm = PassManager::new();
     pm.add_transform(Mem2RegPass);
     pm.run_on_module(&mut module);
@@ -138,7 +138,7 @@ define dso_local i32 @main() {
   ret i32 %19
 }
 "#;
-    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    let mut module = Module::try_from(ir).expect("failed to parse ir");
     let mut pm = PassManager::new();
     pm.add_transform(Mem2RegPass);
     pm.run_on_module(&mut module);
@@ -170,7 +170,7 @@ define dso_local i32 @main() {
   ret i32 %8
 }
 "#;
-    let mut module = module::parse_assembly(ir).expect("failed to parse ir");
+    let mut module = Module::try_from(ir).expect("failed to parse ir");
     let mut pm = PassManager::new();
     pm.add_transform(Mem2RegPass);
     pm.run_on_module(&mut module);

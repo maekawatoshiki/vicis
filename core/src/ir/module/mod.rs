@@ -3,12 +3,9 @@ pub mod global_variable;
 pub mod linkage;
 pub mod metadata;
 pub mod name;
-pub mod parser;
 pub mod preemption_specifier;
 pub mod unnamed_addr;
 pub mod visibility;
-
-pub use parser::parse as parse_assembly;
 
 use super::{
     function::{Function, FunctionId, Parameter},
@@ -22,10 +19,10 @@ use name::Name;
 use rustc_hash::FxHashMap;
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Target {
-    triple: String,
-    datalayout: String,
+    pub triple: String,
+    pub datalayout: String,
 }
 
 pub struct Module {
@@ -117,15 +114,6 @@ impl Module {
     }
 }
 
-impl Default for Target {
-    fn default() -> Self {
-        Self {
-            triple: "".to_string(),
-            datalayout: "".to_string(),
-        }
-    }
-}
-
 impl Target {
     pub fn new() -> Self {
         Self::default()
@@ -137,6 +125,16 @@ impl Target {
 
     pub fn datalayout(&self) -> &str {
         self.datalayout.as_str()
+    }
+}
+
+impl<'a> TryFrom<&'a str> for Module {
+    type Error = nom::Err<nom::error::VerboseError<&'a str>>;
+
+    /// Parses an LLVM Assembly string.
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
+        use crate::parser::assembly::module::parse;
+        parse(s)
     }
 }
 

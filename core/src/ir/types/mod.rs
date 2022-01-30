@@ -1,5 +1,3 @@
-pub mod parser;
-
 use crate::ir::module::name::Name;
 use rustc_hash::FxHashMap;
 use std::{
@@ -7,8 +5,6 @@ use std::{
     fmt, mem,
     sync::{atomic, atomic::AtomicU32, Arc},
 };
-
-pub use parser::parse;
 
 pub type AddrSpace = u32;
 type Idx = u32;

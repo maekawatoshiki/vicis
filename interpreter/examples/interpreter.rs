@@ -4,7 +4,7 @@ extern crate vicis_interpreter;
 
 use std::{fs, process};
 use structopt::StructOpt;
-use vicis_core::ir::module;
+use vicis_core::ir::module::Module;
 use vicis_interpreter::interpreter;
 
 #[derive(Debug, StructOpt)]
@@ -19,7 +19,7 @@ pub struct Opt {
 fn main() {
     let opt = Opt::from_args();
     let ir = fs::read_to_string(opt.ir_file).expect("failed to load *.ll file");
-    let module = module::parse_assembly(ir.as_str()).expect("failed to parse LLVM Assembly");
+    let module = Module::try_from(ir.as_str()).expect("failed to parse LLVM Assembly");
     let main = module
         .find_function_by_name("main")
         .expect("failed to lookup 'main'");

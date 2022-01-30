@@ -1,5 +1,5 @@
 use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
-use vicis_core::ir::module;
+use vicis_core::ir::module::Module;
 
 #[test]
 fn compile_tests() {
@@ -25,7 +25,7 @@ fn compile_tests() {
         let input_body = &fs::read_to_string(&input).unwrap();
         let output_body = &fs::read_to_string(output).unwrap();
 
-        let module = module::parse_assembly(input_body).unwrap();
+        let module = Module::try_from(input_body.as_str()).unwrap();
         let mach_module = compile_module(X86_64, &module).unwrap();
 
         assert_eq!(

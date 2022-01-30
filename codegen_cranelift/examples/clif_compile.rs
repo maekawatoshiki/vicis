@@ -9,7 +9,7 @@ use std::fs;
 use std::io::Write;
 use structopt::StructOpt;
 use vicis_codegen_cranelift::module::compile_module;
-use vicis_core::ir::module;
+use vicis_core::ir::module::Module as LlvmModule;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "i")]
@@ -23,7 +23,7 @@ pub struct Opt {
 fn main() {
     let opt = Opt::from_args();
     let ir = fs::read_to_string(opt.ir_file).expect("failed to load *.ll file");
-    let module = module::parse_assembly(ir.as_str()).expect("failed to parse LLVM Assembly");
+    let module = LlvmModule::try_from(ir.as_str()).expect("failed to parse LLVM Assembly");
 
     let mut flag_builder = settings::builder();
     flag_builder.enable("is_pic").unwrap();

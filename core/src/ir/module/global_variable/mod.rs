@@ -1,7 +1,3 @@
-mod parser;
-
-pub use parser::{parse, parse_global_type_and_const};
-
 use crate::ir::{
     module::{linkage::Linkage, name::Name, unnamed_addr::UnnamedAddr},
     types::{Type, Types},

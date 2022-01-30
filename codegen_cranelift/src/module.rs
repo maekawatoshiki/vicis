@@ -53,7 +53,7 @@ mod test {
         use cranelift::prelude::Configurable;
         use cranelift_codegen::{isa, settings};
         use cranelift_object::{ObjectBuilder, ObjectModule};
-        use vicis_core::ir::module;
+        use vicis_core::ir::module::Module;
 
         let mut flag_builder = settings::builder();
         flag_builder.enable("is_pic").unwrap();
@@ -72,7 +72,7 @@ mod test {
         let mut clif_mod = ObjectModule::new(builder);
         let mut clif_ctx = clif_mod.make_context();
 
-        let module = module::parse_assembly(source).unwrap();
+        let module = Module::try_from(source).unwrap();
         compile_module(&mut clif_mod, &mut clif_ctx, &module);
 
         clif_mod.finish();

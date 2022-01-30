@@ -1,8 +1,4 @@
-pub mod parser;
-
 use crate::ir::util::escape;
-pub use parser::parse;
-
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq, Hash)]

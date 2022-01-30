@@ -1,7 +1,3 @@
-pub mod parser;
-
-pub use parser::parse;
-
 use super::{
     function::{data::Data, instruction::InstructionId},
     module::name::Name,

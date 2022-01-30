@@ -1,5 +1,6 @@
 ---
-source: tests/mem2reg.rs
+source: core/tests/mem2reg.rs
+assertion_line: 22
 expression: module
 
 ---

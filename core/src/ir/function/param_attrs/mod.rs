@@ -1,5 +1,3 @@
-pub mod parser;
-
 use crate::ir::types::{Type, Types};
 use std::fmt;
 

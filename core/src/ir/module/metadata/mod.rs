@@ -1,8 +1,3 @@
-pub mod parser;
-
-pub use parser::operand as parse_operand;
-pub use parser::parse;
-
 use crate::ir::{module::name::Name, value::ConstantInt};
 use std::fmt;
 
