@@ -296,7 +296,7 @@ fn test_parse_function1() {
         result.preemption_specifier,
         preemption_specifier::PreemptionSpecifier::DsoLocal
     );
-    println!("{:?}", result);
+    log::debug!("result = {result:?}");
 }
 
 #[test]
@@ -320,5 +320,5 @@ fn test_parse_function2() {
         result.preemption_specifier,
         preemption_specifier::PreemptionSpecifier::DsoLocal
     );
-    println!("{:?}", result);
+    log::debug!("result = {result:?}");
 }

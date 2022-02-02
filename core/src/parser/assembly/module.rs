@@ -137,7 +137,7 @@ macro_rules! generate_test {
             let module = match parse(&source) {
                 Ok(ok) => ok,
                 Err(nom::Err::Error(e)) => {
-                    println!("{}", convert_error(source.as_str(), e));
+                    log::debug!("{}", convert_error(source.as_str(), e));
                     panic!()
                 }
                 Err(e) => panic!("{:?}", e),
@@ -198,7 +198,7 @@ fn parse_module1() {
         "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
     );
     assert_eq!(result.target.triple, "x86_64-pc-linux-gnu");
-    println!("{:?}", result);
+    log::debug!("result = {result:?}");
 }
 
 #[test]
@@ -243,5 +243,5 @@ fn parse_module2() {
     for (key1, val1) in &result.attributes {
         assert!(&attrs[key1] == val1)
     }
-    println!("{:?}", result);
+    log::debug!("result = {result:?}");
 }
