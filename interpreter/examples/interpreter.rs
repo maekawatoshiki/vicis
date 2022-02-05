@@ -17,6 +17,7 @@ pub struct Opt {
 }
 
 fn main() {
+    env_logger::init();
     let opt = Opt::from_args();
     let ir = fs::read_to_string(opt.ir_file).expect("failed to load *.ll file");
     let module = Module::try_from(ir.as_str()).expect("failed to parse LLVM Assembly");

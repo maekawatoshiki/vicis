@@ -16,3 +16,4 @@ anyhow = "^1.0.38"
 [dev-dependencies]
 vicis-interpreter = { path = "../interpreter" }
 structopt = "0.3.18"
+env_logger = "0.9.0"
