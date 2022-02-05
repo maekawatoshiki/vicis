@@ -17,7 +17,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::char,
     combinator::opt,
-    error::VerboseError,
+    error::{VerboseError, VerboseErrorKind},
     sequence::{preceded, terminated, tuple},
     IResult,
 };
@@ -142,7 +142,12 @@ pub fn parse_body<'a, 'b>(
             continue;
         }
 
-        todo!("unsupported syntax at {:?}", source)
+        return Err(nom::Err::Failure(VerboseError {
+            errors: vec![(
+                source,
+                VerboseErrorKind::Context("Parse error: function body"),
+            )],
+        }));
     }
 }
 

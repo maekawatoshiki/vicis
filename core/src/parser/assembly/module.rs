@@ -3,7 +3,7 @@ use crate::ir::{
     types,
     util::{spaces, string_literal},
 };
-use nom;
+use nom::{self, error::VerboseErrorKind};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, digit1},
@@ -121,7 +121,12 @@ pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
             continue;
         }
 
-        todo!("unsupported syntax at {:?}", source)
+        return Err(nom::Err::Failure(VerboseError {
+            errors: vec![(
+                source,
+                VerboseErrorKind::Context("Parse error: module body"),
+            )],
+        }));
     }
 
     Ok(module)
