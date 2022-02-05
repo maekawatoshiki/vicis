@@ -1,9 +1,9 @@
+use super::Error;
 use crate::ir::{
     module::{attributes::Attribute, Module},
     types,
     util::{spaces, string_literal},
 };
-use nom::{self, error::VerboseErrorKind};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, digit1},
@@ -66,7 +66,7 @@ fn parse_local_type<'a>(
     Ok((source, ()))
 }
 
-pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
+pub fn parse(mut source: &str) -> Result<Module, super::Error> {
     let mut module = Module::new();
     loop {
         source = spaces(source)?.0;
@@ -110,23 +110,23 @@ pub fn parse(mut source: &str) -> Result<Module, nom::Err<VerboseError<&str>>> {
             continue;
         }
 
-        if let Ok((source_, func)) = super::function::parse(source, module.types.clone()) {
-            module.functions.alloc(func);
-            source = source_;
-            continue;
+        match super::function::parse(source, module.types.clone()) {
+            Ok((source_, func)) => {
+                module.functions.alloc(func);
+                source = source_;
+                continue;
+            }
+            Err(Error::Located(s, e)) => return Err(Error::Located(s, e)),
+            Err(_) => {}
         }
+
         if let Ok((source_, (name_, meta))) = super::metadata::parse(&module.types)(source) {
             module.metas.insert(name_, meta);
             source = source_;
             continue;
         }
 
-        return Err(nom::Err::Failure(VerboseError {
-            errors: vec![(
-                source,
-                VerboseErrorKind::Context("Parse error: module body"),
-            )],
-        }));
+        return Err(Error::Located(source, "Parse error: module body"));
     }
 
     Ok(module)
@@ -136,16 +136,14 @@ macro_rules! generate_test {
     ($fname:ident, $name:literal) => {
         #[test]
         fn $fname() {
-            use nom::error::convert_error;
             use std::fs;
             let source = fs::read_to_string(concat!("./examples/", $name)).unwrap();
             let module = match parse(&source) {
                 Ok(ok) => ok,
-                Err(nom::Err::Error(e)) => {
-                    log::debug!("{}", convert_error(source.as_str(), e));
+                Err(e) => {
+                    log::debug!("{}", e);
                     panic!()
                 }
-                Err(e) => panic!("{:?}", e),
             };
             insta::assert_debug_snapshot!(module);
         }

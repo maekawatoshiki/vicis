@@ -129,7 +129,7 @@ impl Target {
 }
 
 impl<'a> TryFrom<&'a str> for Module {
-    type Error = nom::Err<nom::error::VerboseError<&'a str>>;
+    type Error = crate::parser::assembly::Error<'a>;
 
     /// Parses an LLVM Assembly string.
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {

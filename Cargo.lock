@@ -795,6 +795,7 @@ name = "vicis-interpreter"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "env_logger",
  "id-arena",
  "libffi",
  "libloading",

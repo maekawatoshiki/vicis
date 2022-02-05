@@ -1,4 +1,4 @@
-use super::param_attrs::parse_param_attrs;
+use super::{param_attrs::parse_param_attrs, Error};
 use crate::ir::{
     function::{
         basic_block::BasicBlockId,
@@ -17,7 +17,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::char,
     combinator::opt,
-    error::{VerboseError, VerboseErrorKind},
+    error::VerboseError,
     sequence::{preceded, terminated, tuple},
     IResult,
 };
@@ -101,7 +101,7 @@ pub fn parse_body<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
     num_args: usize,
-) -> IResult<&'a str, (), VerboseError<&'a str>> {
+) -> Result<(&'a str, ()), Error<'a>> {
     let (source, _) = tuple((spaces, char('{')))(source)?;
 
     if let Ok((source, _)) = tuple((spaces, char('}')))(source) {
@@ -142,12 +142,7 @@ pub fn parse_body<'a, 'b>(
             continue;
         }
 
-        return Err(nom::Err::Failure(VerboseError {
-            errors: vec![(
-                source,
-                VerboseErrorKind::Context("Parse error: function body"),
-            )],
-        }));
+        return Err(Error::Located(source, "Parse error: function body"));
     }
 }
 
@@ -164,7 +159,7 @@ pub fn parse_personality<'a>(
     Ok((source, None))
 }
 
-pub fn parse(source: &str, types: Types) -> IResult<&str, Function, VerboseError<&str>> {
+pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
     let (source, define_or_declare) =
         preceded(spaces, alt((tag("define"), tag("declare"))))(source)?;
     let is_prototype = define_or_declare == "declare";
