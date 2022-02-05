@@ -163,11 +163,11 @@ fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u3
     let dst = frame.get_val(dst).unwrap().to_ptr().unwrap();
     let src = frame.get_val(src).unwrap();
     match src {
-        GenericValue::Int1(i) => unsafe { *(dst as *mut bool) = i }
-        GenericValue::Int8(i) => unsafe { *(dst as *mut i8) = i }
-        GenericValue::Int32(i) => unsafe { *(dst as *mut i32) = i }
-        GenericValue::Int64(i) => unsafe { *(dst as *mut i64) = i }
-        GenericValue::Ptr(p) => unsafe { *(dst as *mut *mut u8) = p }
+        GenericValue::Int1(i) => unsafe { *(dst as *mut bool) = i },
+        GenericValue::Int8(i) => unsafe { *(dst as *mut i8) = i },
+        GenericValue::Int32(i) => unsafe { *(dst as *mut i32) = i },
+        GenericValue::Int64(i) => unsafe { *(dst as *mut i64) = i },
+        GenericValue::Ptr(p) => unsafe { *(dst as *mut *mut u8) = p },
         t => todo!("{:?}", t),
     }
 }
@@ -179,8 +179,9 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
         types::I8 => GenericValue::Int8(unsafe { *(addr as *const i8) }),
         types::I32 => GenericValue::Int32(unsafe { *(addr as *const i32) }),
         types::I64 => GenericValue::Int64(unsafe { *(addr as *const i64) }),
-        _ if ty.is_pointer(&frame.func.types) =>
-            GenericValue::Ptr(unsafe { *(addr as *const *mut u8) }),
+        _ if ty.is_pointer(&frame.func.types) => {
+            GenericValue::Ptr(unsafe { *(addr as *const *mut u8) })
+        }
         _ => todo!(),
     };
     frame.set_inst_val(id, val);
@@ -317,7 +318,7 @@ fn srem(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 
 fn eq(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
-        (GenericValue::Int1(x), GenericValue::Int1(y)) => Some(GenericValue::Int1(x != y)),
+        (GenericValue::Int1(x), GenericValue::Int1(y)) => Some(GenericValue::Int1(x == y)),
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x == y)),
         _ => None,
     }
@@ -410,8 +411,8 @@ impl<'a> Context<'a> {
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
                     ConstantData::AggregateZero => {
-                        unsafe{ptr::write_bytes(ptr, 0, sz)};
-                    },
+                        unsafe { ptr::write_bytes(ptr, 0, sz) };
+                    }
                     _ => todo!(),
                 }
             }
@@ -477,13 +478,12 @@ impl TypeSize for Types {
     }
 }
 
-fn ffitype(ty:Type,types: &Types) -> libffi::low::ffi_type {
+fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
     match ty {
         types::I32 => unsafe { libffi::low::types::sint32 },
         types::I64 => unsafe { libffi::low::types::sint64 },
-        ty if ty.is_pointer(types) =>
-            unsafe { libffi::low::types::pointer },
-        _ => panic!()
+        ty if ty.is_pointer(types) => unsafe { libffi::low::types::pointer },
+        _ => panic!(),
     }
 }
 
@@ -535,18 +535,17 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
     .unwrap();
     match func.result_ty {
         types::I32 => {
-                let r:i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-                GenericValue::Int32(r)
-            }
+            let r: i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+            GenericValue::Int32(r)
+        }
         types::I64 => {
-                let r:i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-                GenericValue::Int64(r)
-            }
+            let r: i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+            GenericValue::Int64(r)
+        }
         ty if ty.is_pointer(&func.types) => {
-                let r:*mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-                GenericValue::Ptr(r)
-            }
-        _ => panic!()
+            let r: *mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+            GenericValue::Ptr(r)
+        }
+        _ => panic!(),
     }
 }
-

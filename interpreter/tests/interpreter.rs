@@ -450,20 +450,22 @@ icmp_test!(exec_icmp_uge, "uge", [(0, 0), (1, 0)]);
 
 #[test]
 fn exec_cstr() {
-  let asm = r#"
+    let asm = r#"
   @.str = private unnamed_addr constant [5 x i8] c"test\00"
   define i8* @f() {
       ret i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.str, i64 0, i64 0)
   }
   "#;
-  let rc = run_libc(asm,"f",vec![]);
-  let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }.to_str().unwrap();
-  assert_eq!(str_,"test");
+    let rc = run_libc(asm, "f", vec![]);
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+        .to_str()
+        .unwrap();
+    assert_eq!(str_, "test");
 }
 
 #[test]
 fn exec_fprintf() {
-  let asm = r#"
+    let asm = r#"
   @.str = private unnamed_addr constant [9 x i8] c"test.txt\00", align 8
   @.str.1 = private unnamed_addr constant [2 x i8] c"w\00", align 8
   @.str.2 = private unnamed_addr constant [12 x i8] c"%d %d %d %d\00", align 8
@@ -499,15 +501,16 @@ fn exec_fprintf() {
   declare i64 @fread(i8*, i64, i64, i8*)
   declare i32 @unlink(i8*)
   "#;
-  let rc = run_libc(asm,"f",vec![]);
-  let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }.to_str().unwrap();
-  assert_eq!(str_,"11 22 33 44");
+    let rc = run_libc(asm, "f", vec![]);
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+        .to_str()
+        .unwrap();
+    assert_eq!(str_, "11 22 33 44");
 }
 
 #[test]
 fn exec_sscanf() {
-    let asm = 
-      r#"
+    let asm = r#"
       @.str = private unnamed_addr constant [3 x i8] c"11\00", align 1
       @.str.1 = private unnamed_addr constant [3 x i8] c"%d\00", align 1
       define i32 @f() #0 {
@@ -519,13 +522,12 @@ fn exec_sscanf() {
       }
       declare i32 @sscanf(i8*, i8*, ...)
       "#;
-      assert_eq!(run_libc(asm,"f",vec![]), GenericValue::Int32(11));
+    assert_eq!(run_libc(asm, "f", vec![]), GenericValue::Int32(11));
 }
 
 #[test]
 fn exec_sprintf() {
-    let asm = 
-      r#"
+    let asm = r#"
       @.str = private unnamed_addr constant [12 x i8] c"%d %d %d %d\00", align 1
       @buf = common global [26 x i8] zeroinitializer, align 1
       define i8* @f() {
@@ -536,15 +538,16 @@ fn exec_sprintf() {
       }
       declare i32 @sprintf(i8*, i8*, ...)
       "#;
-      let rc = run_libc(asm,"f",vec![]);
-      let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }.to_str().unwrap();
-      assert_eq!(str_,"12 34 56 78");
+    let rc = run_libc(asm, "f", vec![]);
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+        .to_str()
+        .unwrap();
+    assert_eq!(str_, "12 34 56 78");
 }
 
 #[test]
 fn exec_array_load_store() {
-    let asm = 
-      r#"
+    let asm = r#"
       @buf = common global [26 x i8] zeroinitializer, align 1
       define i8* @f() {
         store i8 118, i8* getelementptr inbounds ([26 x i8], [26 x i8]* @buf, i64 0, i64 0)
@@ -554,9 +557,11 @@ fn exec_array_load_store() {
         ret i8* getelementptr inbounds ([26 x i8], [26 x i8]* @buf, i64 0, i64 0)
       }
       "#;
-      let rc = run_libc(asm,"f",vec![]);
-      let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }.to_str().unwrap();
-      assert_eq!(str_,"vww");
+    let rc = run_libc(asm, "f", vec![]);
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+        .to_str()
+        .unwrap();
+    assert_eq!(str_, "vww");
 }
 
 #[test]
@@ -583,8 +588,8 @@ fn exec_test_phi() {
       ret i32 %result_1
     }
     "#;
-    let rc = run(asm,vec![]);
-    assert_eq!(rc,GenericValue::Int32(40320));
+    let rc = run(asm, vec![]);
+    assert_eq!(rc, GenericValue::Int32(40320));
 }
 #[cfg(test)]
 fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
@@ -595,15 +600,23 @@ fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
 }
 
 #[cfg(test)]
-fn run_libc(asm: &str, fname: &str,args: Vec<GenericValue>) -> GenericValue {
-    let module = module::parse_assembly(asm).unwrap();
+fn run_libc(asm: &str, fname: &str, args: Vec<GenericValue>) -> GenericValue {
+    let module = Module::try_from(asm).unwrap();
     let mut ctx = interpreter::Context::new(&module);
     #[cfg(target_os = "macos")]
-    {ctx = ctx.with_lib("libc.dylib").expect("failed to load libc");}
+    {
+        ctx = ctx.with_lib("libc.dylib").expect("failed to load libc");
+    }
     #[cfg(target_os = "linux")]
-    {ctx = ctx.with_lib("libc.so.6").expect("failed to load libc");}
+    {
+        ctx = ctx.with_lib("libc.so.6").expect("failed to load libc");
+    }
     #[cfg(target_os = "windows")]
-    {ctx = ctx.with_lib("msvcrt.dll").expect("failed to load msvcrt.dll");}
+    {
+        ctx = ctx
+            .with_lib("msvcrt.dll")
+            .expect("failed to load msvcrt.dll");
+    }
     let main = module.find_function_by_name(fname).unwrap();
     interpreter::run_function(&ctx, main, args).unwrap()
 }
