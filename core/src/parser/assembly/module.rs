@@ -66,7 +66,7 @@ fn parse_local_type<'a>(
     Ok((source, ()))
 }
 
-pub fn parse(mut source: &str) -> Result<Module, super::Error> {
+pub fn parse(mut source: &str) -> Result<Module, Error> {
     let mut module = Module::new();
     loop {
         source = spaces(source)?.0;
