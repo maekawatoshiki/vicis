@@ -746,6 +746,7 @@ dependencies = [
  "id-arena",
  "libffi",
  "libloading",
+ "log",
  "rustc-hash",
  "structopt",
  "vicis-core",

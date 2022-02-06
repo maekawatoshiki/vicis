@@ -137,7 +137,9 @@ fn run_alloca(
     let alloc_sz = frame.func.types.size_of(alloc_ty) * num_elements.as_int().cast_to_usize();
     let alloc_align = if align > 0 { align } else { 8 } as usize;
     let ptr = unsafe {
-        alloc::alloc(alloc::Layout::from_size_align(alloc_sz, alloc_align).expect("layout err"))
+        alloc::alloc_zeroed(
+            alloc::Layout::from_size_align(alloc_sz, alloc_align).expect("layout err"),
+        )
     };
     frame.set_inst_val(id, GenericValue::Ptr(ptr));
 }
@@ -163,7 +165,7 @@ fn run_store(frame: &mut StackFrame, _tys: &[Type], args: &[ValueId], _align: u3
     let dst = frame.get_val(dst).unwrap().to_ptr().unwrap();
     let src = frame.get_val(src).unwrap();
     match src {
-        GenericValue::Int1(i) => unsafe { *(dst as *mut bool) = i },
+        GenericValue::Int1(i) => unsafe { *(dst as *mut i8) = i as i8 },
         GenericValue::Int8(i) => unsafe { *(dst as *mut i8) = i },
         GenericValue::Int32(i) => unsafe { *(dst as *mut i32) = i },
         GenericValue::Int64(i) => unsafe { *(dst as *mut i64) = i },
@@ -196,7 +198,9 @@ fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, arg
         Opcode::Mul => frame.set_inst_val(id, mul(x, y).unwrap()),
         Opcode::SDiv => frame.set_inst_val(id, sdiv(x, y).unwrap()),
         Opcode::SRem => frame.set_inst_val(id, srem(x, y).unwrap()),
-        _ => todo!(),
+        Opcode::Shl => frame.set_inst_val(id, shl(x, y).unwrap()),
+        Opcode::AShr => frame.set_inst_val(id, ashr(x, y).unwrap()),
+        op => todo!("{:?}", op),
     };
 }
 
@@ -239,6 +243,11 @@ fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Ty
                 _ => todo!(),
             }
         }
+        Opcode::Bitcast => {
+            assert!(matches!(arg, GenericValue::Ptr(_)));
+            assert!(to.is_pointer(&frame.func.types));
+            arg
+        }
         t => todo!("cast {:?}", t),
     };
     frame.set_inst_val(id, val)
@@ -250,6 +259,7 @@ fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[Valu
     let mut cur_ty = tys[1];
     for &idx in &args[1..] {
         if cur_ty.is_struct(&frame.func.types) {
+            todo!()
         } else {
             let inner = frame.func.types.get_element(cur_ty).unwrap();
             let idx = match frame.get_val(idx).unwrap() {
@@ -257,7 +267,7 @@ fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[Valu
                 GenericValue::Int64(idx) => idx as usize,
                 _ => panic!(),
             };
-            total += frame.func.types.size_of(inner) * idx;
+            total += frame.func.types.size_of(inner) as usize * idx;
             cur_ty = inner;
         }
     }
@@ -284,6 +294,7 @@ fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[Va
 fn add(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x + y)),
+        (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x + y)),
         _ => None,
     }
 }
@@ -312,6 +323,26 @@ fn sdiv(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn srem(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x % y)),
+        _ => None,
+    }
+}
+
+fn shl(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => {
+            Some(GenericValue::Int32(x.rotate_left(y as u32)))
+        }
+        (GenericValue::Int64(x), GenericValue::Int64(y)) => {
+            Some(GenericValue::Int64(x.rotate_left(y as u32)))
+        }
+        _ => None,
+    }
+}
+
+fn ashr(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x >> y)),
+        (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x >> y)),
         _ => None,
     }
 }
@@ -480,10 +511,11 @@ impl TypeSize for Types {
 
 fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
     match ty {
+        types::VOID => unsafe { libffi::low::types::void },
         types::I32 => unsafe { libffi::low::types::sint32 },
         types::I64 => unsafe { libffi::low::types::sint64 },
         ty if ty.is_pointer(types) => unsafe { libffi::low::types::pointer },
-        _ => panic!(),
+        e => panic!("{:?}", e),
     }
 }
 

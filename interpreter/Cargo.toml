@@ -12,6 +12,7 @@ libloading = "0.7.0"
 rustc-hash = "^1.1.0"
 id-arena = "^2.2.1"
 anyhow = "^1.0.38"
+log = "0.4.14"
 
 [dev-dependencies]
 vicis-interpreter = { path = "../interpreter" }

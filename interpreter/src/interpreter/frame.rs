@@ -1,10 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use super::Context;
-use crate::{
-    generic_value::GenericValue,
-    interpreter::TypeSize
-};
+use crate::{generic_value::GenericValue, interpreter::TypeSize};
 use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
     value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
@@ -75,12 +72,16 @@ impl<'a> StackFrame<'a> {
                         match self.ctx.globals.get(name).copied() {
                             Some(GenericValue::Ptr(v)) => {
                                 let types = &self.ctx.module.types;
-                                let ty = types.get_element(self.ctx.module.global_variables().get(name).unwrap().ty).unwrap();
+                                let ty = types
+                                    .get_element(
+                                        self.ctx.module.global_variables().get(name).unwrap().ty,
+                                    )
+                                    .unwrap();
                                 let sz = types.size_of(ty) as i64;
-                                Some(GenericValue::Ptr( ((v as i64) + n*sz) as *mut u8))
+                                Some(GenericValue::Ptr(((v as i64) + n * sz) as *mut u8))
                             }
                             Some(a) => Some(a),
-                            None => None
+                            None => None,
                         }
                     }
                     _ => todo!(),
