@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 vicis-core = { path = "../core" }
-libffi = "^1.0.1"
+libffi = { git = "https://github.com/tov/libffi-rs", tag = "libffi-sys-v1.3.2" }
 libloading = "0.7.0"
 rustc-hash = "^1.1.0"
 id-arena = "^2.2.1"
