@@ -283,6 +283,7 @@ pub fn parse_cast<'a, 'b>(
             map(tag("bitcast"), |_| Opcode::Bitcast),
             map(tag("trunc"), |_| Opcode::Trunc),
             map(tag("inttoptr"), |_| Opcode::IntToPtr),
+            map(tag("ptrtoint"), |_| Opcode::PtrToInt),
         )),
     )(source)?;
     let (source, from) = super::types::parse(source, ctx.types)?;
