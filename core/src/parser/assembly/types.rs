@@ -17,6 +17,8 @@ pub fn parse<'a>(source: &'a str, types: &Types) -> IResult<&'a str, Type, Verbo
         parse_struct(source, types, false)?
     } else if let Ok((source, _)) = preceded(spaces, tag("<{"))(source) {
         parse_struct(source, types, true)?
+    } else if let Ok((source, _)) = preceded(spaces, tag("opaque"))(source) {
+        return Ok((source, types.base_mut().anonymous_struct(vec![], false)));
     } else if let Ok((source, name)) =
         preceded(spaces, preceded(char('%'), super::name::parse))(source)
     {
