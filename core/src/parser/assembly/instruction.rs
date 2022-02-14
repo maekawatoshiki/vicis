@@ -471,10 +471,26 @@ pub fn parse_landingpad<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("landingpad"))(source)?;
     let (source, ty) = super::types::parse(source, ctx.types)?;
-    let (source, _) = preceded(spaces, tag("cleanup"))(source)?;
+    let (mut source, cleanup) = opt(preceded(spaces, tag("cleanup")))(source)?;
+    let mut catches = vec![];
+    loop {
+        let (source_, catch) = opt(preceded(spaces, tag("catch")))(source)?;
+        if catch.is_none() {
+            break;
+        }
+        let (source_, ty) = super::types::parse(source_, ctx.types)?;
+        let (source_, arg) = super::value::parse(source_, ctx, ty)?;
+        catches.push((ty, arg));
+        source = source_;
+    }
+    assert!(cleanup.is_some() || (cleanup.is_none() && catches.len() > 0));
     let inst = Opcode::LandingPad
         .with_block(ctx.cur_block)
-        .with_operand(Operand::LandingPad(LandingPad { ty }));
+        .with_operand(Operand::LandingPad(LandingPad {
+            ty,
+            catches,
+            cleanup: cleanup.is_some(),
+        }));
     Ok((source, inst))
 }
 

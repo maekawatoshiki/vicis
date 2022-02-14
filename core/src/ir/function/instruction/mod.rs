@@ -162,6 +162,8 @@ pub struct Invoke {
 #[derive(Debug, Clone)]
 pub struct LandingPad {
     pub ty: Type,
+    pub catches: Vec<(Type, ValueId)>,
+    pub cleanup: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -413,7 +415,7 @@ impl Operand {
             Self::Cast(Cast { tys, .. }) => tys,
             Self::GetElementPtr(GetElementPtr { tys, .. }) => tys.as_slice(),
             Self::Call(Call { tys, .. }) | Self::Invoke(Invoke { tys, .. }) => tys.as_slice(),
-            Self::LandingPad(LandingPad { ty }) => slice::from_ref(ty),
+            Self::LandingPad(LandingPad { ty, .. }) => slice::from_ref(ty),
             Self::Resume(Resume { ty, .. }) => slice::from_ref(ty),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { .. }) => &[],

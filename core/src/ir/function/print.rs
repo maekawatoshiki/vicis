@@ -447,16 +447,29 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.indexes[&Ids::Block(blocks[1])],
                 )
             }
-            Operand::LandingPad(LandingPad { ty }) => {
+            Operand::LandingPad(LandingPad {
+                ty,
+                catches,
+                cleanup,
+            }) => {
                 write!(
                     self.fmt,
-                    "{}landingpad {} cleanup",
+                    "{}landingpad {}{}{}",
                     if ty.is_void() {
                         "".to_string()
                     } else {
                         format!("%{:?} = ", dest)
                     },
                     types.to_string(*ty),
+                    if *cleanup { " cleanup" } else { "" },
+                    catches.iter().fold("".to_string(), |acc, (ty, arg)| {
+                        format!(
+                            "{} catch {} {}",
+                            acc,
+                            types.to_string(*ty),
+                            self.value_to_string(data.value_ref(*arg), types),
+                        )
+                    })
                 )
             }
             Operand::Resume(Resume { ty, arg }) => {
