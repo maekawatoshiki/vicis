@@ -11,7 +11,7 @@ use nom::{
     error::VerboseError,
     multi::many0,
     sequence::{preceded, tuple},
-    IResult,
+    IResult, Parser,
 };
 
 pub fn parse_param_attr<'a>(
@@ -36,8 +36,12 @@ pub fn parse_param_attr<'a>(
         ),
         map(tag("sret"), |_| ParameterAttribute::SRet(None)),
         map(
-            tuple((tag("align"), spaces, opt(char('(')), digit1, opt(char(')')))),
-            |(_, _, _, num, _)| ParameterAttribute::Alignment(num.parse::<u64>().unwrap()),
+            alt((
+                tuple((tag("align"), spaces, char('('), digit1, char(')')))
+                    .map(|(_, _, _, n, _)| n),
+                tuple((tag("align"), spaces, digit1)).map(|(_, _, n)| n),
+            )),
+            |num| ParameterAttribute::Alignment(num.parse::<u64>().unwrap()),
         ),
         map(tag("readonly"), |_| ParameterAttribute::ReadOnly),
         map(tag("noalias"), |_| ParameterAttribute::NoAlias),

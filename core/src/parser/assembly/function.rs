@@ -15,7 +15,7 @@ use crate::ir::{
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::char,
+    character::complete::{char, digit1},
     combinator::opt,
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
@@ -174,6 +174,7 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
     let (source, unnamed_addr) = opt(preceded(spaces, super::unnamed_addr::parse))(source)?;
     let (source, func_attrs) = super::attributes::parse_attributes(source)?;
+    let (source, _) = opt(tuple((spaces, tag("align"), spaces, digit1)))(source)?; // TODO: do not ignore 'align N'
     let (mut source, personality) = parse_personality(source, &types)?;
 
     let mut data = Data::new();
