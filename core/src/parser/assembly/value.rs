@@ -33,7 +33,7 @@ pub fn parse_constant<'a>(
     if let Ok((source, id)) = parse_constant_int(source, ty) {
         return Ok((source, id.into()));
     }
-    if let Ok((source, id)) = parse_constant_array(source, types) {
+    if let Ok((source, id)) = parse_constant_array(source, types, ty) {
         return Ok((source, id));
     }
     if let Ok((source, id)) = parse_constant_global_ref(source) {
@@ -68,37 +68,48 @@ pub fn parse_constant_int<'a>(
 
 pub fn parse_constant_array<'a>(
     source: &'a str,
-    _types: &Types,
-    // ty: Type,
+    types: &Types,
+    ty: Type,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
-    // TODO: Support arrays in the form of [a, b, c]
-    let (source, _) = preceded(spaces, char('c'))(source)?;
-    let (source, s) = preceded(spaces, string_literal)(source)?;
-    let val = ConstantData::Array(ConstantArray {
-        elem_ty: I8,
-        elems: s
-            .as_bytes()
-            .iter()
-            .map(|c| ConstantData::Int(ConstantInt::Int8(*c as i8)))
-            .collect(),
-        is_string: true,
-    });
-    Ok((source, val))
+    if let Ok((source, _)) = preceded(spaces, char('c'))(source) {
+        let (source, s) = preceded(spaces, string_literal)(source)?;
+        let val = ConstantData::Array(ConstantArray {
+            elem_ty: I8,
+            elems: s
+                .as_bytes()
+                .iter()
+                .map(|c| ConstantData::Int(ConstantInt::Int8(*c as i8)))
+                .collect(),
+            is_string: true,
+        });
+        return Ok((source, val));
+    }
 
-    // let (mut source, _) = preceded(spaces, char('['))(source)?;
-    // loop {
-    //     let (source_, ty) = super::types::parse(source, ctx.types)?;
-    //
-    // }
+    let (mut source, _) = preceded(spaces, char('['))(source)?;
+    let mut elems = vec![];
+    loop {
+        let (source_, ty) = super::types::parse(source, types)?;
+        let (source_, elem) = parse_constant(source_, types, ty)?;
 
-    // let (source, num) = preceded(spaces, digit1)(source)?;
-    // let val = match &*ctx.types.get(ty) {
-    //     Type::Int(32) => Value::Constant(ConstantData::Int(ConstantInt::Int32(
-    //         num.parse::<i32>().unwrap(),
-    //     ))),
-    //     _ => todo!(),
-    // };
-    // Ok((source, ctx.data.create_value(val)))
+        elems.push(elem);
+
+        if let Ok((source_, _)) = tuple((spaces, char(',')))(source_) {
+            source = source_;
+            continue;
+        }
+
+        source = source_;
+        break;
+    }
+    let (source, _) = preceded(spaces, char(']'))(source)?;
+    return Ok((
+        source,
+        ConstantData::Array(ConstantArray {
+            elem_ty: types.get_element(ty).unwrap(),
+            elems,
+            is_string: false,
+        }),
+    ));
 }
 
 pub fn parse_constant_expr<'a>(
