@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Visibility {
     Default,
     Hidden,

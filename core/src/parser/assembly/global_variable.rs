@@ -1,5 +1,12 @@
-use crate::ir::{
-    module::global_variable::GlobalVariable, types, types::Types, util::spaces, value,
+use crate::{
+    ir::{
+        module::{global_variable::GlobalVariable, linkage::Linkage},
+        types,
+        types::Types,
+        util::spaces,
+        value,
+    },
+    parser::assembly::{preemption_specifier, visibility},
 };
 use nom::{
     branch::alt,
@@ -26,10 +33,20 @@ pub fn parse<'a>(
     let (source, name) = preceded(spaces, preceded(char('@'), super::name::parse))(source)?;
     let (source, _) = preceded(spaces, char('='))(source)?;
     let (source, linkage) = opt(preceded(spaces, super::linkage::parse))(source)?;
+    let (source, preemption_specifier) =
+        opt(preceded(spaces, preemption_specifier::parse))(source)?;
+    let (source, visibility) = opt(preceded(spaces, visibility::parse))(source)?;
     let (source, unnamed_addr) = opt(preceded(spaces, super::unnamed_addr::parse))(source)?;
     let (source, kind) = preceded(spaces, alt((tag("global"), tag("constant"))))(source)?;
     let (source, ty) = super::types::parse(source, types)?;
-    let (source, init) = parse_init(source, types, ty)?;
+    let (source, init) = if matches!(
+        linkage,
+        Some(Linkage::External) | Some(Linkage::ExternalWeak)
+    ) {
+        (source, None)
+    } else {
+        parse_init(source, types, ty)?
+    };
     let (source, align) = opt(preceded(
         spaces,
         preceded(
@@ -42,6 +59,8 @@ pub fn parse<'a>(
         GlobalVariable {
             name,
             linkage,
+            preemption_specifier,
+            visibility,
             unnamed_addr,
             is_constant: kind == "constant",
             ty,
