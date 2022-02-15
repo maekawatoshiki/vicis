@@ -9,14 +9,14 @@ use crate::ir::{
     },
     module::{linkage, name, preemption_specifier, visibility},
     types::Types,
-    util::spaces,
+    util::{spaces, string_literal},
     value::{Value, ValueId},
 };
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
-    combinator::opt,
+    combinator::{map, opt},
     error::VerboseError,
     sequence::{preceded, terminated, tuple},
     IResult,
@@ -174,6 +174,10 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;
     let (source, unnamed_addr) = opt(preceded(spaces, super::unnamed_addr::parse))(source)?;
     let (source, func_attrs) = super::attributes::parse_attributes(source)?;
+    let (source, section) = opt(map(
+        tuple((spaces, tag("section"), spaces, string_literal)),
+        |(_, _, _, section)| section.to_owned(),
+    ))(source)?;
     let (source, _) = opt(tuple((spaces, tag("align"), spaces, digit1)))(source)?; // TODO: do not ignore 'align N'
     let (mut source, personality) = parse_personality(source, &types)?;
 
@@ -217,6 +221,7 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
             unnamed_addr,
             ret_attrs,
             func_attrs,
+            section,
             params,
             data,
             layout,

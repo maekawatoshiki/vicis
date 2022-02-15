@@ -96,6 +96,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             write!(self.fmt, "{:?} ", attr)?
         }
 
+        if let Some(section) = &f.section {
+            write!(self.fmt, "section \"{}\" ", section)?
+        }
+
         if let Some((ty, func)) = &f.personality {
             write!(
                 self.fmt,
