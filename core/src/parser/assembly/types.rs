@@ -1,4 +1,4 @@
-use crate::ir::types::{ArrayType, FunctionType, Type, Types, I1, I32, I64, I8, VOID};
+use crate::ir::types::{ArrayType, FunctionType, Type, Types, I1, I16, I32, I64, I8, VOID};
 use crate::ir::util::spaces;
 use nom::{
     branch::alt,
@@ -27,12 +27,13 @@ pub fn parse<'a>(source: &'a str, types: &Types) -> IResult<&'a str, Type, Verbo
         preceded(
             spaces,
             alt((
-                map(tag("void"), |_| VOID),
-                map(tag("i1"), |_| I1),
-                map(tag("i8"), |_| I8),
-                map(tag("i32"), |_| I32),
-                map(tag("i64"), |_| I64),
                 map(tag("metadata"), |_| types.metadata()),
+                map(tag("void"), |_| VOID),
+                map(tag("i64"), |_| I64),
+                map(tag("i32"), |_| I32),
+                map(tag("i16"), |_| I16),
+                map(tag("i8"), |_| I8),
+                map(tag("i1"), |_| I1),
             )),
         )(source)?
     };
