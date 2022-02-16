@@ -24,9 +24,12 @@ fn main() {
     let main = module
         .find_function_by_name("main")
         .expect("failed to lookup 'main'");
-    let ctx = interpreter::Context::new(&module)
+    let init = module.find_function_by_name("__cxx_global_var_init"); // TODO: Add ctor support to interpreter.
+    let ctx = interpreter::ContextBuilder::new(&module)
         .with_libs(opt.libs)
-        .expect("failed to load library");
+        .expect("failed to load library")
+        .build();
+    init.map(|init| interpreter::run_function(&ctx, init, vec![]));
     let ret = interpreter::run_function(&ctx, main, vec![]);
     process::exit(ret.expect("unknown error").sext_to_i64().unwrap_or(0) as i32)
 }

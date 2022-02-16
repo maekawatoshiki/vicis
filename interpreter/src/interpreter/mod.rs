@@ -16,13 +16,21 @@ use vicis_core::ir::{
         },
         Function, FunctionId,
     },
-    module::{name::Name, Module},
-    types::{self, ArrayType, CompoundType, Type, Types},
+    module::{linkage::Linkage, name::Name, Module},
+    types::{self, ArrayType, CompoundType, StructType, Type, Types},
     value::{ConstantArray, ConstantData, ValueId},
 };
 
+/// An execution context for interpreters.
 pub struct Context<'a> {
     pub module: &'a Module,
+    globals: FxHashMap<Name, GenericValue>,
+    libs: Vec<libloading::Library>,
+}
+
+/// A builder for `Context`.
+pub struct ContextBuilder<'a> {
+    module: &'a Module,
     globals: FxHashMap<Name, GenericValue>,
     libs: Vec<libloading::Library>,
 }
@@ -421,38 +429,11 @@ fn sge(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 
 // Context
 
-impl<'a> Context<'a> {
+impl<'a> ContextBuilder<'a> {
     pub fn new(module: &'a Module) -> Self {
-        let mut globals = FxHashMap::default();
-
-        for (name, gv) in module.global_variables() {
-            let sz = module.types.size_of(gv.ty);
-            let align = if gv.align > 0 { gv.align } else { 8 } as usize;
-            let ptr = unsafe {
-                alloc::alloc(alloc::Layout::from_size_align(sz, align).expect("layout err"))
-            };
-            if let Some(init) = &gv.init {
-                match init {
-                    ConstantData::Array(ConstantArray {
-                        is_string: true,
-                        elems,
-                        ..
-                    }) => {
-                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
-                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
-                    }
-                    ConstantData::AggregateZero => {
-                        unsafe { ptr::write_bytes(ptr, 0, sz) };
-                    }
-                    _ => todo!(),
-                }
-            }
-            globals.insert(name.clone(), GenericValue::Ptr(ptr));
-        }
-
-        Self {
+        ContextBuilder {
             module,
-            globals,
+            globals: FxHashMap::default(),
             libs: vec![],
         }
     }
@@ -476,9 +457,69 @@ impl<'a> Context<'a> {
         }
         Some(self)
     }
+
+    pub fn build(self) -> Context<'a> {
+        let mut ctx = Context {
+            module: self.module,
+            globals: self.globals,
+            libs: self.libs,
+        };
+
+        for (name, gv) in ctx.module.global_variables() {
+            let sz = ctx.module.types.size_of(gv.ty);
+            let align = if gv.align > 0 { gv.align } else { 8 } as usize;
+            if matches!(
+                gv.linkage,
+                Some(Linkage::External) | Some(Linkage::ExternalWeak)
+            ) {
+                let p = *ctx
+                    .lookup::<*mut u8>(name.as_string().as_str())
+                    .expect("external not found");
+                ctx.globals.insert(name.clone(), GenericValue::Ptr(p));
+                continue;
+            }
+            let ptr = unsafe {
+                alloc::alloc_zeroed(alloc::Layout::from_size_align(sz, align).expect("layout err"))
+            };
+            if let Some(init) = &gv.init {
+                match init {
+                    ConstantData::Array(ConstantArray {
+                        is_string: true,
+                        elems,
+                        ..
+                    }) => {
+                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
+                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
+                    }
+                    ConstantData::Array(ConstantArray {
+                        is_string: false,
+                        elems,
+                        ..
+                    }) => {
+                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
+                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
+                    }
+                    ConstantData::AggregateZero => {
+                        // Already zeroed.
+                        // unsafe { ptr::write_bytes(ptr, 0, sz) };
+                    }
+                    e => todo!("{:?}", e),
+                }
+            }
+            ctx.globals.insert(name.clone(), GenericValue::Ptr(ptr));
+        }
+
+        ctx
+    }
 }
 
-// dummy
+impl<'a> Context<'a> {
+    fn lookup<T>(&self, name: &str) -> Option<libloading::Symbol<T>> {
+        self.libs
+            .iter()
+            .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
+    }
+}
 
 trait TypeSize {
     fn size_of(&self, ty: Type) -> usize;
@@ -487,6 +528,15 @@ trait TypeSize {
 impl TypeSize for Types {
     // Returns the size of the type in byte
     fn size_of(&self, ty: Type) -> usize {
+        fn align(n: usize, m: usize) -> usize {
+            let rem = n % m;
+            if rem == 0 {
+                n
+            } else {
+                n - rem + m
+            }
+        }
+
         match self.get(ty) {
             Some(ty) => match &*ty {
                 CompoundType::Array(ArrayType {
@@ -494,6 +544,15 @@ impl TypeSize for Types {
                     num_elements,
                 }) => self.size_of(*inner) * *num_elements as usize,
                 CompoundType::Pointer(_) => 8,
+                CompoundType::Struct(StructType {
+                    elems, is_packed, ..
+                }) => {
+                    if *is_packed {
+                        elems.iter().map(|&e| self.size_of(e)).sum()
+                    } else {
+                        align(elems.iter().map(|&e| self.size_of(e)).sum(), 8)
+                    }
+                }
                 _ => todo!(),
             },
             None => match ty {
@@ -520,17 +579,14 @@ fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
 }
 
 fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> GenericValue {
-    fn lookup<'a>(
-        ctx: &'a Context,
-        name: &'a str,
-    ) -> Option<libloading::Symbol<'a, unsafe extern "C" fn()>> {
-        ctx.libs
-            .iter()
-            .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
-    }
+    #[cfg(debug_assertions)]
+    log::debug!("external enter: {}", func.name);
+
     let mut args_ty = Vec::with_capacity(args.len());
     let mut new_args = Vec::with_capacity(args.len());
+    let mut tmps = vec![]; // Used to store temporary values for libffi invoke.
     let mut args: Vec<GenericValue> = args.to_vec();
+
     for arg in &mut args {
         match arg {
             GenericValue::Int32(ref mut i) => {
@@ -545,13 +601,30 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
                 args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
                 new_args.push(&mut *p as *mut _ as *mut c_void);
             }
-            _ => todo!(),
+            GenericValue::Id(_) => {
+                // If `arg` is (an id for) an external function, get its address.
+                if let Some(id) = arg.to_id::<FunctionId>() {
+                    let f = &ctx.module.functions()[*id];
+                    let sym: *const u8 = *ctx
+                        .lookup(f.name().as_str()) // TODO: Cache this.
+                        .expect("getting the address of interpreter (not external) function is not supported");
+                    tmps.push(sym);
+                    args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+                    new_args.push(&mut *tmps.last_mut().unwrap() as *mut _ as *mut c_void);
+                    continue;
+                }
+                todo!();
+                // args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+                // new_args.push(&mut 0 as *mut _ as *mut c_void);
+            }
+            e => todo!("{:?}", e),
         }
     }
+
     let mut ret_ty = ffitype(func.result_ty, &func.types);
     let mut cif: libffi::low::ffi_cif = Default::default();
     let prms_len = func.params.len();
-    let func1 = lookup(ctx, func.name()).unwrap();
+    let func1 = ctx.lookup::<unsafe extern "C" fn()>(func.name()).unwrap();
     let func1 = libffi::low::CodePtr(unsafe { func1.into_raw() }.into_raw());
 
     unsafe {
@@ -565,7 +638,12 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
         )
     }
     .unwrap();
-    match func.result_ty {
+
+    let ret = match func.result_ty {
+        types::VOID => {
+            unsafe { libffi::low::call::<c_void>(&mut cif, func1, new_args.as_mut_ptr()) };
+            GenericValue::Void
+        }
         types::I32 => {
             let r: i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
             GenericValue::Int32(r)
@@ -579,5 +657,10 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
             GenericValue::Ptr(r)
         }
         _ => panic!(),
-    }
+    };
+
+    #[cfg(debug_assertions)]
+    log::debug!("external exit: {}", func.name);
+
+    ret
 }
