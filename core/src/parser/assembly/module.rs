@@ -174,6 +174,7 @@ generate_test!(parse_example_rustc_fn_call, "rustc_fn_call.ll");
 generate_test!(parse_example_rustc_hello, "rustc_hello.ll");
 generate_test!(parse_example_rustc_minimum, "rustc_minimum.ll");
 generate_test!(parse_example_struct, "struct.ll");
+generate_test!(parse_example_hello_cc, "hello.cc.ll");
 
 #[test]
 fn parse_module1() {
