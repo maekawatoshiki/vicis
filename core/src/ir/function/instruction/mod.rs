@@ -53,6 +53,7 @@ pub enum Opcode {
     Resume,
     Br,
     CondBr,
+    Switch,
     Ret,
     Unreachable,
     Invalid,
@@ -185,6 +186,13 @@ pub struct CondBr {
 }
 
 #[derive(Debug, Clone)]
+pub struct Switch {
+    pub tys: Vec<Type>,
+    pub args: Vec<ValueId>,
+    pub blocks: Vec<BasicBlockId>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Ret {
     pub ty: Type,
     pub val: Option<ValueId>,
@@ -208,6 +216,7 @@ pub enum Operand {
     Resume(Resume),
     Br(Br),
     CondBr(CondBr),
+    Switch(Switch),
     Ret(Ret),
     Unreachable,
     Invalid,
@@ -295,7 +304,7 @@ impl Opcode {
     pub fn is_terminator(&self) -> bool {
         matches!(
             self,
-            Self::Ret | Self::Br | Self::CondBr | Self::Invoke | Self::Resume
+            Self::Ret | Self::Br | Self::CondBr | Self::Switch | Self::Invoke | Self::Resume
         )
     }
 
@@ -373,6 +382,7 @@ impl Operand {
             Self::Resume(Resume { arg, .. }) => slice::from_ref(arg),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { arg, .. }) => slice::from_ref(arg),
+            Self::Switch(Switch { args, .. }) => args,
             Self::Unreachable => &[],
             Self::Invalid => &[],
         }
@@ -397,6 +407,7 @@ impl Operand {
             Self::Resume(Resume { arg, .. }) => slice::from_mut(arg),
             Self::Br(Br { .. }) => &mut [],
             Self::CondBr(CondBr { arg, .. }) => slice::from_mut(arg),
+            Self::Switch(Switch { args, .. }) => args.as_mut_slice(),
             Self::Unreachable => &mut [],
             Self::Invalid => &mut [],
         }
@@ -420,6 +431,7 @@ impl Operand {
             Self::Resume(Resume { ty, .. }) => slice::from_ref(ty),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { .. }) => &[],
+            Self::Switch(Switch { tys, .. }) => &tys,
             Self::Unreachable => &[],
             Self::Invalid => &[],
         }
@@ -482,6 +494,32 @@ impl Phi {
     }
 }
 
+impl Switch {
+    pub fn cond(&self) -> ValueId {
+        self.args[0]
+    }
+
+    pub fn cond_ty(&self) -> Type {
+        self.tys[0]
+    }
+
+    pub fn default_block(&self) -> BasicBlockId {
+        self.blocks[0]
+    }
+
+    pub fn blocks(&self) -> &[BasicBlockId] {
+        &self.blocks[1..]
+    }
+
+    pub fn cases(&self) -> &[ValueId] {
+        &self.args[1..]
+    }
+
+    pub fn cases_tys(&self) -> &[Type] {
+        &self.tys[1..]
+    }
+}
+
 impl fmt::Debug for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -517,6 +555,7 @@ impl fmt::Debug for Opcode {
                 Opcode::LandingPad => "landingpad",
                 Opcode::Resume => "resume",
                 Opcode::Br | Opcode::CondBr => "br",
+                Opcode::Switch => "switch",
                 Opcode::Ret => "ret",
                 Opcode::Unreachable => "unreachable",
                 Opcode::Invalid => "INVALID",

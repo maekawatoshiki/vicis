@@ -27,6 +27,7 @@ pub fn parse_attribute(source: &str) -> IResult<&str, Attribute, VerboseError<&s
             map(tag("inlinehint"), |_| Attribute::InlineHint),
             map(tag("jumptable"), |_| Attribute::JumpTable),
             map(tag("minimizesize"), |_| Attribute::MinimizeSize),
+            map(tag("mustprogress"), |_| Attribute::MustProgress),
             map(tag("naked"), |_| Attribute::Naked),
             map(tag("nobuiltin"), |_| Attribute::NoBuiltin),
             map(tag("nocfcheck"), |_| Attribute::NoCFCheck),

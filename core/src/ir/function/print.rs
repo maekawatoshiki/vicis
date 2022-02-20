@@ -500,6 +500,30 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.indexes[&Ids::Block(blocks[1])],
                 )
             }
+            Operand::Switch(switch) => {
+                write!(
+                    self.fmt,
+                    "switch {} {}, label %{:?} [ \n {}    ]",
+                    types.to_string(switch.cond_ty()),
+                    self.value_to_string(data.value_ref(switch.cond()), types),
+                    self.indexes[&Ids::Block(switch.default_block())],
+                    switch
+                        .cases_tys()
+                        .iter()
+                        .zip(switch.cases())
+                        .zip(switch.blocks())
+                        .into_iter()
+                        .fold("".to_string(), |acc, ((&ty, &case), &block)| {
+                            format!(
+                                "{}{} {}, label %{:?}\n",
+                                acc,
+                                types.to_string(ty),
+                                self.value_to_string(data.value_ref(case), types),
+                                self.indexes[&Ids::Block(block)],
+                            )
+                        })
+                )
+            }
             Operand::Ret(Ret { val: None, .. }) => write!(self.fmt, "ret void"),
             Operand::Ret(Ret { val: Some(val), ty }) => {
                 write!(
