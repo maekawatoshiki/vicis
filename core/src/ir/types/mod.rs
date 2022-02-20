@@ -312,7 +312,7 @@ impl TypesBase {
                 is_var_arg,
             }) => {
                 format!(
-                    "{} ({})",
+                    "{} ({}{})",
                     self.to_string(*ret),
                     params
                         .iter()
@@ -322,17 +322,16 @@ impl TypesBase {
                                 "{}{}{}",
                                 acc,
                                 self.to_string(param),
-                                if i == params.len() - 1 {
-                                    if *is_var_arg {
-                                        ", ..."
-                                    } else {
-                                        ""
-                                    }
-                                } else {
-                                    ", "
-                                }
+                                if i == params.len() - 1 { "" } else { ", " }
                             )
-                        })
+                        }),
+                    if *is_var_arg && params.is_empty() {
+                        "..."
+                    } else if *is_var_arg {
+                        ", ..."
+                    } else {
+                        ""
+                    }
                 )
             }
             CompoundType::Struct(ty) => {

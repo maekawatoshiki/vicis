@@ -4,7 +4,7 @@ use super::name::identifier;
 use super::param_attrs::parse_param_attrs;
 use crate::ir::function::instruction::{
     Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId,
-    IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store,
+    IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store, Switch,
 };
 use crate::ir::{
     function::{
@@ -552,6 +552,55 @@ pub fn parse_br<'a, 'b>(
     }
 }
 
+pub fn parse_switch<'a, 'b>(
+    source: &'a str,
+    ctx: &mut ParserContext<'b>,
+) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
+    let (source, _) = preceded(spaces, tag("switch"))(source)?;
+    let (source, cond_ty) = super::types::parse(source, ctx.types)?;
+    let (source, cond) = super::value::parse(source, ctx, cond_ty)?;
+    let (source, _) = preceded(spaces, char(','))(source)?;
+    let (source, default_block) = preceded(
+        spaces,
+        preceded(
+            tag("label"),
+            preceded(spaces, preceded(char('%'), super::name::parse)),
+        ),
+    )(source)?;
+    let default_block = ctx.get_or_create_named_block(default_block);
+    let mut tys = vec![cond_ty];
+    let mut args = vec![cond];
+    let mut blocks = vec![default_block];
+    let (mut source, _) = preceded(spaces, char('['))(source)?;
+    loop {
+        let (source_, end) = opt(preceded(spaces, char(']')))(source)?;
+        if end.is_some() {
+            source = source_;
+            break;
+        }
+        let (source_, case_ty) = super::types::parse(source_, ctx.types)?;
+        assert!(case_ty == cond_ty);
+        let (source_, case) = super::value::parse(source_, ctx, case_ty)?;
+        let (source_, _) = preceded(spaces, char(','))(source_)?;
+        let (source_, block) = preceded(
+            spaces,
+            preceded(
+                tag("label"),
+                preceded(spaces, preceded(char('%'), super::name::parse)),
+            ),
+        )(source_)?;
+        let block = ctx.get_or_create_named_block(block);
+        tys.push(case_ty);
+        args.push(case);
+        blocks.push(block);
+        source = source_;
+    }
+    let inst = Opcode::Switch
+        .with_block(ctx.cur_block)
+        .with_operand(Operand::Switch(Switch { tys, args, blocks }));
+    Ok((source, inst))
+}
+
 pub fn parse_ret<'a, 'b>(
     source: &'a str,
     ctx: &mut ParserContext<'b>,
@@ -649,6 +698,7 @@ pub fn parse<'a, 'b>(
         parse_landingpad,
         parse_resume,
         parse_br,
+        parse_switch,
         parse_ret,
         parse_unreachable,
     ]

@@ -83,7 +83,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         }
 
         if f.is_var_arg {
-            write!(self.fmt, ", ...")?;
+            if f.params.is_empty() {
+                write!(self.fmt, "...")?;
+            } else {
+                write!(self.fmt, ", ...")?;
+            }
         }
 
         write!(self.fmt, ") ")?;
@@ -134,7 +138,12 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 let inst = f.data.inst_ref(inst_id);
                 if matches!(
                     inst.opcode,
-                    Opcode::Store | Opcode::Br | Opcode::CondBr | Opcode::Ret | Opcode::Resume
+                    Opcode::Store
+                        | Opcode::Br
+                        | Opcode::CondBr
+                        | Opcode::Switch
+                        | Opcode::Ret
+                        | Opcode::Resume
                 ) || (inst
                     .operand
                     .call_result_ty()
@@ -503,7 +512,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             Operand::Switch(switch) => {
                 write!(
                     self.fmt,
-                    "switch {} {}, label %{:?} [ \n {}    ]",
+                    "switch {} {}, label %{:?} [\n{}    ]",
                     types.to_string(switch.cond_ty()),
                     self.value_to_string(data.value_ref(switch.cond()), types),
                     self.indexes[&Ids::Block(switch.default_block())],
@@ -515,7 +524,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .into_iter()
                         .fold("".to_string(), |acc, ((&ty, &case), &block)| {
                             format!(
-                                "{}{} {}, label %{:?}\n",
+                                "{}        {} {}, label %{:?}\n",
                                 acc,
                                 types.to_string(ty),
                                 self.value_to_string(data.value_ref(case), types),
