@@ -38,7 +38,7 @@ pub fn parse<'a>(
     let (source, visibility) = opt(preceded(spaces, visibility::parse))(source)?;
     let (source, unnamed_addr) = opt(preceded(spaces, super::unnamed_addr::parse))(source)?;
     let (source, kind) = preceded(spaces, alt((tag("global"), tag("constant"))))(source)?;
-    let (source, ty) = super::types::parse(source, types)?;
+    let (source, ty) = super::types::parse(types)(source)?;
     let (source, init) = if matches!(
         linkage,
         Some(Linkage::External) | Some(Linkage::ExternalWeak)
@@ -85,7 +85,7 @@ pub fn parse_global_type_and_const<'a>(
     source: &'a str,
     types: &Types,
 ) -> IResult<&'a str, (types::Type, value::ConstantData), VerboseError<&'a str>> {
-    let (source, ty) = super::types::parse(source, types)?;
+    let (source, ty) = super::types::parse(types)(source)?;
     let (source, konst) = super::value::parse_constant(source, types, ty)?;
     Ok((source, (ty, konst)))
 }

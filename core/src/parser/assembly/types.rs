@@ -10,52 +10,56 @@ use nom::{
     IResult,
 };
 
-pub fn parse<'a>(source: &'a str, types: &Types) -> IResult<&'a str, Type, VerboseError<&'a str>> {
-    let (mut source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
-        parse_array(source, types)?
-    } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
-        parse_struct(source, types, false)?
-    } else if let Ok((source, _)) = preceded(spaces, tag("<{"))(source) {
-        parse_struct(source, types, true)?
-    } else if let Ok((source, _)) = preceded(spaces, tag("opaque"))(source) {
-        return Ok((source, types.base_mut().anonymous_struct(vec![], false)));
-    } else if let Ok((source, name)) =
-        preceded(spaces, preceded(char('%'), super::name::parse))(source)
-    {
-        (source, types.base_mut().empty_named_type(name))
-    } else {
-        preceded(
-            spaces,
-            alt((
-                map(tag("metadata"), |_| types.metadata()),
-                map(tag("void"), |_| VOID),
-                map(tag("i64"), |_| I64),
-                map(tag("i32"), |_| I32),
-                map(tag("i16"), |_| I16),
-                map(tag("i8"), |_| I8),
-                map(tag("i1"), |_| I1),
-            )),
-        )(source)?
-    };
+pub fn parse<'a: 'b, 'b>(
+    types: &'b Types,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Type, VerboseError<&'a str>> + 'b {
+    move |source: &'a str| {
+        let (mut source, mut base) = if let Ok((source, _)) = preceded(spaces, char('['))(source) {
+            parse_array(source, types)?
+        } else if let Ok((source, _)) = preceded(spaces, char('{'))(source) {
+            parse_struct(source, types, false)?
+        } else if let Ok((source, _)) = preceded(spaces, tag("<{"))(source) {
+            parse_struct(source, types, true)?
+        } else if let Ok((source, _)) = preceded(spaces, tag("opaque"))(source) {
+            return Ok((source, types.base_mut().anonymous_struct(vec![], false)));
+        } else if let Ok((source, name)) =
+            preceded(spaces, preceded(char('%'), super::name::parse))(source)
+        {
+            (source, types.base_mut().empty_named_type(name))
+        } else {
+            preceded(
+                spaces,
+                alt((
+                    map(tag("metadata"), |_| types.metadata()),
+                    map(tag("void"), |_| VOID),
+                    map(tag("i64"), |_| I64),
+                    map(tag("i32"), |_| I32),
+                    map(tag("i16"), |_| I16),
+                    map(tag("i8"), |_| I8),
+                    map(tag("i1"), |_| I1),
+                )),
+            )(source)?
+        };
 
-    loop {
-        if let Ok((source_, _ptr)) = preceded(spaces, char('*'))(source) {
-            base = types.base_mut().pointer(base);
-            source = source_;
-            continue;
+        loop {
+            if let Ok((source_, _ptr)) = preceded(spaces, char('*'))(source) {
+                base = types.base_mut().pointer(base);
+                source = source_;
+                continue;
+            }
+
+            if let Ok((source_, _ptr)) = preceded(spaces, char('('))(source) {
+                let (source_, base_) = parse_func_type(source_, types, base)?;
+                base = base_;
+                source = source_;
+                continue;
+            }
+
+            break;
         }
 
-        if let Ok((source_, _ptr)) = preceded(spaces, char('('))(source) {
-            let (source_, base_) = parse_func_type(source_, types, base)?;
-            base = base_;
-            source = source_;
-            continue;
-        }
-
-        break;
+        Ok((source, base))
     }
-
-    Ok((source, base))
 }
 
 fn parse_array<'a>(
@@ -64,7 +68,7 @@ fn parse_array<'a>(
 ) -> IResult<&'a str, Type, VerboseError<&'a str>> {
     let (source, n) = preceded(spaces, digit1)(source)?;
     let (source, _) = preceded(spaces, char('x'))(source)?;
-    let (source, ty) = parse(source, types)?;
+    let (source, ty) = parse(types)(source)?;
     let (source, _) = preceded(spaces, char(']'))(source)?;
     let ary_ty = types
         .base_mut()
@@ -83,7 +87,7 @@ fn parse_struct<'a>(
 
     let mut elems = vec![];
     loop {
-        let (source_, ty) = parse(source, types)?;
+        let (source_, ty) = parse(types)(source)?;
         elems.push(ty);
         if let Ok((source_, _)) = preceded(spaces, char(','))(source_) {
             source = source_;
@@ -116,7 +120,7 @@ fn parse_func_type<'a>(
             break;
         }
 
-        let (source_, param) = parse(source, types)?;
+        let (source_, param) = parse(types)(source)?;
         source = source_;
         params.push(param);
 
@@ -139,6 +143,6 @@ fn parse_func_type<'a>(
 fn test_metadata() {
     let types = Types::default();
     let source = "  metadata ";
-    let (_, ty) = parse(source, &types).unwrap();
+    let (_, ty) = parse(&types)(source).unwrap();
     assert!(types.metadata() == ty)
 }

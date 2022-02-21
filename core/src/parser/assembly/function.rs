@@ -44,7 +44,7 @@ pub fn parse_argument<'a>(
     types: &Types,
     index: &mut usize,
 ) -> IResult<&'a str, Parameter, VerboseError<&'a str>> {
-    let (source, ty) = super::types::parse(source, types)?;
+    let (source, ty) = super::types::parse(types)(source)?;
     let (source, attrs) = parse_param_attrs(source, types)?;
     let (source, name) = opt(preceded(spaces, preceded(char('%'), super::name::parse)))(source)?;
     Ok((
@@ -168,7 +168,7 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
         opt(preceded(spaces, super::preemption_specifier::parse))(source)?;
     let (source, visibility) = opt(preceded(spaces, super::visibility::parse))(source)?;
     let (source, ret_attrs) = parse_param_attrs(source, &types)?;
-    let (source, result_ty) = super::types::parse(source, &types)?;
+    let (source, result_ty) = super::types::parse(&types)(source)?;
     let (source, (_, _, _, name)) = tuple((spaces, char('@'), spaces, super::name::parse))(source)?;
     let name = name.to_string().cloned().unwrap();
     let (source, (params, is_var_arg)) = parse_argument_list(source, &types)?;

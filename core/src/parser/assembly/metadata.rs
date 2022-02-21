@@ -42,7 +42,7 @@ fn name(source: &str) -> IResult<&str, Metadata, VerboseError<&str>> {
 
 fn int(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, VerboseError<&str>> + '_ {
     move |source| {
-        let (source, ty) = super::types::parse(source, types)?;
+        let (source, ty) = super::types::parse(types)(source)?;
         parse_constant_int(source, ty).map(|(source, v)| (source, Metadata::Int(v)))
     }
 }

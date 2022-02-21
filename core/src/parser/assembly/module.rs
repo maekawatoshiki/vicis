@@ -61,7 +61,7 @@ fn parse_local_type<'a>(
     let (source, name) = preceded(spaces, preceded(char('%'), super::name::parse))(source)?;
     types.base_mut().empty_named_type(name.clone()); // register a named type
     let (source, _) = preceded(spaces, preceded(char('='), preceded(spaces, tag("type"))))(source)?;
-    let (source, ty) = super::types::parse(source, types)?;
+    let (source, ty) = super::types::parse(types)(source)?;
     types.base_mut().change_to_named_type(ty, name);
     Ok((source, ()))
 }

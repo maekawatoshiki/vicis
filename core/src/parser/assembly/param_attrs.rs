@@ -29,7 +29,7 @@ pub fn parse_param_attr<'a>(
                 tag("sret"),
                 spaces,
                 char('('),
-                |source: &'a str| super::types::parse(source, types),
+                super::types::parse(types),
                 char(')'),
             )),
             |(_, _, _, ty, _)| ParameterAttribute::SRet(Some(ty)),

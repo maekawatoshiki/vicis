@@ -33,7 +33,7 @@ pub fn parse_alloca<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("alloca"))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, align) = opt(preceded(
         spaces,
         preceded(
@@ -58,7 +58,7 @@ pub fn parse_phi<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("phi"))(source)?;
-    let (mut source, ty) = super::types::parse(source, ctx.types)?;
+    let (mut source, ty) = super::types::parse(ctx.types)(source)?;
     let mut args = vec![];
     let mut blocks = vec![];
     loop {
@@ -86,9 +86,9 @@ pub fn parse_load<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("load"))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
-    let (source, addr_ty) = super::types::parse(source, ctx.types)?;
+    let (source, addr_ty) = super::types::parse(ctx.types)(source)?;
     let (source, addr) = super::value::parse(source, ctx, addr_ty)?;
     let (source, align) = opt(preceded(
         spaces,
@@ -114,10 +114,10 @@ pub fn parse_store<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, preceded(tag("store"), spaces))(source)?;
-    let (source, src_ty) = super::types::parse(source, ctx.types)?;
+    let (source, src_ty) = super::types::parse(ctx.types)(source)?;
     let (source, src) = super::value::parse(source, ctx, src_ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
-    let (source, dst_ty) = super::types::parse(source, ctx.types)?;
+    let (source, dst_ty) = super::types::parse(ctx.types)(source)?;
     let (source, dst) = super::value::parse(source, ctx, dst_ty)?;
     let (source, align) = opt(preceded(
         spaces,
@@ -143,10 +143,10 @@ pub fn parse_insertvalue<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("insertvalue"))(source)?;
-    let (source, aggre_ty) = super::types::parse(source, ctx.types)?;
+    let (source, aggre_ty) = super::types::parse(ctx.types)(source)?;
     let (source, val) = super::value::parse(source, ctx, aggre_ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, elt) = super::value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![val, elt];
@@ -176,7 +176,7 @@ pub fn parse_extractvalue<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("extractvalue"))(source)?;
-    let (source, aggre_ty) = super::types::parse(source, ctx.types)?;
+    let (source, aggre_ty) = super::types::parse(ctx.types)(source)?;
     let (source, val) = super::value::parse(source, ctx, aggre_ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![val];
@@ -221,7 +221,7 @@ pub fn parse_add_sub_mul<'a, 'b>(
     let (source, nuw) = opt(preceded(spaces, tag("nuw")))(source)?;
     let (source, nsw) = opt(preceded(spaces, tag("nsw")))(source)?;
     let (source, exact) = opt(preceded(spaces, tag("exact")))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, lhs) = super::value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, rhs) = super::value::parse(source, ctx, ty)?;
@@ -258,7 +258,7 @@ pub fn parse_icmp<'a, 'b>(
 
     let (source, _) = preceded(spaces, tag("icmp"))(source)?;
     let (source, cond) = preceded(spaces, icmp_cond)(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, lhs) = super::value::parse(source, ctx, ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, rhs) = super::value::parse(source, ctx, ty)?;
@@ -287,10 +287,10 @@ pub fn parse_cast<'a, 'b>(
             map(tag("ptrtoint"), |_| Opcode::PtrToInt),
         )),
     )(source)?;
-    let (source, from) = super::types::parse(source, ctx.types)?;
+    let (source, from) = super::types::parse(ctx.types)(source)?;
     let (source, arg) = super::value::parse(source, ctx, from)?;
     let (source, _) = preceded(spaces, tag("to"))(source)?;
-    let (source, to) = super::types::parse(source, ctx.types)?;
+    let (source, to) = super::types::parse(ctx.types)(source)?;
     let inst = opcode
         .with_block(ctx.cur_block)
         .with_operand(Operand::Cast(Cast {
@@ -320,7 +320,7 @@ pub fn parse_call_args<'a, 'b>(
     let mut arg_attr_lists = vec![];
     let mut arg_values = vec![];
     loop {
-        let (source_, ty) = super::types::parse(source, ctx.types)?;
+        let (source_, ty) = super::types::parse(ctx.types)(source)?;
         let (source_, attrs) = parse_param_attrs(source_, ctx.types)?;
         let (source_, arg) = super::value::parse(source_, ctx, ty)?;
         arg_types.push(ty);
@@ -343,12 +343,12 @@ pub fn parse_getelementptr<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
     let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (mut source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![];
     let mut tys = vec![ty];
     loop {
-        let (source_, ty) = super::types::parse(source, ctx.types)?;
+        let (source_, ty) = super::types::parse(ctx.types)(source)?;
         let (source_, arg) = super::value::parse(source_, ctx, ty)?;
         tys.push(ty);
         args.push(arg);
@@ -373,7 +373,7 @@ pub fn parse_call<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("call"))(source)?;
     let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, callee) = parse_callee(source, ctx, ty)?;
     let (source, (mut tys, param_attrs, mut args)) = parse_call_args(source, ctx)?;
     let (source, func_attrs) = parse_attributes(source)?;
@@ -427,7 +427,7 @@ pub fn parse_invoke<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("invoke"))(source)?;
     let (source, ret_attrs) = parse_param_attrs(source, ctx.types)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, callee) = super::value::parse(source, ctx, ty)?;
     let (source, (mut tys, param_attrs, mut args)) = parse_call_args(source, ctx)?;
     tys.insert(0, ty);
@@ -471,7 +471,7 @@ pub fn parse_landingpad<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("landingpad"))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (mut source, cleanup) = opt(preceded(spaces, tag("cleanup")))(source)?;
     let mut catches = vec![];
     loop {
@@ -479,7 +479,7 @@ pub fn parse_landingpad<'a, 'b>(
         if catch.is_none() {
             break;
         }
-        let (source_, ty) = super::types::parse(source_, ctx.types)?;
+        let (source_, ty) = super::types::parse(ctx.types)(source_)?;
         let (source_, arg) = super::value::parse(source_, ctx, ty)?;
         catches.push((ty, arg));
         source = source_;
@@ -500,7 +500,7 @@ pub fn parse_resume<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("resume"))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, arg) = super::value::parse(source, ctx, ty)?;
     let inst = Opcode::Resume
         .with_block(ctx.cur_block)
@@ -521,7 +521,7 @@ pub fn parse_br<'a, 'b>(
             .with_operand(Operand::Br(Br { block }));
         Ok((source, inst))
     } else {
-        let (source, ty) = super::types::parse(source, ctx.types)?;
+        let (source, ty) = super::types::parse(ctx.types)(source)?;
         assert!(ty.is_i1());
         let (source, arg) = super::value::parse(source, ctx, ty)?;
         let (source, _) = preceded(spaces, char(','))(source)?;
@@ -557,7 +557,7 @@ pub fn parse_switch<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("switch"))(source)?;
-    let (source, cond_ty) = super::types::parse(source, ctx.types)?;
+    let (source, cond_ty) = super::types::parse(ctx.types)(source)?;
     let (source, cond) = super::value::parse(source, ctx, cond_ty)?;
     let (source, _) = preceded(spaces, char(','))(source)?;
     let (source, default_block) = preceded(
@@ -578,7 +578,7 @@ pub fn parse_switch<'a, 'b>(
             source = source_;
             break;
         }
-        let (source_, case_ty) = super::types::parse(source_, ctx.types)?;
+        let (source_, case_ty) = super::types::parse(ctx.types)(source_)?;
         assert!(case_ty == cond_ty);
         let (source_, case) = super::value::parse(source_, ctx, case_ty)?;
         let (source_, _) = preceded(spaces, char(','))(source_)?;
@@ -606,7 +606,7 @@ pub fn parse_ret<'a, 'b>(
     ctx: &mut ParserContext<'b>,
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, preceded(tag("ret"), spaces))(source)?;
-    let (source, ty) = super::types::parse(source, ctx.types)?;
+    let (source, ty) = super::types::parse(ctx.types)(source)?;
     let (source, val) = if ty.is_void() {
         (source, None)
     } else {

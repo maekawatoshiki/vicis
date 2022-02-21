@@ -88,7 +88,7 @@ pub fn parse_constant_array<'a>(
     let (mut source, _) = preceded(spaces, char('['))(source)?;
     let mut elems = vec![];
     loop {
-        let (source_, ty) = super::types::parse(source, types)?;
+        let (source_, ty) = super::types::parse(types)(source)?;
         let (source_, elem) = parse_constant(source_, types, ty)?;
 
         elems.push(elem);
@@ -129,12 +129,12 @@ pub fn parse_constant_getelementptr<'a>(
     let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
     let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
     let (source, _) = preceded(spaces, char('('))(source)?;
-    let (source, ty) = super::types::parse(source, types)?;
+    let (source, ty) = super::types::parse(types)(source)?;
     let (mut source, _) = preceded(spaces, char(','))(source)?;
     let mut args = vec![];
     let mut tys = vec![ty];
     loop {
-        let (source_, ty) = super::types::parse(source, types)?;
+        let (source_, ty) = super::types::parse(types)(source)?;
         let (source_, arg) = parse_constant(source_, types, ty)?;
         tys.push(ty);
         args.push(arg);
@@ -161,10 +161,10 @@ pub fn parse_constant_bitcast<'a>(
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("bitcast"))(source)?;
     let (source, _) = preceded(spaces, char('('))(source)?;
-    let (source, from) = super::types::parse(source, types)?;
+    let (source, from) = super::types::parse(types)(source)?;
     let (source, arg) = parse_constant(source, types, from)?;
     let (source, _) = preceded(spaces, tag("to"))(source)?;
-    let (source, to) = super::types::parse(source, types)?;
+    let (source, to) = super::types::parse(types)(source)?;
     let (source, _) = preceded(spaces, char(')'))(source)?;
     Ok((
         source,
@@ -189,7 +189,7 @@ pub fn parse_constant_struct<'a>(
     let mut elems = vec![];
     let mut elems_ty = vec![];
     loop {
-        let (source_, t) = super::types::parse(source, types)?;
+        let (source_, t) = super::types::parse(types)(source)?;
         let (source_, konst) = parse_constant(source_, types, t)?;
         elems.push(konst);
         elems_ty.push(t);
