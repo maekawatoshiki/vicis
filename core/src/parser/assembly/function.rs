@@ -10,7 +10,7 @@ use crate::ir::{
     module::{linkage, name, preemption_specifier, visibility},
     types::Types,
     util::{spaces, string_literal},
-    value::{Value, ValueId},
+    value::{ArgumentValue, Value, ValueId},
 };
 use nom::{
     branch::alt,
@@ -188,7 +188,11 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
     let dummy_block = data.create_block();
 
     for (i, param) in params.iter().enumerate() {
-        let arg = data.create_value(Value::Argument(i));
+        let arg = data.create_value(Value::Argument(ArgumentValue::new(
+            i,
+            param.ty,
+            Some(param.name.clone()),
+        )));
         name_to_value.insert(param.name.clone(), arg);
     }
 

@@ -60,7 +60,7 @@ impl<'a> StackFrame<'a> {
                 }
                 None
             }
-            Value::Argument(i) => self.args.get(*i).copied(),
+            Value::Argument(a) => self.args.get(a.nth).copied(),
             Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
                 match args[0] {
                     ConstantValue::GlobalRef(ref name) => {

@@ -7,6 +7,10 @@ use id_arena::Id;
 mod consts;
 pub use consts::*;
 
+mod arg;
+pub use arg::*;
+use rustc_hash::FxHashMap;
+
 pub type ValueId = Id<Value>;
 
 /// A value in LLVM IR.
@@ -18,7 +22,7 @@ pub type ValueId = Id<Value>;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Instruction(InstructionId),
-    Argument(usize),
+    Argument(ArgumentValue),
     Constant(ConstantValue),
     InlineAsm(InlineAsm),
 }
@@ -43,7 +47,7 @@ impl Value {
     }
 
     pub fn display<'a>(&'a self, data: &'a Data, types: &'a Types) -> DisplayValue<'a> {
-        DisplayValue(self, data, types)
+        DisplayValue(self, data, types, true, None)
     }
 }
 
@@ -59,7 +63,20 @@ impl From<i64> for Value {
     }
 }
 
-pub struct DisplayValue<'a>(pub &'a Value, pub &'a Data, pub &'a Types);
+pub struct DisplayValue<'a>(
+    pub &'a Value,
+    pub &'a Data,
+    pub &'a Types,
+    pub bool,                        // show type
+    pub Option<FxHashMap<i32, i32>>, // TODO
+);
+
+impl DisplayValue<'_> {
+    pub fn show_type(mut self, show: bool) -> Self {
+        self.3 = show;
+        self
+    }
+}
 
 impl std::fmt::Display for DisplayValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -73,7 +90,13 @@ impl std::fmt::Display for DisplayValue<'_> {
                     write!(f, "%I{}", id.index()) // TODO
                 }
             }
-            Value::Argument(n) => write!(f, "%A{}", n),
+            Value::Argument(n) => {
+                if let Some(name) = n.name.as_ref() {
+                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
+                } else {
+                    write!(f, "{} %{}", self.2.to_string(n.ty()), n.nth)
+                }
+            }
             Value::InlineAsm(InlineAsm {
                 body,
                 constraints,

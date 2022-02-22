@@ -167,10 +167,10 @@ impl<'a, M: Module> InstCompiler<'a, M> {
             LlvmValue::Constant(ConstantValue::GlobalRef(Name::Name(name))) => {
                 ValueKind::GlobalName(name.to_owned())
             }
-            LlvmValue::Argument(idx) => {
+            LlvmValue::Argument(arg) => {
                 let entry = self.llvm_func.layout.get_entry_block().unwrap();
                 let entry = self.blocks[&entry];
-                ValueKind::Value(self.builder.block_params(entry)[*idx])
+                ValueKind::Value(self.builder.block_params(entry)[arg.nth])
             }
             LlvmValue::Instruction(inst_id) => {
                 if let Some(val) = self.insts.get(inst_id).copied() {

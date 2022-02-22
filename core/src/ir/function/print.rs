@@ -561,7 +561,13 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             Value::Instruction(id) => {
                 format!("%{:?}", self.indexes[&Ids::Inst(*id)])
             }
-            Value::Argument(n) => format!("%{:?}", self.indexes[&Ids::Arg(*n)]),
+            Value::Argument(n) => {
+                if let Some(name) = n.name.as_ref() {
+                    format!("%{}", name)
+                } else {
+                    format!("%{:?}", self.indexes[&Ids::Arg(n.nth)])
+                }
+            }
             Value::InlineAsm(InlineAsm {
                 body,
                 constraints,

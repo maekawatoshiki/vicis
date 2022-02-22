@@ -42,7 +42,7 @@ pub fn lower_store(
     match ctx.ir_data.value_ref(args[0]) {
         Value::Constant(ConstantValue::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
-        Value::Argument(idx) => arg = ctx.arg_idx_to_vreg.get(idx).copied(),
+        Value::Argument(a) => arg = ctx.arg_idx_to_vreg.get(&a.nth).copied(),
         _ => return Err(LoweringError::Todo.into()),
     }
 

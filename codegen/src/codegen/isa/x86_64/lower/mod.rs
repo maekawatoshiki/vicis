@@ -445,7 +445,7 @@ fn val_to_operand_data(
 ) -> Result<OperandData> {
     match ctx.ir_data.values[val] {
         Value::Instruction(id) => Ok(get_or_generate_inst_output(ctx, ty, id)?.into()),
-        Value::Argument(idx) => Ok(ctx.arg_idx_to_vreg[&idx].into()),
+        Value::Argument(ref a) => Ok(ctx.arg_idx_to_vreg[&a.nth].into()),
         Value::Constant(ConstantValue::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
         Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr {
             inbounds: _,
