@@ -263,6 +263,21 @@ impl ConstantExpr {
     }
 }
 
+impl Typed for ConstantData {
+    fn ty(&self) -> Type {
+        match self {
+            Self::Undef => todo!("undef"),
+            Self::AggregateZero => todo!("aggregate zero"),
+            Self::Null => todo!("null"),
+            Self::Int(i) => i.ty(),
+            Self::Array(a) => a.ty(),
+            Self::Struct(s) => s.ty(),
+            Self::Expr(e) => e.ty(),
+            Self::GlobalRef(_name) => todo!("global ref"),
+        }
+    }
+}
+
 impl Typed for ConstantInt {
     fn ty(&self) -> Type {
         match self {
