@@ -20,6 +20,11 @@ pub const I16: Type = Type(0, 3);
 pub const I32: Type = Type(0, 4);
 pub const I64: Type = Type(0, 5);
 
+/// Represents a typed value.
+pub trait Typed {
+    fn ty(&self) -> Type;
+}
+
 #[derive(Clone)]
 pub struct Types(Arc<RefCell<TypesBase>>);
 

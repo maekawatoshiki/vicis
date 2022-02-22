@@ -1,7 +1,7 @@
 use super::{
     function::{data::Data, instruction::InstructionId},
     module::name::Name,
-    types::{Type, Types},
+    types::{self, Type, Typed, Types},
     util::escape,
 };
 use id_arena::Id;
@@ -45,6 +45,7 @@ pub enum ConstantInt {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConstantArray {
+    pub ty: Type,
     pub elem_ty: Type,
     pub elems: Vec<ConstantData>,
     pub is_string: bool,
@@ -52,6 +53,7 @@ pub struct ConstantArray {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConstantStruct {
+    pub ty: Type,
     pub elems_ty: Vec<Type>,
     pub elems: Vec<ConstantData>,
     pub is_packed: bool,
@@ -257,6 +259,38 @@ impl ConstantExpr {
                     types.to_string(tys[1]),
                 )
             }
+        }
+    }
+}
+
+impl Typed for ConstantInt {
+    fn ty(&self) -> Type {
+        match self {
+            Self::Int1(_) => types::I1,
+            Self::Int8(_) => types::I8,
+            Self::Int32(_) => types::I32,
+            Self::Int64(_) => types::I64,
+        }
+    }
+}
+
+impl Typed for ConstantArray {
+    fn ty(&self) -> Type {
+        self.ty
+    }
+}
+
+impl Typed for ConstantStruct {
+    fn ty(&self) -> Type {
+        self.ty
+    }
+}
+
+impl Typed for ConstantExpr {
+    fn ty(&self) -> Type {
+        match self {
+            Self::GetElementPtr { tys, .. } => tys[0],
+            Self::Bitcast { tys, .. } => tys[1],
         }
     }
 }

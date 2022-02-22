@@ -39,7 +39,7 @@ pub fn parse_constant<'a>(
     if let Ok((source, id)) = parse_constant_global_ref(source) {
         return Ok((source, id));
     }
-    if let Ok((source, id)) = parse_constant_struct(source, types) {
+    if let Ok((source, id)) = parse_constant_struct(source, types, ty) {
         return Ok((source, id));
     }
     parse_constant_expr(source, types)
@@ -74,6 +74,7 @@ pub fn parse_constant_array<'a>(
     if let Ok((source, _)) = preceded(spaces, char('c'))(source) {
         let (source, s) = preceded(spaces, string_literal)(source)?;
         let val = ConstantData::Array(ConstantArray {
+            ty,
             elem_ty: I8,
             elems: s
                 .as_bytes()
@@ -105,6 +106,7 @@ pub fn parse_constant_array<'a>(
     return Ok((
         source,
         ConstantData::Array(ConstantArray {
+            ty,
             elem_ty: types.get_element(ty).unwrap(),
             elems,
             is_string: false,
@@ -183,6 +185,7 @@ pub fn parse_constant_global_ref(source: &str) -> IResult<&str, ConstantData, Ve
 pub fn parse_constant_struct<'a>(
     source: &'a str,
     types: &Types,
+    ty: Type,
 ) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
     let (mut source, is_packed) = preceded(spaces, alt((tag("{"), tag("<{"))))(source)?;
     let is_packed = is_packed == "<{";
@@ -201,6 +204,7 @@ pub fn parse_constant_struct<'a>(
         return Ok((
             source_,
             ConstantData::Struct(ConstantStruct {
+                ty,
                 elems_ty,
                 elems,
                 is_packed,
