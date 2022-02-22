@@ -3,7 +3,7 @@ use crate::ir::{
     types::{Type, Types, I1, I32, I64, I8},
     util::{spaces, string_literal},
     value::{
-        ConstantArray, ConstantData, ConstantExpr, ConstantInt, ConstantStruct, Value, ValueId,
+        ConstantArray, ConstantExpr, ConstantInt, ConstantStruct, ConstantValue, Value, ValueId,
     },
 };
 use nom::{
@@ -20,15 +20,15 @@ pub fn parse_constant<'a>(
     source: &'a str,
     types: &Types,
     ty: Type,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, tag("undef"))(source) {
-        return Ok((source, ConstantData::Undef));
+        return Ok((source, ConstantValue::Undef));
     }
     if let Ok((source, _)) = preceded(spaces, tag("null"))(source) {
-        return Ok((source, ConstantData::Null));
+        return Ok((source, ConstantValue::Null));
     }
     if let Ok((source, _)) = preceded(spaces, tag("zeroinitializer"))(source) {
-        return Ok((source, ConstantData::AggregateZero));
+        return Ok((source, ConstantValue::AggregateZero));
     }
     if let Ok((source, id)) = parse_constant_int(source, ty) {
         return Ok((source, id.into()));
@@ -70,16 +70,16 @@ pub fn parse_constant_array<'a>(
     source: &'a str,
     types: &Types,
     ty: Type,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, char('c'))(source) {
         let (source, s) = preceded(spaces, string_literal)(source)?;
-        let val = ConstantData::Array(ConstantArray {
+        let val = ConstantValue::Array(ConstantArray {
             ty,
             elem_ty: I8,
             elems: s
                 .as_bytes()
                 .iter()
-                .map(|c| ConstantData::Int(ConstantInt::Int8(*c as i8)))
+                .map(|c| ConstantValue::Int(ConstantInt::Int8(*c as i8)))
                 .collect(),
             is_string: true,
         });
@@ -105,7 +105,7 @@ pub fn parse_constant_array<'a>(
     let (source, _) = preceded(spaces, char(']'))(source)?;
     return Ok((
         source,
-        ConstantData::Array(ConstantArray {
+        ConstantValue::Array(ConstantArray {
             ty,
             elem_ty: types.get_element(ty).unwrap(),
             elems,
@@ -117,7 +117,7 @@ pub fn parse_constant_array<'a>(
 pub fn parse_constant_expr<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     if let Ok((source, konst)) = parse_constant_getelementptr(source, types) {
         return Ok((source, konst));
     }
@@ -127,7 +127,7 @@ pub fn parse_constant_expr<'a>(
 pub fn parse_constant_getelementptr<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("getelementptr"))(source)?;
     let (source, inbounds) = opt(preceded(spaces, tag("inbounds")))(source)?;
     let (source, _) = preceded(spaces, char('('))(source)?;
@@ -147,7 +147,7 @@ pub fn parse_constant_getelementptr<'a>(
         if let Ok((source, _)) = preceded(spaces, char(')'))(source_) {
             return Ok((
                 source,
-                ConstantData::Expr(ConstantExpr::GetElementPtr {
+                ConstantValue::Expr(ConstantExpr::GetElementPtr {
                     inbounds: inbounds.is_some(),
                     tys,
                     args,
@@ -160,7 +160,7 @@ pub fn parse_constant_getelementptr<'a>(
 pub fn parse_constant_bitcast<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("bitcast"))(source)?;
     let (source, _) = preceded(spaces, char('('))(source)?;
     let (source, from) = super::types::parse(types)(source)?;
@@ -170,23 +170,23 @@ pub fn parse_constant_bitcast<'a>(
     let (source, _) = preceded(spaces, char(')'))(source)?;
     Ok((
         source,
-        ConstantData::Expr(ConstantExpr::Bitcast {
+        ConstantValue::Expr(ConstantExpr::Bitcast {
             tys: [from, to],
             arg: Box::new(arg),
         }),
     ))
 }
 
-pub fn parse_constant_global_ref(source: &str) -> IResult<&str, ConstantData, VerboseError<&str>> {
+pub fn parse_constant_global_ref(source: &str) -> IResult<&str, ConstantValue, VerboseError<&str>> {
     let (source, name) = preceded(spaces, preceded(char('@'), super::name::parse))(source)?;
-    Ok((source, ConstantData::GlobalRef(name)))
+    Ok((source, ConstantValue::GlobalRef(name)))
 }
 
 pub fn parse_constant_struct<'a>(
     source: &'a str,
     types: &Types,
     ty: Type,
-) -> IResult<&'a str, ConstantData, VerboseError<&'a str>> {
+) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     let (mut source, is_packed) = preceded(spaces, alt((tag("{"), tag("<{"))))(source)?;
     let is_packed = is_packed == "<{";
     let mut elems = vec![];
@@ -203,7 +203,7 @@ pub fn parse_constant_struct<'a>(
         let (source_, _) = preceded(spaces, tag(if is_packed { "}>" } else { "}" }))(source_)?;
         return Ok((
             source_,
-            ConstantData::Struct(ConstantStruct {
+            ConstantValue::Struct(ConstantStruct {
                 ty,
                 elems_ty,
                 elems,

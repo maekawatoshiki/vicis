@@ -4,7 +4,7 @@ use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, metadata::Metadata, name::Name},
     types::Type,
-    value::{ConstantData, ConstantInt, Value, ValueId},
+    value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 use id_arena::Id;
 use rustc_hash::FxHashMap;
@@ -76,7 +76,7 @@ pub enum ICmpCond {
 #[derive(Debug, Clone)]
 pub struct Alloca {
     pub tys: [Type; 2],
-    pub num_elements: ConstantData,
+    pub num_elements: ConstantValue,
     pub align: u32,
 }
 
@@ -246,17 +246,17 @@ impl Instruction {
         self
     }
 
-    pub fn fold_consts(&self, data: &Data) -> Option<ConstantData> {
+    pub fn fold_consts(&self, data: &Data) -> Option<ConstantValue> {
         match self.operand {
             Operand::IntBinary(ref i) => {
                 let args: Vec<&Value> = i.args.iter().map(|&id| data.value_ref(id)).collect();
                 match args.as_slice() {
-                    [Value::Constant(ConstantData::Int(ConstantInt::Int32(x))), Value::Constant(ConstantData::Int(ConstantInt::Int32(y)))] => {
+                    [Value::Constant(ConstantValue::Int(ConstantInt::Int32(x))), Value::Constant(ConstantValue::Int(ConstantInt::Int32(y)))] => {
                         match self.opcode {
-                            Opcode::Add => Some(ConstantData::Int(ConstantInt::Int32(x + y))),
-                            Opcode::Sub => Some(ConstantData::Int(ConstantInt::Int32(x - y))),
-                            Opcode::Mul => Some(ConstantData::Int(ConstantInt::Int32(x * y))),
-                            Opcode::SRem => Some(ConstantData::Int(ConstantInt::Int32(x % y))),
+                            Opcode::Add => Some(ConstantValue::Int(ConstantInt::Int32(x + y))),
+                            Opcode::Sub => Some(ConstantValue::Int(ConstantInt::Int32(x - y))),
+                            Opcode::Mul => Some(ConstantValue::Int(ConstantInt::Int32(x * y))),
+                            Opcode::SRem => Some(ConstantValue::Int(ConstantInt::Int32(x % y))),
                             _ => None,
                         }
                     }
@@ -266,18 +266,18 @@ impl Instruction {
             Operand::ICmp(ref i) => {
                 let args: Vec<&Value> = i.args.iter().map(|&id| data.value_ref(id)).collect();
                 match args.as_slice() {
-                    [Value::Constant(ConstantData::Int(ConstantInt::Int32(x))), Value::Constant(ConstantData::Int(ConstantInt::Int32(y)))] => {
+                    [Value::Constant(ConstantValue::Int(ConstantInt::Int32(x))), Value::Constant(ConstantValue::Int(ConstantInt::Int32(y)))] => {
                         match i.cond {
-                            ICmpCond::Eq => Some(ConstantData::Int(ConstantInt::Int1(x == y))),
-                            ICmpCond::Ne => Some(ConstantData::Int(ConstantInt::Int1(x != y))),
-                            ICmpCond::Ugt => Some(ConstantData::Int(ConstantInt::Int1(x > y))),
-                            ICmpCond::Uge => Some(ConstantData::Int(ConstantInt::Int1(x >= y))),
-                            ICmpCond::Ult => Some(ConstantData::Int(ConstantInt::Int1(x < y))),
-                            ICmpCond::Ule => Some(ConstantData::Int(ConstantInt::Int1(x <= y))),
-                            ICmpCond::Sgt => Some(ConstantData::Int(ConstantInt::Int1(x > y))),
-                            ICmpCond::Sge => Some(ConstantData::Int(ConstantInt::Int1(x >= y))),
-                            ICmpCond::Slt => Some(ConstantData::Int(ConstantInt::Int1(x < y))),
-                            ICmpCond::Sle => Some(ConstantData::Int(ConstantInt::Int1(x <= y))),
+                            ICmpCond::Eq => Some(ConstantValue::Int(ConstantInt::Int1(x == y))),
+                            ICmpCond::Ne => Some(ConstantValue::Int(ConstantInt::Int1(x != y))),
+                            ICmpCond::Ugt => Some(ConstantValue::Int(ConstantInt::Int1(x > y))),
+                            ICmpCond::Uge => Some(ConstantValue::Int(ConstantInt::Int1(x >= y))),
+                            ICmpCond::Ult => Some(ConstantValue::Int(ConstantInt::Int1(x < y))),
+                            ICmpCond::Ule => Some(ConstantValue::Int(ConstantInt::Int1(x <= y))),
+                            ICmpCond::Sgt => Some(ConstantValue::Int(ConstantInt::Int1(x > y))),
+                            ICmpCond::Sge => Some(ConstantValue::Int(ConstantInt::Int1(x >= y))),
+                            ICmpCond::Slt => Some(ConstantValue::Int(ConstantInt::Int1(x < y))),
+                            ICmpCond::Sle => Some(ConstantValue::Int(ConstantInt::Int1(x <= y))),
                         }
                     }
                     _ => None,

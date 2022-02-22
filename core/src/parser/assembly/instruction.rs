@@ -42,7 +42,7 @@ pub fn parse_alloca<'a, 'b>(
         ),
     ))(source)?;
     // TODO: Implement parser for num_elements
-    let num_elements = value::ConstantData::Int(value::ConstantInt::Int32(1));
+    let num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
     let inst = Opcode::Alloca
         .with_block(ctx.cur_block)
         .with_operand(Operand::Alloca(Alloca {

@@ -4,7 +4,7 @@ use super::Context;
 use crate::{generic_value::GenericValue, interpreter::TypeSize};
 use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
-    value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
+    value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
 };
 
 pub struct StackFrame<'a> {
@@ -35,19 +35,19 @@ impl<'a> StackFrame<'a> {
     pub fn get_val(&self, id: ValueId) -> Option<GenericValue> {
         match self.func.data.value_ref(id) {
             Value::Instruction(id) => self.get_inst_val(*id),
-            Value::Constant(ConstantData::Int(ConstantInt::Int1(i))) => {
+            Value::Constant(ConstantValue::Int(ConstantInt::Int1(i))) => {
                 Some(GenericValue::Int1(*i))
             }
-            Value::Constant(ConstantData::Int(ConstantInt::Int8(i))) => {
+            Value::Constant(ConstantValue::Int(ConstantInt::Int8(i))) => {
                 Some(GenericValue::Int8(*i))
             }
-            Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => {
+            Value::Constant(ConstantValue::Int(ConstantInt::Int32(i))) => {
                 Some(GenericValue::Int32(*i))
             }
-            Value::Constant(ConstantData::Int(ConstantInt::Int64(i))) => {
+            Value::Constant(ConstantValue::Int(ConstantInt::Int64(i))) => {
                 Some(GenericValue::Int64(*i))
             }
-            Value::Constant(ConstantData::GlobalRef(name)) => {
+            Value::Constant(ConstantValue::GlobalRef(name)) => {
                 if let Some(f) = self
                     .ctx
                     .module
@@ -61,12 +61,12 @@ impl<'a> StackFrame<'a> {
                 None
             }
             Value::Argument(i) => self.args.get(*i).copied(),
-            Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
+            Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
                 match args[0] {
-                    ConstantData::GlobalRef(ref name) => {
+                    ConstantValue::GlobalRef(ref name) => {
                         let n = match args[2] {
-                            ConstantData::Int(ConstantInt::Int32(n)) => n as i64,
-                            ConstantData::Int(ConstantInt::Int64(n)) => n,
+                            ConstantValue::Int(ConstantInt::Int32(n)) => n as i64,
+                            ConstantValue::Int(ConstantInt::Int64(n)) => n,
                             _ => todo!(),
                         };
                         match self.ctx.globals.get(name).copied() {

@@ -6,7 +6,7 @@ use crate::ir::{
         instruction::{Br, Instruction, Opcode, Operand},
         Function,
     },
-    value::{ConstantData, Value},
+    value::{ConstantValue, Value},
 };
 use std::collections::VecDeque;
 
@@ -87,7 +87,7 @@ impl<'a> SCCP<'a> {
             .args()
             .iter()
             .map(|arg| self.func.data.value_ref(*arg))
-            .all(|arg| matches!(arg, Value::Constant(ConstantData::Int(_))))
+            .all(|arg| matches!(arg, Value::Constant(ConstantValue::Int(_))))
     }
 
     fn is_foldable_condbr(&self, inst: &Instruction) -> bool {
@@ -97,7 +97,7 @@ impl<'a> SCCP<'a> {
                 .args()
                 .iter()
                 .map(|arg| self.func.data.value_ref(*arg))
-                .all(|arg| matches!(arg, Value::Constant(ConstantData::Int(_))))
+                .all(|arg| matches!(arg, Value::Constant(ConstantValue::Int(_))))
     }
 
     fn fold_phi(&mut self) {

@@ -74,7 +74,7 @@ pub fn parse_init<'a>(
     source: &'a str,
     types: &Types,
     ty: types::Type,
-) -> IResult<&'a str, Option<value::ConstantData>, VerboseError<&'a str>> {
+) -> IResult<&'a str, Option<value::ConstantValue>, VerboseError<&'a str>> {
     if let Ok((source, init)) = super::value::parse_constant(source, types, ty) {
         return Ok((source, Some(init)));
     }
@@ -84,7 +84,7 @@ pub fn parse_init<'a>(
 pub fn parse_global_type_and_const<'a>(
     source: &'a str,
     types: &Types,
-) -> IResult<&'a str, (types::Type, value::ConstantData), VerboseError<&'a str>> {
+) -> IResult<&'a str, (types::Type, value::ConstantValue), VerboseError<&'a str>> {
     let (source, ty) = super::types::parse(types)(source)?;
     let (source, konst) = super::value::parse_constant(source, types, ty)?;
     Ok((source, (ty, konst)))

@@ -13,7 +13,7 @@ use super::{
         visibility::Visibility,
     },
     types::{Type, Types},
-    value::ConstantData,
+    value::ConstantValue,
 };
 use crate::traits::basic_block::{BasicBlockData, BasicBlockLayout};
 use basic_block::BasicBlock;
@@ -24,7 +24,7 @@ use std::fmt;
 
 pub type FunctionId = Id<Function>;
 
-pub type PersonalityFunc = (Type, ConstantData);
+pub type PersonalityFunc = (Type, ConstantValue);
 
 pub struct Function {
     pub name: String,

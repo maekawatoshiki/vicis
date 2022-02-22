@@ -5,7 +5,7 @@ use crate::ir::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ConstantData {
+pub enum ConstantValue {
     Undef,
     AggregateZero,
     Null,
@@ -28,7 +28,7 @@ pub enum ConstantInt {
 pub struct ConstantArray {
     pub ty: Type,
     pub elem_ty: Type,
-    pub elems: Vec<ConstantData>,
+    pub elems: Vec<ConstantValue>,
     pub is_string: bool,
 }
 
@@ -36,7 +36,7 @@ pub struct ConstantArray {
 pub struct ConstantStruct {
     pub ty: Type,
     pub elems_ty: Vec<Type>,
-    pub elems: Vec<ConstantData>,
+    pub elems: Vec<ConstantValue>,
     pub is_packed: bool,
 }
 
@@ -45,15 +45,15 @@ pub enum ConstantExpr {
     GetElementPtr {
         inbounds: bool,
         tys: Vec<Type>,
-        args: Vec<ConstantData>,
+        args: Vec<ConstantValue>,
     },
     Bitcast {
         tys: [Type; 2],
-        arg: Box<ConstantData>,
+        arg: Box<ConstantValue>,
     },
 }
 
-impl ConstantData {
+impl ConstantValue {
     pub fn to_string(&self, types: &Types) -> String {
         match self {
             Self::Undef => "undef".to_string(),
@@ -202,7 +202,7 @@ impl ConstantExpr {
     }
 }
 
-impl Typed for ConstantData {
+impl Typed for ConstantValue {
     fn ty(&self) -> Type {
         match self {
             Self::Undef => todo!("undef"),
@@ -249,7 +249,7 @@ impl Typed for ConstantExpr {
     }
 }
 
-impl From<ConstantInt> for ConstantData {
+impl From<ConstantInt> for ConstantValue {
     fn from(i: ConstantInt) -> Self {
         Self::Int(i)
     }

@@ -12,7 +12,7 @@ use anyhow::Result;
 use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
     types::Type,
-    value::{ConstantData, ConstantInt, Value, ValueId},
+    value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 
 pub fn lower_load(
@@ -98,7 +98,7 @@ fn lower_load_gep(
     _align: u32,
     sext: Option<InstructionId>,
 ) -> Result<()> {
-    use {Constant as Const, ConstantData::Int, ConstantInt::Int64, Value::Constant};
+    use {Constant as Const, ConstantInt::Int64, ConstantValue::Int, Value::Constant};
 
     let gep = &ctx.ir_data.instructions[gep_id];
 

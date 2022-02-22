@@ -27,7 +27,7 @@ use vicis_core::ir::{
     },
     module::name::Name,
     types::Type,
-    value::{ConstantData, ConstantExpr, ConstantInt, Value, ValueId},
+    value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
 };
 
 #[derive(Clone, Copy)]
@@ -114,7 +114,7 @@ fn lower_alloca(
     ctx: &mut LoweringContext<X86_64>,
     id: InstructionId,
     tys: &[Type],
-    _num_elements: &ConstantData,
+    _num_elements: &ConstantValue,
     _align: u32,
 ) -> Result<()> {
     let slot_id = ctx
@@ -280,7 +280,7 @@ fn lower_condbr(
         let lhs = val_to_vreg(ctx, *ty, args[0])?;
         let rhs = ctx.ir_data.value_ref(args[1]);
         match rhs {
-            Value::Constant(ConstantData::Int(ConstantInt::Int32(rhs))) => {
+            Value::Constant(ConstantValue::Int(ConstantInt::Int32(rhs))) => {
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::CMPri32,
@@ -346,7 +346,7 @@ fn lower_call(
     }
 
     let name = match &ctx.ir_data.values[args[0]] {
-        Value::Constant(ConstantData::GlobalRef(Name::Name(name))) => name.clone(),
+        Value::Constant(ConstantValue::GlobalRef(Name::Name(name))) => name.clone(),
         _ => return Err(LoweringError::Todo.into()),
     };
     let result_reg: Reg = GR32::EAX.into(); // TODO: do not hard code
@@ -446,18 +446,18 @@ fn val_to_operand_data(
     match ctx.ir_data.values[val] {
         Value::Instruction(id) => Ok(get_or_generate_inst_output(ctx, ty, id)?.into()),
         Value::Argument(idx) => Ok(ctx.arg_idx_to_vreg[&idx].into()),
-        Value::Constant(ConstantData::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
-        Value::Constant(ConstantData::Expr(ConstantExpr::GetElementPtr {
+        Value::Constant(ConstantValue::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
+        Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr {
             inbounds: _,
             tys: _,
             ref args,
         })) => {
             // TODO: Split up into functions
             assert!(ty.is_pointer(&ctx.types));
-            assert!(matches!(args[0], ConstantData::GlobalRef(_)));
+            assert!(matches!(args[0], ConstantValue::GlobalRef(_)));
             let all_indices_0 = args[1..]
                 .iter()
-                .all(|arg| matches!(arg, ConstantData::Int(ConstantInt::Int64(0))));
+                .all(|arg| matches!(arg, ConstantValue::Int(ConstantInt::Int64(0))));
             assert!(all_indices_0);
             let src = OperandData::GlobalAddress(args[0].as_global_ref().as_string().clone());
             let dst = ctx.mach_data.vregs.add_vreg_data(ty);

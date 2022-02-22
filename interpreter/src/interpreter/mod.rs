@@ -18,7 +18,7 @@ use vicis_core::ir::{
     },
     module::{linkage::Linkage, name::Name, Module},
     types::{self, ArrayType, CompoundType, StructType, Type, Types},
-    value::{ConstantArray, ConstantData, ValueId},
+    value::{ConstantArray, ConstantValue, ValueId},
 };
 
 /// An execution context for interpreters.
@@ -138,7 +138,7 @@ fn run_alloca(
     frame: &mut StackFrame,
     id: InstructionId,
     tys: &[Type],
-    num_elements: &ConstantData,
+    num_elements: &ConstantValue,
     align: u32,
 ) {
     let alloc_ty = tys[0];
@@ -483,7 +483,7 @@ impl<'a> ContextBuilder<'a> {
             };
             if let Some(init) = &gv.init {
                 match init {
-                    ConstantData::Array(ConstantArray {
+                    ConstantValue::Array(ConstantArray {
                         is_string: true,
                         elems,
                         ..
@@ -491,7 +491,7 @@ impl<'a> ContextBuilder<'a> {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
-                    ConstantData::Array(ConstantArray {
+                    ConstantValue::Array(ConstantArray {
                         is_string: false,
                         elems,
                         ..
@@ -499,7 +499,7 @@ impl<'a> ContextBuilder<'a> {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
-                    ConstantData::AggregateZero => {
+                    ConstantValue::AggregateZero => {
                         // Already zeroed.
                         // unsafe { ptr::write_bytes(ptr, 0, sz) };
                     }

@@ -4,7 +4,7 @@ use crate::ir::{
         unnamed_addr::UnnamedAddr, visibility::Visibility,
     },
     types::{Type, Types},
-    value::ConstantData,
+    value::ConstantValue,
 };
 
 #[derive(Clone)]
@@ -16,7 +16,7 @@ pub struct GlobalVariable {
     pub unnamed_addr: Option<UnnamedAddr>,
     pub is_constant: bool,
     pub ty: Type,
-    pub init: Option<ConstantData>,
+    pub init: Option<ConstantValue>,
     pub align: u32,
 }
 
@@ -40,7 +40,7 @@ impl GlobalVariable {
             },
             types.to_string(self.ty),
             self.init.as_ref().map_or("".to_string(), |init| {
-                if matches!(init, ConstantData::AggregateZero) {
+                if matches!(init, ConstantValue::AggregateZero) {
                     "zeroinitializer".to_string()
                 } else {
                     init.to_string(types)

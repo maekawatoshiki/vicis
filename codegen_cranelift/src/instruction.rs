@@ -19,7 +19,7 @@ use vicis_core::ir::{
     types as llvm_types,
     types::Type as LlvmTy,
     value::ValueId,
-    value::{ConstantData, Value as LlvmValue},
+    value::{ConstantValue, Value as LlvmValue},
 };
 
 pub struct InstCompiler<'a, M: Module> {
@@ -159,12 +159,12 @@ impl<'a, M: Module> InstCompiler<'a, M> {
 
     fn value(&mut self, val_id: ValueId, ty: LlvmTy) -> ValueKind {
         match self.llvm_func.data.value_ref(val_id) {
-            LlvmValue::Constant(ConstantData::Int(i)) => ValueKind::Value(
+            LlvmValue::Constant(ConstantValue::Int(i)) => ValueKind::Value(
                 self.builder
                     .ins()
                     .iconst(self.lower_ctx.into_clif_ty(ty), i.cast_to_i64()),
             ),
-            LlvmValue::Constant(ConstantData::GlobalRef(Name::Name(name))) => {
+            LlvmValue::Constant(ConstantValue::GlobalRef(Name::Name(name))) => {
                 ValueKind::GlobalName(name.to_owned())
             }
             LlvmValue::Argument(idx) => {

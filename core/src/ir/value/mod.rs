@@ -19,7 +19,7 @@ pub type ValueId = Id<Value>;
 pub enum Value {
     Instruction(InstructionId),
     Argument(usize),
-    Constant(ConstantData),
+    Constant(ConstantValue),
     InlineAsm(InlineAsm),
 }
 
@@ -32,7 +32,7 @@ pub struct InlineAsm {
 
 impl Value {
     pub fn undef() -> Self {
-        Self::Constant(ConstantData::Undef)
+        Self::Constant(ConstantValue::Undef)
     }
 
     pub fn as_inst(&self) -> &InstructionId {

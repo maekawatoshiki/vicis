@@ -12,7 +12,7 @@ use anyhow::Result;
 use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
     types::Type,
-    value::{ConstantData, ConstantInt, Value, ValueId},
+    value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 
 pub fn lower_store(
@@ -40,7 +40,7 @@ pub fn lower_store(
     let mut arg = None;
 
     match ctx.ir_data.value_ref(args[0]) {
-        Value::Constant(ConstantData::Int(int)) => imm = Some(*int),
+        Value::Constant(ConstantValue::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
         Value::Argument(idx) => arg = ctx.arg_idx_to_vreg.get(idx).copied(),
         _ => return Err(LoweringError::Todo.into()),
@@ -115,8 +115,8 @@ fn lower_store_gep(
 ) -> Result<()> {
     use {
         Constant as Const,
-        ConstantData::Int,
         ConstantInt::{Int32, Int64},
+        ConstantValue::Int,
         Value::Constant,
     };
 
