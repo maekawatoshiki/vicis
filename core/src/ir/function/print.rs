@@ -4,9 +4,7 @@ use super::{
     super::value::Value,
     basic_block::BasicBlockId,
     data::Data,
-    instruction::{
-        Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Opcode, Operand,
-    },
+    instruction::{GetElementPtr, Instruction, InstructionId, Opcode, Operand},
     Function,
 };
 use crate::ir::{
@@ -196,7 +194,10 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             | Operand::Load(_)
             | Operand::Store(_)
             | Operand::InsertValue(_)
-            | Operand::ExtractValue(_) => {
+            | Operand::ExtractValue(_)
+            | Operand::IntBinary(_)
+            | Operand::ICmp(_)
+            | Operand::Cast(_) => {
                 write!(
                     self.fmt,
                     "{}",
@@ -207,48 +208,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .set_block_name_fn(Box::new(|id| {
                             self.indexes.get(&Ids::Block(id)).cloned()
                         }))
-                )
-            }
-            Operand::IntBinary(IntBinary {
-                ty,
-                nuw,
-                nsw,
-                exact,
-                args,
-            }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = {:?}{}{}{} {} {}, {}",
-                    dest,
-                    inst.opcode,
-                    if *nuw { " nuw" } else { "" },
-                    if *nsw { " nsw" } else { "" },
-                    if *exact { " exact" } else { "" },
-                    types.to_string(*ty),
-                    self.value_to_string(args[0], data, types),
-                    self.value_to_string(args[1], data, types),
-                )
-            }
-            Operand::ICmp(ICmp { ty, args, cond }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = icmp {:?} {} {}, {}",
-                    dest,
-                    cond,
-                    types.to_string(*ty),
-                    self.value_to_string(args[0], data, types),
-                    self.value_to_string(args[1], data, types)
-                )
-            }
-            Operand::Cast(Cast { tys, arg }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = {:?} {} {} to {}",
-                    dest,
-                    inst.opcode,
-                    types.to_string(tys[0]),
-                    self.value_to_string(*arg, data, types),
-                    types.to_string(tys[1]),
                 )
             }
             Operand::GetElementPtr(GetElementPtr {

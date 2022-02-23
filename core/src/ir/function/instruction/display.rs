@@ -3,7 +3,9 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId,
         data::Data,
-        instruction::{Alloca, ExtractValue, InsertValue, Load, Operand, Phi, Store},
+        instruction::{
+            Alloca, Cast, ExtractValue, ICmp, InsertValue, IntBinary, Load, Operand, Phi, Store,
+        },
     },
     module::name::Name,
     types::Types,
@@ -175,6 +177,45 @@ impl fmt::Display for DisplayInstruction<'_> {
                             format!("{}{}, ", acc, value_string(self, arg))
                         })
                         .trim_end_matches(", ")
+                )
+            }
+            Operand::IntBinary(IntBinary {
+                ty,
+                nuw,
+                nsw,
+                exact,
+                args,
+            }) => {
+                write!(
+                    f,
+                    "%{dest:?} = {:?}{}{}{} {} {}, {}",
+                    self.inst.opcode,
+                    if *nuw { " nuw" } else { "" },
+                    if *nsw { " nsw" } else { "" },
+                    if *exact { " exact" } else { "" },
+                    self.types.to_string(*ty),
+                    value_string(self, args[0]),
+                    value_string(self, args[1]),
+                )
+            }
+            Operand::ICmp(ICmp { ty, args, cond }) => {
+                write!(
+                    f,
+                    "%{dest:?} = icmp {:?} {} {}, {}",
+                    cond,
+                    self.types.to_string(*ty),
+                    value_string(self, args[0]),
+                    value_string(self, args[1])
+                )
+            }
+            Operand::Cast(Cast { tys, arg }) => {
+                write!(
+                    f,
+                    "%{dest:?} = {:?} {} {} to {}",
+                    self.inst.opcode,
+                    self.types.to_string(tys[0]),
+                    value_string(self, *arg),
+                    self.types.to_string(tys[1]),
                 )
             }
             _ => todo!(),
