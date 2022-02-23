@@ -5,8 +5,8 @@ use super::{
     basic_block::BasicBlockId,
     data::Data,
     instruction::{
-        Alloca, Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Load, Opcode,
-        Operand, Phi, Store,
+        Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Load, Opcode, Operand,
+        Store,
     },
     Function,
 };
@@ -194,31 +194,17 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             .unwrap_or(&Name::Number(usize::MAX));
 
         match &inst.operand {
-            Operand::Alloca(_) => {
+            Operand::Alloca(_) | Operand::Phi(_) => {
                 write!(
                     self.fmt,
                     "{}",
                     inst.display(data, types)
-                        .set_name_fn(Box::new(|id| { self.indexes.get(&Ids::Inst(id)).cloned() }))
-                )
-            }
-            Operand::Phi(Phi { ty, args, blocks }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = phi {} {}",
-                    dest,
-                    types.to_string(*ty),
-                    args.iter()
-                        .zip(blocks.iter())
-                        .fold("".to_string(), |acc, (arg, &block)| {
-                            format!(
-                                "{}[{}, %{:?}], ",
-                                acc,
-                                self.value_to_string(*arg, data, types),
-                                self.indexes[&Ids::Block(block)]
-                            )
-                        })
-                        .trim_end_matches(", ")
+                        .set_inst_name_fn(Box::new(|id| {
+                            self.indexes.get(&Ids::Inst(id)).cloned()
+                        }))
+                        .set_block_name_fn(Box::new(|id| {
+                            self.indexes.get(&Ids::Block(id)).cloned()
+                        }))
                 )
             }
             Operand::Load(Load { tys, addr, align }) => {

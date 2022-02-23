@@ -304,7 +304,8 @@ impl Instruction {
             inst: self,
             data,
             types,
-            name_fn: None,
+            inst_name_fn: None,
+            block_name_fn: None,
         }
     }
 }
