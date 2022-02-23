@@ -6,7 +6,7 @@ pub use ty::*;
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, metadata::Metadata, name::Name},
-    types::Type,
+    types::{self, Type},
     value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 use id_arena::Id;
@@ -18,6 +18,7 @@ pub type InstructionId = Id<Instruction>;
 pub struct Instruction {
     pub opcode: Opcode,
     pub operand: Operand,
+    pub ty: Type,
     pub dest: Option<Name>,
     pub id: Option<InstructionId>,
     pub parent: BasicBlockId,
@@ -244,6 +245,11 @@ impl Instruction {
         self
     }
 
+    pub fn with_ty(mut self, ty: Type) -> Self {
+        self.ty = ty;
+        self
+    }
+
     pub fn with_metadata(mut self, metadata: FxHashMap<String, Metadata>) -> Self {
         self.metadata = metadata;
         self
@@ -297,6 +303,7 @@ impl Opcode {
         Instruction {
             opcode: self,
             operand: Operand::Invalid,
+            ty: types::VOID,
             dest: None,
             id: None,
             parent,

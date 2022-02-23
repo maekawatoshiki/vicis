@@ -49,7 +49,8 @@ pub fn parse_alloca<'a, 'b>(
             tys: [ty, I32],
             num_elements,
             align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-        }));
+        }))
+        .with_ty(ctx.types.base_mut().pointer(ty));
     Ok((source, inst))
 }
 
@@ -76,7 +77,8 @@ pub fn parse_phi<'a, 'b>(
         }
         let inst = Opcode::Phi
             .with_block(ctx.cur_block)
-            .with_operand(Operand::Phi(Phi { ty, args, blocks }));
+            .with_operand(Operand::Phi(Phi { ty, args, blocks }))
+            .with_ty(ty);
         return Ok((source_, inst));
     }
 }
@@ -105,7 +107,8 @@ pub fn parse_load<'a, 'b>(
             tys: [ty, addr_ty],
             addr,
             align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
-        }));
+        }))
+        .with_ty(ty);
     Ok((source, inst))
 }
 
@@ -166,7 +169,8 @@ pub fn parse_insertvalue<'a, 'b>(
                 .with_operand(Operand::InsertValue(InsertValue {
                     tys: [aggre_ty, ty],
                     args,
-                })),
+                }))
+                .with_ty(aggre_ty),
         ));
     }
 }
