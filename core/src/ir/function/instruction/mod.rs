@@ -1,12 +1,14 @@
 pub mod builder;
+mod display;
 mod ty;
 
+pub use display::*;
 pub use ty::*;
 
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
     module::{attributes::Attribute, metadata::Metadata, name::Name},
-    types::{self, Type},
+    types::{self, Type, Types},
     value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 use id_arena::Id;
@@ -294,6 +296,15 @@ impl Instruction {
             }
             Operand::Cast(_) => todo!(),
             _ => None,
+        }
+    }
+
+    pub fn display<'a>(&'a self, data: &'a Data, types: &'a Types) -> DisplayInstruction<'a> {
+        DisplayInstruction {
+            inst: self,
+            data,
+            types,
+            name_fn: None,
         }
     }
 }

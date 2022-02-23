@@ -194,23 +194,12 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             .unwrap_or(&Name::Number(usize::MAX));
 
         match &inst.operand {
-            Operand::Alloca(Alloca {
-                tys,
-                num_elements,
-                align,
-            }) => {
+            Operand::Alloca(_) => {
                 write!(
                     self.fmt,
-                    "%{:?} = alloca {}, {} {}{}",
-                    dest,
-                    types.to_string(tys[0]),
-                    types.to_string(tys[1]),
-                    num_elements.to_string(types),
-                    if *align > 0 {
-                        format!(", align {}", align)
-                    } else {
-                        "".to_string()
-                    }
+                    "{}",
+                    inst.display(data, types)
+                        .set_name_fn(Box::new(|id| { self.indexes.get(&Ids::Inst(id)).cloned() }))
                 )
             }
             Operand::Phi(Phi { ty, args, blocks }) => {
