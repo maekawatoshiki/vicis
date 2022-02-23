@@ -1,5 +1,6 @@
 use super::{
     function::{data::Data, instruction::InstructionId},
+    module::name::Name,
     types::{Typed, Types},
 };
 use id_arena::Id;
@@ -9,7 +10,6 @@ pub use consts::*;
 
 mod arg;
 pub use arg::*;
-use rustc_hash::FxHashMap;
 
 pub type ValueId = Id<Value>;
 
@@ -67,13 +67,18 @@ pub struct DisplayValue<'a>(
     pub &'a Value,
     pub &'a Data,
     pub &'a Types,
-    pub bool,                        // show type
-    pub Option<FxHashMap<i32, i32>>, // TODO
+    pub bool,                                                // show type
+    pub Option<Box<dyn Fn(&'a Value) -> Option<Name> + 'a>>, // value name resolver
 );
 
-impl DisplayValue<'_> {
+impl<'a> DisplayValue<'a> {
     pub fn show_type(mut self, show: bool) -> Self {
         self.3 = show;
+        self
+    }
+
+    pub fn set_name_fn(mut self, f: Box<dyn Fn(&'a Value) -> Option<Name> + 'a>) -> Self {
+        self.4 = Some(f);
         self
     }
 }
@@ -81,20 +86,39 @@ impl DisplayValue<'_> {
 impl std::fmt::Display for DisplayValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            Value::Constant(c) => write!(f, "{} {}", self.2.to_string(c.ty()), c.to_string(self.2)),
+            Value::Constant(c) if self.3 => {
+                write!(f, "{} {}", self.2.to_string(c.ty()), c.to_string(self.2))
+            }
+            Value::Constant(c) => {
+                write!(f, "{}", c.to_string(self.2))
+            }
             Value::Instruction(id) => {
                 let inst = self.1.inst_ref(*id);
-                if let Some(dest) = &inst.dest {
+                // TODO: Show type
+                if let Some(Name::Name(dest)) = &inst.dest {
                     write!(f, "%{}", dest)
+                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
+                    write!(f, "%{}", name)
                 } else {
                     write!(f, "%I{}", id.index()) // TODO
                 }
             }
-            Value::Argument(n) => {
-                if let Some(name) = n.name.as_ref() {
+            Value::Argument(n) if self.3 => {
+                if let Some(Name::Name(name)) = n.name.as_ref() {
+                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
+                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
                     write!(f, "{} %{}", self.2.to_string(n.ty()), name)
                 } else {
                     write!(f, "{} %{}", self.2.to_string(n.ty()), n.nth)
+                }
+            }
+            Value::Argument(n) => {
+                if let Some(Name::Name(name)) = n.name.as_ref() {
+                    write!(f, "%{}", name)
+                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
+                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
+                } else {
+                    write!(f, "%{}", n.nth)
                 }
             }
             Value::InlineAsm(InlineAsm {
@@ -103,10 +127,9 @@ impl std::fmt::Display for DisplayValue<'_> {
                 sideeffect,
             }) => write!(
                 f,
-                "{}asm {}\"{}\", \"{}\"",
+                "asm {}\"{}\", \"{}\"",
                 if *sideeffect { "sideeffect " } else { "" },
                 constraints,
-                body,
                 body
             ),
         }

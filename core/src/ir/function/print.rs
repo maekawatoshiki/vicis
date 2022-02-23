@@ -1,7 +1,7 @@
 use super::{
     super::module::name::Name,
     super::types::Types,
-    super::value::{InlineAsm, Value},
+    super::value::Value,
     basic_block::BasicBlockId,
     data::Data,
     instruction::{
@@ -15,6 +15,7 @@ use crate::ir::{
         Br, Call, CondBr, ExtractValue, InsertValue, Invoke, LandingPad, Resume, Ret,
     },
     types::Type,
+    value::ValueId,
 };
 use rustc_hash::FxHashMap;
 use std::fmt;
@@ -224,7 +225,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                             format!(
                                 "{}[{}, %{:?}], ",
                                 acc,
-                                self.value_to_string(data.value_ref(*arg), types),
+                                self.value_to_string(*arg, data, types),
                                 self.indexes[&Ids::Block(block)]
                             )
                         })
@@ -238,7 +239,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     dest,
                     types.to_string(tys[0]),
                     types.to_string(tys[1]),
-                    self.value_to_string(data.value_ref(*addr), types),
+                    self.value_to_string(*addr, data, types),
                     if *align == 0 {
                         "".to_string()
                     } else {
@@ -251,9 +252,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.fmt,
                     "store {} {}, {} {}{}",
                     types.to_string(tys[0]),
-                    self.value_to_string(data.value_ref(args[0]), types),
+                    self.value_to_string(args[0], data, types),
                     types.to_string(tys[1]),
-                    self.value_to_string(data.value_ref(args[1]), types),
+                    self.value_to_string(args[1], data, types),
                     if *align == 0 {
                         "".to_string()
                     } else {
@@ -267,17 +268,13 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     "%{:?} = insertvalue {} {}, {} {}, {}",
                     dest,
                     types.to_string(tys[0]),
-                    self.value_to_string(data.value_ref(args[0]), types),
+                    self.value_to_string(args[0], data, types),
                     types.to_string(tys[1]),
-                    self.value_to_string(data.value_ref(args[1]), types),
+                    self.value_to_string(args[1], data, types),
                     args[2..]
                         .iter()
                         .fold("".to_string(), |acc, &arg| {
-                            format!(
-                                "{}{}, ",
-                                acc,
-                                self.value_to_string(data.value_ref(arg), types)
-                            )
+                            format!("{}{}, ", acc, self.value_to_string(arg, data, types))
                         })
                         .trim_end_matches(", ")
                 )
@@ -288,15 +285,11 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     "%{:?} = extractvalue {} {}, {}",
                     dest,
                     types.to_string(*ty),
-                    self.value_to_string(data.value_ref(args[0]), types),
+                    self.value_to_string(args[0], data, types),
                     args[1..]
                         .iter()
                         .fold("".to_string(), |acc, &arg| {
-                            format!(
-                                "{}{}, ",
-                                acc,
-                                self.value_to_string(data.value_ref(arg), types)
-                            )
+                            format!("{}{}, ", acc, self.value_to_string(arg, data, types))
                         })
                         .trim_end_matches(", ")
                 )
@@ -317,8 +310,8 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     if *nsw { " nsw" } else { "" },
                     if *exact { " exact" } else { "" },
                     types.to_string(*ty),
-                    self.value_to_string(data.value_ref(args[0]), types),
-                    self.value_to_string(data.value_ref(args[1]), types),
+                    self.value_to_string(args[0], data, types),
+                    self.value_to_string(args[1], data, types),
                 )
             }
             Operand::ICmp(ICmp { ty, args, cond }) => {
@@ -328,8 +321,8 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     dest,
                     cond,
                     types.to_string(*ty),
-                    self.value_to_string(data.value_ref(args[0]), types),
-                    self.value_to_string(data.value_ref(args[1]), types)
+                    self.value_to_string(args[0], data, types),
+                    self.value_to_string(args[1], data, types)
                 )
             }
             Operand::Cast(Cast { tys, arg }) => {
@@ -339,7 +332,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     dest,
                     inst.opcode,
                     types.to_string(tys[0]),
-                    self.value_to_string(data.value_ref(*arg), types),
+                    self.value_to_string(*arg, data, types),
                     types.to_string(tys[1]),
                 )
             }
@@ -362,7 +355,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 "{}{} {}, ",
                                 acc,
                                 types.to_string(*ty),
-                                self.value_to_string(data.value_ref(*arg), types),
+                                self.value_to_string(*arg, data, types),
                             )
                         })
                         .trim_end_matches(", ")
@@ -390,7 +383,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         attr.to_string(types)
                     )),
                     types.to_string(tys[0]),
-                    self.value_to_string(data.value_ref(args[0]), types),
+                    self.value_to_string(args[0], data, types),
                     tys[1..]
                         .iter()
                         .zip(args[1..].iter())
@@ -404,7 +397,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 attrs.iter().fold("".to_string(), |acc, attr| {
                                     format!("{}{} ", acc, attr.to_string(types))
                                 }),
-                                self.value_to_string(data.value_ref(arg), types),
+                                self.value_to_string(arg, data, types),
                             )
                         })
                         .trim_end_matches(", "),
@@ -435,7 +428,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         attr.to_string(types)
                     )),
                     types.to_string(tys[0]),
-                    self.value_to_string(data.value_ref(args[0]), types),
+                    self.value_to_string(args[0], data, types),
                     tys[1..]
                         .iter()
                         .zip(args[1..].iter())
@@ -449,7 +442,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 attrs.iter().fold("".to_string(), |acc, attr| {
                                     format!("{}{} ", acc, attr.to_string(types))
                                 }),
-                                self.value_to_string(data.value_ref(arg), types),
+                                self.value_to_string(arg, data, types),
                             )
                         })
                         .trim_end_matches(", "),
@@ -480,7 +473,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                             "{} catch {} {}",
                             acc,
                             types.to_string(*ty),
-                            self.value_to_string(data.value_ref(*arg), types),
+                            self.value_to_string(*arg, data, types),
                         )
                     })
                 )
@@ -490,7 +483,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.fmt,
                     "resume {} {}",
                     types.to_string(*ty),
-                    self.value_to_string(data.value_ref(*arg), types),
+                    self.value_to_string(*arg, data, types),
                 )
             }
             Operand::Br(Br { block }) => {
@@ -504,7 +497,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                 write!(
                     self.fmt,
                     "br i1 {}, label %{:?}, label %{:?}",
-                    self.value_to_string(data.value_ref(*arg), types),
+                    self.value_to_string(*arg, data, types),
                     self.indexes[&Ids::Block(blocks[0])],
                     self.indexes[&Ids::Block(blocks[1])],
                 )
@@ -514,7 +507,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.fmt,
                     "switch {} {}, label %{:?} [\n{}    ]",
                     types.to_string(switch.cond_ty()),
-                    self.value_to_string(data.value_ref(switch.cond()), types),
+                    self.value_to_string(switch.cond(), data, types),
                     self.indexes[&Ids::Block(switch.default_block())],
                     switch
                         .cases_tys()
@@ -527,7 +520,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                                 "{}        {} {}, label %{:?}\n",
                                 acc,
                                 types.to_string(ty),
-                                self.value_to_string(data.value_ref(case), types),
+                                self.value_to_string(case, data, types),
                                 self.indexes[&Ids::Block(block)],
                             )
                         })
@@ -539,7 +532,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                     self.fmt,
                     "ret {} {}",
                     types.to_string(*ty),
-                    self.value_to_string(data.value_ref(*val), types),
+                    self.value_to_string(*val, data, types),
                 )
             }
             Operand::Unreachable => {
@@ -555,32 +548,17 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         Ok(())
     }
 
-    fn value_to_string(&self, val: &Value, types: &Types) -> String {
-        match val {
-            Value::Constant(c) => c.to_string(types),
-            Value::Instruction(id) => {
-                format!("%{:?}", self.indexes[&Ids::Inst(*id)])
-            }
-            Value::Argument(n) => {
-                if let Some(name) = n.name.as_ref() {
-                    format!("%{}", name)
-                } else {
-                    format!("%{:?}", self.indexes[&Ids::Arg(n.nth)])
-                }
-            }
-            Value::InlineAsm(InlineAsm {
-                body,
-                constraints,
-                sideeffect,
-            }) => {
-                format!(
-                    "asm {}\"{}\", \"{}\"",
-                    if *sideeffect { "sideeffect " } else { "" },
-                    constraints,
-                    body
-                )
-            }
-        }
+    fn value_to_string(&self, val_id: ValueId, data: &Data, types: &Types) -> String {
+        format!(
+            "{}",
+            data.value_ref(val_id)
+                .display(data, types)
+                .show_type(false)
+                .set_name_fn(Box::new(|v| match v {
+                    Value::Instruction(id) => Some(self.indexes[&Ids::Inst(*id)].to_owned()),
+                    _ => None,
+                }))
+        )
     }
 
     fn new_name_for_block(&mut self, id: BasicBlockId) -> Name {
