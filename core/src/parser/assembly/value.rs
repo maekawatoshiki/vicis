@@ -22,13 +22,13 @@ pub fn parse_constant<'a>(
     ty: Type,
 ) -> IResult<&'a str, ConstantValue, VerboseError<&'a str>> {
     if let Ok((source, _)) = preceded(spaces, tag("undef"))(source) {
-        return Ok((source, ConstantValue::Undef));
+        return Ok((source, ConstantValue::Undef(ty)));
     }
     if let Ok((source, _)) = preceded(spaces, tag("null"))(source) {
-        return Ok((source, ConstantValue::Null));
+        return Ok((source, ConstantValue::Null(ty)));
     }
     if let Ok((source, _)) = preceded(spaces, tag("zeroinitializer"))(source) {
-        return Ok((source, ConstantValue::AggregateZero));
+        return Ok((source, ConstantValue::AggregateZero(ty)));
     }
     if let Ok((source, id)) = parse_constant_int(source, ty) {
         return Ok((source, id.into()));

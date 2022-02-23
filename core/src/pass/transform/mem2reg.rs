@@ -381,7 +381,8 @@ impl<'a> Mem2Reg<'a> {
                         Opcode::Load => inst.operand.as_load().unwrap().src_val(),
                         _ => continue,
                     })
-                    .as_inst();
+                    .as_inst()
+                    .unwrap();
                 if !alloca_list.contains(&alloca_id) {
                     continue;
                 }

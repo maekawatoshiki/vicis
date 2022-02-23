@@ -6,9 +6,9 @@ use crate::ir::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConstantValue {
-    Undef,
-    AggregateZero,
-    Null,
+    Undef(Type),
+    AggregateZero(Type),
+    Null(Type),
     Int(ConstantInt),
     Array(ConstantArray),
     Struct(ConstantStruct),
@@ -56,9 +56,9 @@ pub enum ConstantExpr {
 impl ConstantValue {
     pub fn to_string(&self, types: &Types) -> String {
         match self {
-            Self::Undef => "undef".to_string(),
-            Self::AggregateZero => "zeroinitializer".to_string(),
-            Self::Null => "null".to_string(),
+            Self::Undef(_) => "undef".to_string(),
+            Self::AggregateZero(_) => "zeroinitializer".to_string(),
+            Self::Null(_) => "null".to_string(),
             Self::Int(i) => i.to_string(),
             Self::Array(a) => a.to_string(types),
             Self::Struct(s) => s.to_string(types),
@@ -205,9 +205,9 @@ impl ConstantExpr {
 impl Typed for ConstantValue {
     fn ty(&self) -> Type {
         match self {
-            Self::Undef => todo!("undef"),
-            Self::AggregateZero => todo!("aggregate zero"),
-            Self::Null => todo!("null"),
+            Self::Undef(ty) => *ty,
+            Self::AggregateZero(ty) => *ty,
+            Self::Null(ty) => *ty,
             Self::Int(i) => i.ty(),
             Self::Array(a) => a.ty(),
             Self::Struct(s) => s.ty(),

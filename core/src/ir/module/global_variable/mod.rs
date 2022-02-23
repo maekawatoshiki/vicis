@@ -40,7 +40,7 @@ impl GlobalVariable {
             },
             types.to_string(self.ty),
             self.init.as_ref().map_or("".to_string(), |init| {
-                if matches!(init, ConstantValue::AggregateZero) {
+                if matches!(init, ConstantValue::AggregateZero(_)) {
                     "zeroinitializer".to_string()
                 } else {
                     init.to_string(types)

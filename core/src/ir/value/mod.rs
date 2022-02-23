@@ -35,14 +35,10 @@ pub struct InlineAsm {
 }
 
 impl Value {
-    pub fn undef() -> Self {
-        Self::Constant(ConstantValue::Undef)
-    }
-
-    pub fn as_inst(&self) -> &InstructionId {
+    pub fn as_inst(&self) -> Option<&InstructionId> {
         match self {
-            Self::Instruction(id) => id,
-            _ => panic!(),
+            Self::Instruction(id) => Some(id),
+            _ => None,
         }
     }
 

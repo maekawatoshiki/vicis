@@ -499,7 +499,7 @@ impl<'a> ContextBuilder<'a> {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
-                    ConstantValue::AggregateZero => {
+                    ConstantValue::AggregateZero(_) => {
                         // Already zeroed.
                         // unsafe { ptr::write_bytes(ptr, 0, sz) };
                     }
