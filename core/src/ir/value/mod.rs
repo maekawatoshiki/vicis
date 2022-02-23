@@ -47,7 +47,14 @@ impl Value {
     }
 
     pub fn display<'a>(&'a self, data: &'a Data, types: &'a Types) -> DisplayValue<'a> {
-        DisplayValue(self, data, types, true, None)
+        DisplayValue {
+            val: self,
+            data,
+            types,
+            display_type: true,
+            display_as_operand: false,
+            name_fn: None,
+        }
     }
 }
 
@@ -63,60 +70,74 @@ impl From<i64> for Value {
     }
 }
 
-pub struct DisplayValue<'a>(
-    pub &'a Value,
-    pub &'a Data,
-    pub &'a Types,
-    pub bool,                                                // show type
-    pub Option<Box<dyn Fn(&'a Value) -> Option<Name> + 'a>>, // value name resolver
-);
+pub struct DisplayValue<'a> {
+    pub val: &'a Value,
+    pub data: &'a Data,
+    pub types: &'a Types,
+    pub display_type: bool,
+    pub display_as_operand: bool,
+    pub name_fn: Option<Box<dyn Fn(&'a Value) -> Option<Name> + 'a>>, // value name resolver
+}
 
 impl<'a> DisplayValue<'a> {
-    pub fn show_type(mut self, show: bool) -> Self {
-        self.3 = show;
+    pub fn display_type(mut self, x: bool) -> Self {
+        self.display_type = x;
+        self
+    }
+
+    pub fn display_as_operand(mut self, x: bool) -> Self {
+        self.display_as_operand = x;
         self
     }
 
     pub fn set_name_fn(mut self, f: Box<dyn Fn(&'a Value) -> Option<Name> + 'a>) -> Self {
-        self.4 = Some(f);
+        self.name_fn = Some(f);
         self
     }
 }
 
 impl std::fmt::Display for DisplayValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Value::Constant(c) if self.3 => {
-                write!(f, "{} {}", self.2.to_string(c.ty()), c.to_string(self.2))
+        match self.val {
+            Value::Constant(c) if self.display_type => {
+                write!(
+                    f,
+                    "{} {}",
+                    self.types.to_string(c.ty()),
+                    c.to_string(self.types)
+                )
             }
             Value::Constant(c) => {
-                write!(f, "{}", c.to_string(self.2))
+                write!(f, "{}", c.to_string(self.types))
             }
-            Value::Instruction(id) => {
-                let inst = self.1.inst_ref(*id);
+            Value::Instruction(id) if self.display_as_operand => {
+                let inst = self.data.inst_ref(*id);
                 // TODO: Show type
                 if let Some(Name::Name(dest)) = &inst.dest {
                     write!(f, "%{}", dest)
-                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
+                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
                     write!(f, "%{}", name)
                 } else {
                     write!(f, "%I{}", id.index()) // TODO
                 }
             }
-            Value::Argument(n) if self.3 => {
+            Value::Instruction(_) => {
+                todo!()
+            }
+            Value::Argument(n) if self.display_type => {
                 if let Some(Name::Name(name)) = n.name.as_ref() {
-                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
-                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
-                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
+                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
+                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
+                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
                 } else {
-                    write!(f, "{} %{}", self.2.to_string(n.ty()), n.nth)
+                    write!(f, "{} %{}", self.types.to_string(n.ty()), n.nth)
                 }
             }
             Value::Argument(n) => {
                 if let Some(Name::Name(name)) = n.name.as_ref() {
                     write!(f, "%{}", name)
-                } else if let Some(name) = self.4.as_ref().map(|f| f(self.0)).flatten() {
-                    write!(f, "{} %{}", self.2.to_string(n.ty()), name)
+                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
+                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
                 } else {
                     write!(f, "%{}", n.nth)
                 }

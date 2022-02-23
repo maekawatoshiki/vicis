@@ -553,7 +553,8 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             "{}",
             data.value_ref(val_id)
                 .display(data, types)
-                .show_type(false)
+                .display_type(false)
+                .display_as_operand(true)
                 .set_name_fn(Box::new(|v| match v {
                     Value::Instruction(id) => Some(self.indexes[&Ids::Inst(*id)].to_owned()),
                     _ => None,
