@@ -13,7 +13,7 @@ pub enum ConstantValue {
     Array(ConstantArray),
     Struct(ConstantStruct),
     Expr(ConstantExpr), // TODO: Boxing?
-    GlobalRef(Name),
+    GlobalRef(Name, Type),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -63,7 +63,7 @@ impl ConstantValue {
             Self::Array(a) => a.to_string(types),
             Self::Struct(s) => s.to_string(types),
             Self::Expr(e) => e.to_string(types),
-            Self::GlobalRef(name) => format!("@{:?}", name),
+            Self::GlobalRef(name, _) => format!("@{:?}", name),
         }
     }
 
@@ -76,7 +76,7 @@ impl ConstantValue {
 
     pub fn as_global_ref(&self) -> &Name {
         match self {
-            Self::GlobalRef(name) => name,
+            Self::GlobalRef(name, _) => name,
             _ => panic!(),
         }
     }
@@ -212,7 +212,7 @@ impl Typed for ConstantValue {
             Self::Array(a) => a.ty(),
             Self::Struct(s) => s.ty(),
             Self::Expr(e) => e.ty(),
-            Self::GlobalRef(_name) => todo!("global ref"),
+            Self::GlobalRef(_name, ty) => *ty,
         }
     }
 }

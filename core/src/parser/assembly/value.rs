@@ -36,7 +36,7 @@ pub fn parse_constant<'a>(
     if let Ok((source, id)) = parse_constant_array(source, types, ty) {
         return Ok((source, id));
     }
-    if let Ok((source, id)) = parse_constant_global_ref(source) {
+    if let Ok((source, id)) = parse_constant_global_ref(source, ty) {
         return Ok((source, id));
     }
     if let Ok((source, id)) = parse_constant_struct(source, types, ty) {
@@ -177,9 +177,12 @@ pub fn parse_constant_bitcast<'a>(
     ))
 }
 
-pub fn parse_constant_global_ref(source: &str) -> IResult<&str, ConstantValue, VerboseError<&str>> {
+pub fn parse_constant_global_ref(
+    source: &str,
+    ty: Type,
+) -> IResult<&str, ConstantValue, VerboseError<&str>> {
     let (source, name) = preceded(spaces, preceded(char('@'), super::name::parse))(source)?;
-    Ok((source, ConstantValue::GlobalRef(name)))
+    Ok((source, ConstantValue::GlobalRef(name, ty)))
 }
 
 pub fn parse_constant_struct<'a>(

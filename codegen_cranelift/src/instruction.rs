@@ -164,7 +164,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                     .ins()
                     .iconst(self.lower_ctx.into_clif_ty(ty), i.cast_to_i64()),
             ),
-            LlvmValue::Constant(ConstantValue::GlobalRef(Name::Name(name))) => {
+            LlvmValue::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => {
                 ValueKind::GlobalName(name.to_owned())
             }
             LlvmValue::Argument(arg) => {

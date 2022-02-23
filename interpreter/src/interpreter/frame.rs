@@ -47,7 +47,7 @@ impl<'a> StackFrame<'a> {
             Value::Constant(ConstantValue::Int(ConstantInt::Int64(i))) => {
                 Some(GenericValue::Int64(*i))
             }
-            Value::Constant(ConstantValue::GlobalRef(name)) => {
+            Value::Constant(ConstantValue::GlobalRef(name, _)) => {
                 if let Some(f) = self
                     .ctx
                     .module
@@ -63,7 +63,7 @@ impl<'a> StackFrame<'a> {
             Value::Argument(a) => self.args.get(a.nth).copied(),
             Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
                 match args[0] {
-                    ConstantValue::GlobalRef(ref name) => {
+                    ConstantValue::GlobalRef(ref name, _) => {
                         let n = match args[2] {
                             ConstantValue::Int(ConstantInt::Int32(n)) => n as i64,
                             ConstantValue::Int(ConstantInt::Int64(n)) => n,

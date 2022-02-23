@@ -346,7 +346,7 @@ fn lower_call(
     }
 
     let name = match &ctx.ir_data.values[args[0]] {
-        Value::Constant(ConstantValue::GlobalRef(Name::Name(name))) => name.clone(),
+        Value::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => name.clone(),
         _ => return Err(LoweringError::Todo.into()),
     };
     let result_reg: Reg = GR32::EAX.into(); // TODO: do not hard code
@@ -454,7 +454,7 @@ fn val_to_operand_data(
         })) => {
             // TODO: Split up into functions
             assert!(ty.is_pointer(&ctx.types));
-            assert!(matches!(args[0], ConstantValue::GlobalRef(_)));
+            assert!(matches!(args[0], ConstantValue::GlobalRef(_, _)));
             let all_indices_0 = args[1..]
                 .iter()
                 .all(|arg| matches!(arg, ConstantValue::Int(ConstantInt::Int64(0))));
