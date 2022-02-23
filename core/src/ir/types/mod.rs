@@ -282,14 +282,24 @@ impl TypesBase {
 
     pub fn element_at(&self, ty: Type, i: usize) -> Option<Type> {
         match self.get(ty)? {
-            CompoundType::Pointer(PointerType { inner, .. }) if i == 0 => Some(*inner),
-            CompoundType::Pointer(_) => None,
+            CompoundType::Pointer(PointerType { inner, .. }) => Some(*inner),
             CompoundType::Array(ArrayType { inner, .. }) => Some(*inner),
             CompoundType::Struct(StructType { elems, .. }) => elems.get(i).copied(),
             CompoundType::Function(_) => None,
             CompoundType::Alias(t) => self.element_at(*t, i),
             CompoundType::Metadata => None,
         }
+    }
+
+    pub fn element_at_(&self, ty: Type, indices: impl Iterator<Item = usize>) -> Option<Type> {
+        let mut ty = ty;
+        for i in indices {
+            match self.element_at(ty, i) {
+                Some(t) => ty = t,
+                None => return None,
+            }
+        }
+        Some(ty)
     }
 
     pub fn to_string(&self, ty: Type) -> String {

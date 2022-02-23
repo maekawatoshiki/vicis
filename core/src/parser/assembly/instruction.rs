@@ -6,6 +6,7 @@ use crate::ir::function::instruction::{
     Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId,
     IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store, Switch,
 };
+use crate::ir::value::{ConstantValue, Value};
 use crate::ir::{
     function::{
         instruction::{ExtractValue, InsertValue},
@@ -197,6 +198,17 @@ pub fn parse_extractvalue<'a, 'b>(
             source,
             Opcode::ExtractValue
                 .with_block(ctx.cur_block)
+                .with_ty(
+                    ctx.types
+                        .base()
+                        .element_at_(
+                            aggre_ty,
+                            args[1..]
+                                .iter()
+                                .map(|arg| val2idx(ctx.data.value_ref(*arg))),
+                        )
+                        .unwrap(),
+                )
                 .with_operand(Operand::ExtractValue(ExtractValue { ty: aggre_ty, args })),
         ));
     }
@@ -237,7 +249,8 @@ pub fn parse_add_sub_mul<'a, 'b>(
             nuw: nuw.map_or(false, |_| true),
             nsw: nsw.map_or(false, |_| true),
             exact: exact.map_or(false, |_| true),
-        }));
+        }))
+        .with_ty(ty);
     Ok((source, inst))
 }
 
@@ -272,7 +285,8 @@ pub fn parse_icmp<'a, 'b>(
             ty,
             args: [lhs, rhs],
             cond,
-        }));
+        }))
+        .with_ty(types::I1);
     Ok((source, inst))
 }
 
@@ -300,7 +314,8 @@ pub fn parse_cast<'a, 'b>(
         .with_operand(Operand::Cast(Cast {
             tys: [from, to],
             arg,
-        }));
+        }))
+        .with_ty(to);
     Ok((source, inst))
 }
 
@@ -362,6 +377,19 @@ pub fn parse_getelementptr<'a, 'b>(
         }
         let inst = Opcode::GetElementPtr
             .with_block(ctx.cur_block)
+            .with_ty({
+                let inner = ctx
+                    .types
+                    .base()
+                    .element_at_(
+                        tys[1],
+                        args[1..]
+                            .iter()
+                            .map(|arg| val2idx(ctx.data.value_ref(*arg))),
+                    )
+                    .unwrap();
+                ctx.types.base_mut().pointer(inner)
+            })
             .with_operand(Operand::GetElementPtr(GetElementPtr {
                 inbounds: inbounds.is_some(),
                 tys,
@@ -392,7 +420,8 @@ pub fn parse_call<'a, 'b>(
             param_attrs,
             ret_attrs,
             func_attrs,
-        }));
+        }))
+        .with_ty(ty);
     Ok((source, inst))
 }
 
@@ -466,7 +495,8 @@ pub fn parse_invoke<'a, 'b>(
             ret_attrs,
             func_attrs,
             blocks: vec![normal, exception],
-        }));
+        }))
+        .with_ty(ty);
     Ok((source, inst))
 }
 
@@ -495,7 +525,8 @@ pub fn parse_landingpad<'a, 'b>(
             ty,
             catches,
             cleanup: cleanup.is_some(),
-        }));
+        }))
+        .with_ty(ty);
     Ok((source, inst))
 }
 
@@ -730,4 +761,11 @@ pub fn parse<'a, 'b>(
         }
     }
     Err(Error(VerboseError { errors: vec![] }))
+}
+
+fn val2idx(val: &Value) -> usize {
+    match val {
+        Value::Constant(ConstantValue::Int(i)) => i.cast_to_usize(),
+        _ => 0,
+    }
 }
