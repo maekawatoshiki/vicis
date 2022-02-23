@@ -10,9 +10,7 @@ use super::{
     Function,
 };
 use crate::ir::{
-    function::instruction::{
-        Br, Call, CondBr, ExtractValue, InsertValue, Invoke, LandingPad, Resume, Ret,
-    },
+    function::instruction::{Br, Call, CondBr, Invoke, LandingPad, Resume, Ret},
     types::Type,
     value::ValueId,
 };
@@ -193,7 +191,12 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             .unwrap_or(&Name::Number(usize::MAX));
 
         match &inst.operand {
-            Operand::Alloca(_) | Operand::Phi(_) | Operand::Load(_) | Operand::Store(_) => {
+            Operand::Alloca(_)
+            | Operand::Phi(_)
+            | Operand::Load(_)
+            | Operand::Store(_)
+            | Operand::InsertValue(_)
+            | Operand::ExtractValue(_) => {
                 write!(
                     self.fmt,
                     "{}",
@@ -204,38 +207,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .set_block_name_fn(Box::new(|id| {
                             self.indexes.get(&Ids::Block(id)).cloned()
                         }))
-                )
-            }
-            Operand::InsertValue(InsertValue { tys, args }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = insertvalue {} {}, {} {}, {}",
-                    dest,
-                    types.to_string(tys[0]),
-                    self.value_to_string(args[0], data, types),
-                    types.to_string(tys[1]),
-                    self.value_to_string(args[1], data, types),
-                    args[2..]
-                        .iter()
-                        .fold("".to_string(), |acc, &arg| {
-                            format!("{}{}, ", acc, self.value_to_string(arg, data, types))
-                        })
-                        .trim_end_matches(", ")
-                )
-            }
-            Operand::ExtractValue(ExtractValue { ty, args }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = extractvalue {} {}, {}",
-                    dest,
-                    types.to_string(*ty),
-                    self.value_to_string(args[0], data, types),
-                    args[1..]
-                        .iter()
-                        .fold("".to_string(), |acc, &arg| {
-                            format!("{}{}, ", acc, self.value_to_string(arg, data, types))
-                        })
-                        .trim_end_matches(", ")
                 )
             }
             Operand::IntBinary(IntBinary {

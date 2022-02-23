@@ -3,7 +3,7 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId,
         data::Data,
-        instruction::{Alloca, Load, Operand, Phi, Store},
+        instruction::{Alloca, ExtractValue, InsertValue, Load, Operand, Phi, Store},
     },
     module::name::Name,
     types::Types,
@@ -145,6 +145,36 @@ impl fmt::Display for DisplayInstruction<'_> {
                     } else {
                         format!(", align {}", align)
                     }
+                )
+            }
+            Operand::InsertValue(InsertValue { tys, args }) => {
+                write!(
+                    f,
+                    "%{dest:?} = insertvalue {} {}, {} {}, {}",
+                    self.types.to_string(tys[0]),
+                    value_string(self, args[0]),
+                    self.types.to_string(tys[1]),
+                    value_string(self, args[1]),
+                    args[2..]
+                        .iter()
+                        .fold("".to_string(), |acc, &arg| {
+                            format!("{}{}, ", acc, value_string(self, arg))
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
+            Operand::ExtractValue(ExtractValue { ty, args }) => {
+                write!(
+                    f,
+                    "%{dest:?} = extractvalue {} {}, {}",
+                    self.types.to_string(*ty),
+                    value_string(self, args[0]),
+                    args[1..]
+                        .iter()
+                        .fold("".to_string(), |acc, &arg| {
+                            format!("{}{}, ", acc, value_string(self, arg))
+                        })
+                        .trim_end_matches(", ")
                 )
             }
             _ => todo!(),
