@@ -5,8 +5,7 @@ use super::{
     basic_block::BasicBlockId,
     data::Data,
     instruction::{
-        Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Load, Opcode, Operand,
-        Store,
+        Cast, GetElementPtr, ICmp, Instruction, InstructionId, IntBinary, Opcode, Operand,
     },
     Function,
 };
@@ -194,7 +193,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             .unwrap_or(&Name::Number(usize::MAX));
 
         match &inst.operand {
-            Operand::Alloca(_) | Operand::Phi(_) => {
+            Operand::Alloca(_) | Operand::Phi(_) | Operand::Load(_) | Operand::Store(_) => {
                 write!(
                     self.fmt,
                     "{}",
@@ -205,36 +204,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .set_block_name_fn(Box::new(|id| {
                             self.indexes.get(&Ids::Block(id)).cloned()
                         }))
-                )
-            }
-            Operand::Load(Load { tys, addr, align }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = load {}, {} {}{}",
-                    dest,
-                    types.to_string(tys[0]),
-                    types.to_string(tys[1]),
-                    self.value_to_string(*addr, data, types),
-                    if *align == 0 {
-                        "".to_string()
-                    } else {
-                        format!(", align {}", align)
-                    }
-                )
-            }
-            Operand::Store(Store { tys, args, align }) => {
-                write!(
-                    self.fmt,
-                    "store {} {}, {} {}{}",
-                    types.to_string(tys[0]),
-                    self.value_to_string(args[0], data, types),
-                    types.to_string(tys[1]),
-                    self.value_to_string(args[1], data, types),
-                    if *align == 0 {
-                        "".to_string()
-                    } else {
-                        format!(", align {}", align)
-                    }
                 )
             }
             Operand::InsertValue(InsertValue { tys, args }) => {

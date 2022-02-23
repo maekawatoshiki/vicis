@@ -3,7 +3,7 @@ use crate::ir::{
     function::{
         basic_block::BasicBlockId,
         data::Data,
-        instruction::{Alloca, Operand, Phi},
+        instruction::{Alloca, Load, Operand, Phi, Store},
     },
     module::name::Name,
     types::Types,
@@ -116,6 +116,35 @@ impl fmt::Display for DisplayInstruction<'_> {
                             )
                         })
                         .trim_end_matches(", ")
+                )
+            }
+            Operand::Load(Load { tys, addr, align }) => {
+                write!(
+                    f,
+                    "%{dest:?} = load {}, {} {}{}",
+                    self.types.to_string(tys[0]),
+                    self.types.to_string(tys[1]),
+                    value_string(self, *addr),
+                    if *align == 0 {
+                        "".to_string()
+                    } else {
+                        format!(", align {}", align)
+                    }
+                )
+            }
+            Operand::Store(Store { tys, args, align }) => {
+                write!(
+                    f,
+                    "store {} {}, {} {}{}",
+                    self.types.to_string(tys[0]),
+                    value_string(self, args[0]),
+                    self.types.to_string(tys[1]),
+                    value_string(self, args[1]),
+                    if *align == 0 {
+                        "".to_string()
+                    } else {
+                        format!(", align {}", align)
+                    }
                 )
             }
             _ => todo!(),
