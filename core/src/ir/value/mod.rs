@@ -114,6 +114,9 @@ impl std::fmt::Display for DisplayValue<'_> {
                 let inst = self.data.inst_ref(*id);
                 // TODO: Show type
                 if let Some(Name::Name(dest)) = &inst.dest {
+                    if self.display_type {
+                        write!(f, "{} ", self.types.to_string(inst.ty()))?;
+                    }
                     write!(f, "%{}", dest)
                 } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
                     write!(f, "%{}", name)
@@ -124,16 +127,10 @@ impl std::fmt::Display for DisplayValue<'_> {
             Value::Instruction(_) => {
                 todo!()
             }
-            Value::Argument(n) if self.display_type => {
-                if let Some(Name::Name(name)) = n.name.as_ref() {
-                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
-                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
-                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
-                } else {
-                    write!(f, "{} %{}", self.types.to_string(n.ty()), n.nth)
-                }
-            }
             Value::Argument(n) => {
+                if self.display_type {
+                    write!(f, "{} ", self.types.to_string(n.ty()))?;
+                }
                 if let Some(Name::Name(name)) = n.name.as_ref() {
                     write!(f, "%{}", name)
                 } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
