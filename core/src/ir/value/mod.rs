@@ -112,11 +112,11 @@ impl std::fmt::Display for DisplayValue<'_> {
             }
             Value::Instruction(id) if self.display_as_operand => {
                 let inst = self.data.inst_ref(*id);
+                if self.display_type {
+                    write!(f, "{} ", self.types.to_string(inst.ty()))?;
+                }
                 // TODO: Show type
                 if let Some(Name::Name(dest)) = &inst.dest {
-                    if self.display_type {
-                        write!(f, "{} ", self.types.to_string(inst.ty()))?;
-                    }
                     write!(f, "%{}", dest)
                 } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
                     write!(f, "%{}", name)
