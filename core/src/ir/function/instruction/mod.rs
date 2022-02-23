@@ -1,4 +1,7 @@
 pub mod builder;
+mod ty;
+
+pub use ty::*;
 
 use crate::ir::{
     function::{basic_block::BasicBlockId, data::Data, param_attrs::ParameterAttribute},
