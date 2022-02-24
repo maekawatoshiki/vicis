@@ -4,7 +4,8 @@ use crate::ir::{
         basic_block::BasicBlockId,
         data::Data,
         instruction::{
-            Alloca, Cast, ExtractValue, ICmp, InsertValue, IntBinary, Load, Operand, Phi, Store,
+            Alloca, Call, Cast, ExtractValue, GetElementPtr, ICmp, InsertValue, IntBinary, Load,
+            Operand, Phi, Store,
         },
     },
     module::name::Name,
@@ -216,6 +217,75 @@ impl fmt::Display for DisplayInstruction<'_> {
                     self.types.to_string(tys[0]),
                     value_string(self, *arg),
                     self.types.to_string(tys[1]),
+                )
+            }
+            Operand::GetElementPtr(GetElementPtr {
+                inbounds,
+                tys,
+                args,
+            }) => {
+                write!(
+                    f,
+                    "%{dest:?} = getelementptr {}{}, {}",
+                    if *inbounds { "inbounds " } else { "" },
+                    self.types.to_string(tys[0]),
+                    tys[1..]
+                        .iter()
+                        .zip(args.iter())
+                        .fold("".to_string(), |acc, (ty, arg)| {
+                            format!(
+                                "{}{} {}, ",
+                                acc,
+                                self.types.to_string(*ty),
+                                value_string(self, *arg),
+                            )
+                        })
+                        .trim_end_matches(", ")
+                )
+            }
+            Operand::Call(Call {
+                tys,
+                args,
+                param_attrs,
+                ret_attrs,
+                func_attrs,
+                ..
+            }) => {
+                write!(
+                    f,
+                    "{}call {}{} {}({}) {}",
+                    if tys[0].is_void() {
+                        "".to_string()
+                    } else {
+                        format!("%{dest:?} = ")
+                    },
+                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
+                        "{}{} ",
+                        acc,
+                        attr.to_string(self.types)
+                    )),
+                    self.types.to_string(tys[0]),
+                    value_string(self, args[0]),
+                    tys[1..]
+                        .iter()
+                        .zip(args[1..].iter())
+                        .zip(param_attrs.iter())
+                        .into_iter()
+                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
+                            format!(
+                                "{}{} {}{}, ",
+                                acc,
+                                self.types.to_string(ty),
+                                attrs.iter().fold("".to_string(), |acc, attr| {
+                                    format!("{}{} ", acc, attr.to_string(self.types))
+                                }),
+                                value_string(self, arg),
+                            )
+                        })
+                        .trim_end_matches(", "),
+                    func_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
                 )
             }
             _ => todo!(),

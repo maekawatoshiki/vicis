@@ -4,11 +4,11 @@ use super::{
     super::value::Value,
     basic_block::BasicBlockId,
     data::Data,
-    instruction::{GetElementPtr, Instruction, InstructionId, Opcode, Operand},
+    instruction::{Instruction, InstructionId, Opcode, Operand},
     Function,
 };
 use crate::ir::{
-    function::instruction::{Br, Call, CondBr, Invoke, LandingPad, Resume, Ret},
+    function::instruction::{Br, CondBr, Invoke, LandingPad, Resume, Ret},
     types::Type,
     value::ValueId,
 };
@@ -197,7 +197,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             | Operand::ExtractValue(_)
             | Operand::IntBinary(_)
             | Operand::ICmp(_)
-            | Operand::Cast(_) => {
+            | Operand::Cast(_)
+            | Operand::GetElementPtr(_)
+            | Operand::Call(_) => {
                 write!(
                     self.fmt,
                     "{}",
@@ -208,76 +210,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .set_block_name_fn(Box::new(|id| {
                             self.indexes.get(&Ids::Block(id)).cloned()
                         }))
-                )
-            }
-            Operand::GetElementPtr(GetElementPtr {
-                inbounds,
-                tys,
-                args,
-            }) => {
-                write!(
-                    self.fmt,
-                    "%{:?} = getelementptr {}{}, {}",
-                    dest,
-                    if *inbounds { "inbounds " } else { "" },
-                    types.to_string(tys[0]),
-                    tys[1..]
-                        .iter()
-                        .zip(args.iter())
-                        .fold("".to_string(), |acc, (ty, arg)| {
-                            format!(
-                                "{}{} {}, ",
-                                acc,
-                                types.to_string(*ty),
-                                self.value_to_string(*arg, data, types),
-                            )
-                        })
-                        .trim_end_matches(", ")
-                )
-            }
-            Operand::Call(Call {
-                tys,
-                args,
-                param_attrs,
-                ret_attrs,
-                func_attrs,
-                ..
-            }) => {
-                write!(
-                    self.fmt,
-                    "{}call {}{} {}({}) {}",
-                    if tys[0].is_void() {
-                        "".to_string()
-                    } else {
-                        format!("%{:?} = ", dest)
-                    },
-                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
-                        "{}{} ",
-                        acc,
-                        attr.to_string(types)
-                    )),
-                    types.to_string(tys[0]),
-                    self.value_to_string(args[0], data, types),
-                    tys[1..]
-                        .iter()
-                        .zip(args[1..].iter())
-                        .zip(param_attrs.iter())
-                        .into_iter()
-                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
-                            format!(
-                                "{}{} {}{}, ",
-                                acc,
-                                types.to_string(ty),
-                                attrs.iter().fold("".to_string(), |acc, attr| {
-                                    format!("{}{} ", acc, attr.to_string(types))
-                                }),
-                                self.value_to_string(arg, data, types),
-                            )
-                        })
-                        .trim_end_matches(", "),
-                    func_attrs
-                        .iter()
-                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
                 )
             }
             Operand::Invoke(Invoke {
