@@ -4,8 +4,8 @@ use crate::ir::{
         basic_block::BasicBlockId,
         data::Data,
         instruction::{
-            Alloca, Call, Cast, ExtractValue, GetElementPtr, ICmp, InsertValue, IntBinary, Invoke,
-            LandingPad, Load, Operand, Phi, Store,
+            Alloca, Br, Call, Cast, CondBr, ExtractValue, GetElementPtr, ICmp, InsertValue,
+            IntBinary, Invoke, LandingPad, Load, Operand, Phi, Resume, Ret, Store,
         },
     },
     module::name::Name,
@@ -360,7 +360,63 @@ impl fmt::Display for DisplayInstruction<'_> {
                     })
                 )
             }
-            _ => todo!(),
+            Operand::Resume(Resume { ty, arg }) => {
+                write!(
+                    f,
+                    "resume {} {}",
+                    self.types.to_string(*ty),
+                    value_string(self, *arg),
+                )
+            }
+            Operand::Br(Br { block }) => {
+                write!(f, "br label %{:?}", block_name(self, *block),)
+            }
+            Operand::CondBr(CondBr { arg, blocks }) => {
+                write!(
+                    f,
+                    "br i1 {}, label %{:?}, label %{:?}",
+                    value_string(self, *arg),
+                    block_name(self, blocks[0]),
+                    block_name(self, blocks[1]),
+                )
+            }
+            Operand::Switch(switch) => {
+                write!(
+                    f,
+                    "switch {} {}, label %{:?} [\n{}    ]",
+                    self.types.to_string(switch.cond_ty()),
+                    value_string(self, switch.cond()),
+                    block_name(self, switch.default_block()),
+                    switch
+                        .cases_tys()
+                        .iter()
+                        .zip(switch.cases())
+                        .zip(switch.blocks())
+                        .into_iter()
+                        .fold("".to_string(), |acc, ((&ty, &case), &block)| {
+                            format!(
+                                "{}        {} {}, label %{:?}\n",
+                                acc,
+                                self.types.to_string(ty),
+                                value_string(self, case),
+                                block_name(self, block),
+                            )
+                        })
+                )
+            }
+            Operand::Ret(Ret { val: None, .. }) => write!(f, "ret void"),
+            Operand::Ret(Ret { val: Some(val), ty }) => {
+                write!(
+                    f,
+                    "ret {} {}",
+                    self.types.to_string(*ty),
+                    value_string(self, *val),
+                )
+            }
+            Operand::Unreachable => {
+                write!(f, "unreachable")
+            }
+            Operand::Invalid => panic!(),
         }
     }
 }
