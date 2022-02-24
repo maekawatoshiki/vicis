@@ -95,15 +95,10 @@ impl<'a> DisplayValue<'a> {
 impl std::fmt::Display for DisplayValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.val {
-            Value::Constant(c) if self.display_type => {
-                write!(
-                    f,
-                    "{} {}",
-                    self.types.to_string(c.ty()),
-                    c.to_string(self.types)
-                )
-            }
             Value::Constant(c) => {
+                if self.display_type {
+                    write!(f, "{} ", self.types.to_string(c.ty()))?;
+                }
                 write!(f, "{}", c.to_string(self.types))
             }
             Value::Instruction(id) if self.display_as_operand => {
@@ -111,26 +106,26 @@ impl std::fmt::Display for DisplayValue<'_> {
                 if self.display_type {
                     write!(f, "{} ", self.types.to_string(inst.ty()))?;
                 }
-                // TODO: Show type
-                if let Some(Name::Name(dest)) = &inst.dest {
-                    write!(f, "%{}", dest)
-                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
+                if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
                     write!(f, "%{}", name)
+                } else if let Some(dest) = &inst.dest {
+                    write!(f, "%{}", dest)
                 } else {
                     write!(f, "%I{}", id.index()) // TODO
                 }
             }
-            Value::Instruction(_) => {
-                todo!()
+            Value::Instruction(id) => {
+                let inst = self.data.inst_ref(*id);
+                write!(f, "{}", inst.display(self.data, self.types))
             }
             Value::Argument(n) => {
                 if self.display_type {
                     write!(f, "{} ", self.types.to_string(n.ty()))?;
                 }
-                if let Some(Name::Name(name)) = n.name.as_ref() {
+                if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
                     write!(f, "%{}", name)
-                } else if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
-                    write!(f, "{} %{}", self.types.to_string(n.ty()), name)
+                } else if let Some(Name::Name(name)) = n.name.as_ref() {
+                    write!(f, "%{}", name)
                 } else {
                     write!(f, "%{}", n.nth)
                 }
