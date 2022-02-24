@@ -8,7 +8,7 @@ use super::{
     Function,
 };
 use crate::ir::{
-    function::instruction::{Br, CondBr, Invoke, LandingPad, Resume, Ret},
+    function::instruction::{Br, CondBr, Resume, Ret},
     types::Type,
     value::ValueId,
 };
@@ -183,11 +183,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
     }
 
     fn print_inst(&mut self, inst: &Instruction, types: &Types, data: &Data) -> fmt::Result {
-        let dest = self
-            .indexes
-            .get(&Ids::Inst(inst.id.unwrap()))
-            .unwrap_or(&Name::Number(usize::MAX));
-
         match &inst.operand {
             Operand::Alloca(_)
             | Operand::Phi(_)
@@ -199,7 +194,9 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
             | Operand::ICmp(_)
             | Operand::Cast(_)
             | Operand::GetElementPtr(_)
-            | Operand::Call(_) => {
+            | Operand::Call(_)
+            | Operand::Invoke(_)
+            | Operand::LandingPad(_) => {
                 write!(
                     self.fmt,
                     "{}",
@@ -210,78 +207,6 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
                         .set_block_name_fn(Box::new(|id| {
                             self.indexes.get(&Ids::Block(id)).cloned()
                         }))
-                )
-            }
-            Operand::Invoke(Invoke {
-                tys,
-                args,
-                param_attrs,
-                ret_attrs,
-                func_attrs,
-                blocks,
-            }) => {
-                write!(
-                    self.fmt,
-                    "{}invoke {}{} {}({}) {}to label %{:?} unwind label %{:?}",
-                    if tys[0].is_void() {
-                        "".to_string()
-                    } else {
-                        format!("%{:?} = ", dest)
-                    },
-                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
-                        "{}{} ",
-                        acc,
-                        attr.to_string(types)
-                    )),
-                    types.to_string(tys[0]),
-                    self.value_to_string(args[0], data, types),
-                    tys[1..]
-                        .iter()
-                        .zip(args[1..].iter())
-                        .zip(param_attrs.iter())
-                        .into_iter()
-                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
-                            format!(
-                                "{}{} {}{}, ",
-                                acc,
-                                types.to_string(ty),
-                                attrs.iter().fold("".to_string(), |acc, attr| {
-                                    format!("{}{} ", acc, attr.to_string(types))
-                                }),
-                                self.value_to_string(arg, data, types),
-                            )
-                        })
-                        .trim_end_matches(", "),
-                    func_attrs
-                        .iter()
-                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
-                    self.indexes[&Ids::Block(blocks[0])],
-                    self.indexes[&Ids::Block(blocks[1])],
-                )
-            }
-            Operand::LandingPad(LandingPad {
-                ty,
-                catches,
-                cleanup,
-            }) => {
-                write!(
-                    self.fmt,
-                    "{}landingpad {}{}{}",
-                    if ty.is_void() {
-                        "".to_string()
-                    } else {
-                        format!("%{:?} = ", dest)
-                    },
-                    types.to_string(*ty),
-                    if *cleanup { " cleanup" } else { "" },
-                    catches.iter().fold("".to_string(), |acc, (ty, arg)| {
-                        format!(
-                            "{} catch {} {}",
-                            acc,
-                            types.to_string(*ty),
-                            self.value_to_string(*arg, data, types),
-                        )
-                    })
                 )
             }
             Operand::Resume(Resume { ty, arg }) => {

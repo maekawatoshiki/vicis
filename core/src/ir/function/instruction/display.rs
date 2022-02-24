@@ -4,8 +4,8 @@ use crate::ir::{
         basic_block::BasicBlockId,
         data::Data,
         instruction::{
-            Alloca, Call, Cast, ExtractValue, GetElementPtr, ICmp, InsertValue, IntBinary, Load,
-            Operand, Phi, Store,
+            Alloca, Call, Cast, ExtractValue, GetElementPtr, ICmp, InsertValue, IntBinary, Invoke,
+            LandingPad, Load, Operand, Phi, Store,
         },
     },
     module::name::Name,
@@ -286,6 +286,78 @@ impl fmt::Display for DisplayInstruction<'_> {
                     func_attrs
                         .iter()
                         .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr))
+                )
+            }
+            Operand::Invoke(Invoke {
+                tys,
+                args,
+                param_attrs,
+                ret_attrs,
+                func_attrs,
+                blocks,
+            }) => {
+                write!(
+                    f,
+                    "{}invoke {}{} {}({}) {}to label %{:?} unwind label %{:?}",
+                    if tys[0].is_void() {
+                        "".to_string()
+                    } else {
+                        format!("%{dest:?} = ")
+                    },
+                    ret_attrs.iter().fold("".to_string(), |acc, attr| format!(
+                        "{}{} ",
+                        acc,
+                        attr.to_string(self.types)
+                    )),
+                    self.types.to_string(tys[0]),
+                    value_string(self, args[0]),
+                    tys[1..]
+                        .iter()
+                        .zip(args[1..].iter())
+                        .zip(param_attrs.iter())
+                        .into_iter()
+                        .fold("".to_string(), |acc, ((&ty, &arg), attrs)| {
+                            format!(
+                                "{}{} {}{}, ",
+                                acc,
+                                self.types.to_string(ty),
+                                attrs.iter().fold("".to_string(), |acc, attr| {
+                                    format!("{}{} ", acc, attr.to_string(self.types))
+                                }),
+                                value_string(self, arg),
+                            )
+                        })
+                        .trim_end_matches(", "),
+                    func_attrs
+                        .iter()
+                        .fold("".to_string(), |acc, attr| format!("{}{:?} ", acc, attr)),
+                    block_name(self, blocks[0]),
+                    block_name(self, blocks[1]),
+                )
+            }
+            Operand::LandingPad(LandingPad {
+                ty,
+                catches,
+                cleanup,
+            }) => {
+                write!(
+                    f,
+                    "{}landingpad {}{}{}",
+                    if ty.is_void() {
+                        "".to_string()
+                    } else {
+                        format!("%{:?} = ", dest)
+                    },
+                    self.types.to_string(*ty),
+                    if *cleanup { " cleanup" } else { "" },
+                    catches.iter().fold("".to_string(), |acc, (ty, arg)| {
+                        format!(
+                            "{} catch {} {}",
+                            acc,
+                            self.types.to_string(*ty),
+                            value_string(self, *arg),
+                        )
+                    })
                 )
             }
             _ => todo!(),
