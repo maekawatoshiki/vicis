@@ -1,3 +1,5 @@
+use std::os::raw::c_char;
+
 use vicis_core::ir::module::Module;
 use vicis_interpreter::{generic_value::GenericValue, interpreter};
 
@@ -457,7 +459,7 @@ fn exec_cstr() {
   }
   "#;
     let rc = run_libc(asm, "f", vec![]);
-    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut c_char) }
         .to_str()
         .unwrap();
     assert_eq!(str_, "test");
@@ -502,7 +504,7 @@ fn exec_fprintf() {
   declare i32 @unlink(i8*)
   "#;
     let rc = run_libc(asm, "f", vec![]);
-    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut c_char) }
         .to_str()
         .unwrap();
     assert_eq!(str_, "11 22 33 44");
@@ -539,7 +541,7 @@ fn exec_sprintf() {
       declare i32 @sprintf(i8*, i8*, ...)
       "#;
     let rc = run_libc(asm, "f", vec![]);
-    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut c_char) }
         .to_str()
         .unwrap();
     assert_eq!(str_, "12 34 56 78");
@@ -558,7 +560,7 @@ fn exec_array_load_store() {
       }
       "#;
     let rc = run_libc(asm, "f", vec![]);
-    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut i8) }
+    let str_ = unsafe { std::ffi::CStr::from_ptr(rc.to_ptr().unwrap() as *mut c_char) }
         .to_str()
         .unwrap();
     assert_eq!(str_, "vww");

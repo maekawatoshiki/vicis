@@ -236,6 +236,8 @@ define dso_local i32 @main() #0 {
 
         let mut flag_builder = settings::builder();
         flag_builder.enable("is_pic").unwrap();
+        #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+        let isa_builder = isa::lookup_by_name("aarch64-unknown-unknown-elf").unwrap();
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         let isa_builder = isa::lookup_by_name("x86_64-unknown-unknown-elf").unwrap();
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -267,7 +269,7 @@ define dso_local i32 @main() #0 {
         clif_ctx.func
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     #[test]
     fn compile_ret_42() {
         use cranelift_jit::{JITBuilder, JITModule};
@@ -298,7 +300,7 @@ define dso_local i32 @main() {
         assert_eq!(code_fn(), 42);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     #[test]
     fn compile_add() {
         use cranelift_jit::{JITBuilder, JITModule};

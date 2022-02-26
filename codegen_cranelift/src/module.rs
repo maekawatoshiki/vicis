@@ -57,6 +57,8 @@ mod test {
 
         let mut flag_builder = settings::builder();
         flag_builder.enable("is_pic").unwrap();
+        #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+        let isa_builder = isa::lookup_by_name("aarch64-unknown-unknown-elf").unwrap();
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         let isa_builder = isa::lookup_by_name("x86_64-unknown-unknown-elf").unwrap();
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
