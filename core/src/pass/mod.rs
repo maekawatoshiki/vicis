@@ -92,6 +92,9 @@ impl PassManager<Function> {
 
     pub fn run_on_module(&mut self, module: &mut Module) {
         for (_, func) in &mut module.functions {
+            if func.is_prototype() {
+                continue;
+            }
             self.run_on(func)
         }
     }
