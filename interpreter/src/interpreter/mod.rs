@@ -470,10 +470,12 @@ impl<'a> ContextBuilder<'a> {
         for (name, gv) in ctx.module.global_variables() {
             let sz = ctx.module.types.size_of(gv.ty);
             let align = if gv.align > 0 { gv.align } else { 8 } as usize;
+            let special = matches!(name, Name::Name(ref n) if n == "__dso_handle"); // TODO: Better find another way to treat this.
             if matches!(
                 gv.linkage,
                 Some(Linkage::External) | Some(Linkage::ExternalWeak)
-            ) {
+            ) && !special
+            {
                 let p = *ctx
                     .lookup::<*mut u8>(name.as_string().as_str())
                     .expect("external not found");
