@@ -127,6 +127,10 @@ impl Types {
         self.base().is_pointer(ty)
     }
 
+    pub fn is_array(&self, ty: Type) -> bool {
+        self.base().is_array(ty)
+    }
+
     pub fn is_struct(&self, ty: Type) -> bool {
         self.base().is_struct(ty)
     }
@@ -170,6 +174,10 @@ impl TypesBase {
 
     pub fn is_pointer(&self, ty: Type) -> bool {
         matches!(self.get(ty), Some(CompoundType::Pointer(_)))
+    }
+
+    pub fn is_array(&self, ty: Type) -> bool {
+        matches!(self.get(ty), Some(CompoundType::Array(_)))
     }
 
     pub fn new_type(&mut self, ty: CompoundType) -> Type {
@@ -408,6 +416,10 @@ impl Type {
 
     pub fn is_pointer(&self, types: &Types) -> bool {
         types.is_pointer(*self)
+    }
+
+    pub fn is_array(&self, types: &Types) -> bool {
+        types.is_array(*self)
     }
 
     pub fn is_struct(&self, types: &Types) -> bool {
