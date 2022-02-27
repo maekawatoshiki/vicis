@@ -636,9 +636,9 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
                 // If `arg` is (an id for) an external function, get its address.
                 if let Some(id) = arg.to_id::<FunctionId>() {
                     let f = &ctx.module.functions()[*id];
-                    let sym: *const u8 = *ctx
-                        .lookup(f.name().as_str()) // TODO: Cache this.
-                        .expect("getting the address of interpreter (not external) function is not supported");
+                    let sym = ctx
+                        .lookup::<*const u8>(&f.name)
+                        .map_or(dummy_func as *const u8, |s| *s);
                     tmps.push(sym);
                     args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
                     new_args.push(&mut *tmps.last_mut().unwrap() as *mut _ as *mut c_void);
@@ -694,4 +694,8 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
     log::debug!("external exit: {}", func.name);
 
     ret
+}
+
+extern "C" fn dummy_func() {
+    log::info!("dummy_func: passing pointers of interpreter functions to external functions is not suppported.");
 }

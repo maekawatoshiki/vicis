@@ -35,19 +35,22 @@ impl<'a> StackFrame<'a> {
     pub fn get_val(&self, id: ValueId) -> Option<GenericValue> {
         match self.func.data.value_ref(id) {
             Value::Instruction(id) => self.get_inst_val(*id),
-            Value::Constant(ConstantValue::Int(ConstantInt::Int1(i))) => {
-                Some(GenericValue::Int1(*i))
+            Value::Argument(a) => self.args.get(a.nth).copied(),
+            Value::Constant(konst) => self.get_val_from_const(konst),
+            _ => None,
+        }
+    }
+
+    fn get_val_from_const(&self, konst: &ConstantValue) -> Option<GenericValue> {
+        match konst {
+            ConstantValue::Null(ty) if ty.is_pointer(&self.ctx.module.types) => {
+                return Some(GenericValue::Ptr(0 as *mut _));
             }
-            Value::Constant(ConstantValue::Int(ConstantInt::Int8(i))) => {
-                Some(GenericValue::Int8(*i))
-            }
-            Value::Constant(ConstantValue::Int(ConstantInt::Int32(i))) => {
-                Some(GenericValue::Int32(*i))
-            }
-            Value::Constant(ConstantValue::Int(ConstantInt::Int64(i))) => {
-                Some(GenericValue::Int64(*i))
-            }
-            Value::Constant(ConstantValue::GlobalRef(name, _)) => {
+            ConstantValue::Int(ConstantInt::Int1(i)) => Some(GenericValue::Int1(*i)),
+            ConstantValue::Int(ConstantInt::Int8(i)) => Some(GenericValue::Int8(*i)),
+            ConstantValue::Int(ConstantInt::Int32(i)) => Some(GenericValue::Int32(*i)),
+            ConstantValue::Int(ConstantInt::Int64(i)) => Some(GenericValue::Int64(*i)),
+            ConstantValue::GlobalRef(name, _) => {
                 if let Some(f) = self
                     .ctx
                     .module
@@ -55,39 +58,35 @@ impl<'a> StackFrame<'a> {
                 {
                     return Some(GenericValue::id(f));
                 }
-                if let Some(g) = self.ctx.globals.get(name) {
-                    return Some(*g);
-                }
-                None
+                self.ctx.globals.get(name).copied()
             }
-            Value::Argument(a) => self.args.get(a.nth).copied(),
-            Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr { args, .. })) => {
-                match args[0] {
-                    ConstantValue::GlobalRef(ref name, _) => {
-                        let n = match args[2] {
-                            ConstantValue::Int(ConstantInt::Int32(n)) => n as i64,
-                            ConstantValue::Int(ConstantInt::Int64(n)) => n,
-                            _ => todo!(),
-                        };
-                        match self.ctx.globals.get(name).copied() {
-                            Some(GenericValue::Ptr(v)) => {
-                                let types = &self.ctx.module.types;
-                                let ty = types
-                                    .get_element(
-                                        self.ctx.module.global_variables().get(name).unwrap().ty,
-                                    )
-                                    .unwrap();
+            ConstantValue::Expr(ConstantExpr::GetElementPtr { args, tys, .. }) => match args[0] {
+                ConstantValue::GlobalRef(ref name, _) => {
+                    assert!(matches!(args[1], ConstantValue::Int(i) if i.is_zero()));
+                    let n = match args[2] {
+                        ConstantValue::Int(i) => i.cast_to_i64(),
+                        _ => todo!(),
+                    };
+                    match self.ctx.globals.get(name).copied()? {
+                        GenericValue::Ptr(v) => {
+                            let types = &self.ctx.module.types;
+                            if tys[0].is_struct(&self.ctx.module.types) {
+                                assert!(n == 0); // TODO
+                                Some(GenericValue::Ptr(v))
+                            } else {
+                                // Array
+                                let ty = types.get_element(tys[0]).unwrap();
                                 let sz = types.size_of(ty) as i64;
                                 Some(GenericValue::Ptr(((v as i64) + n * sz) as *mut u8))
                             }
-                            Some(a) => Some(a),
-                            None => None,
                         }
+                        x => Some(x),
                     }
-                    _ => todo!(),
                 }
-            }
-            _ => None,
+                _ => todo!(),
+            },
+            ConstantValue::Expr(ConstantExpr::Bitcast { arg, .. }) => self.get_val_from_const(arg),
+            _ => todo!(),
         }
     }
 }

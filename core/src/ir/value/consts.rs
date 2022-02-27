@@ -115,6 +115,15 @@ impl ConstantInt {
             Self::Int64(i) => i as i64,
         }
     }
+
+    pub fn is_zero(&self) -> bool {
+        match self {
+            Self::Int1(i) => *i == false,
+            Self::Int8(i) => *i == 0,
+            Self::Int32(i) => *i == 0,
+            Self::Int64(i) => *i == 0,
+        }
+    }
 }
 
 impl ConstantArray {
