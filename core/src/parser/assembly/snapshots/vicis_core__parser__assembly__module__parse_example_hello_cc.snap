@@ -24,9 +24,10 @@ target triple = "x86_64-pc-linux-gnu"
 %"class.std::ios_base::Init" = type { i8 }
 %"struct.std::ios_base::_Words" = type { i8*, i64 }
 %"class.std::basic_ostream" = type { i32 (...)**, %"class.std::basic_ios" }
-@.str = private unnamed_addr constant [6 x i8] c"hello\00", align 1
 @_ZStL8__ioinit = internal global %"class.std::ios_base::Init" zeroinitializer, align 1
+@.str = private unnamed_addr constant [6 x i8] c"hello\00", align 1
 @_ZSt4cout = external dso_local global %"class.std::basic_ostream" , align 8
+@llvm.global_ctors = appending global [1 x { i32, void ()*, i8* }] [{ i32, void ()*, i8* } { i32 65535, void ()* @_GLOBAL__sub_I_hello.cc, i8* null }]
 
 define internal dso_preemptable default void @__cxx_global_var_init() #0 section ".text.startup" {
 0:

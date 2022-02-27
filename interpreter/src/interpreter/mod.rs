@@ -18,7 +18,7 @@ use vicis_core::ir::{
     },
     module::{linkage::Linkage, name::Name, Module},
     types::{self, ArrayType, CompoundType, StructType, Type, Types},
-    value::{ConstantArray, ConstantValue, ValueId},
+    value::{ConstantArray, ConstantStruct, ConstantValue, ValueId},
 };
 
 /// An execution context for interpreters.
@@ -465,6 +465,8 @@ impl<'a> ContextBuilder<'a> {
             libs: self.libs,
         };
 
+        let mut ctor = None;
+
         for (name, gv) in ctx.module.global_variables() {
             let sz = ctx.module.types.size_of(gv.ty);
             let align = if gv.align > 0 { gv.align } else { 8 } as usize;
@@ -491,6 +493,31 @@ impl<'a> ContextBuilder<'a> {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
+                    // Handle 'llvm.global_ctors'
+                    ConstantValue::Array(ConstantArray {
+                        is_string: false,
+                        elems,
+                        ..
+                    }) if matches!(gv.name, Name::Name(ref name) if name == "llvm.global_ctors") => {
+                        {
+                            assert!(gv.ty.is_array(&ctx.module.types));
+                            let strukt = ctx.module.types.get_element(gv.ty).unwrap();
+                            let t0 = ctx.module.types.base().element_at(strukt, 0).unwrap();
+                            let t1 = ctx.module.types.base().element_at(strukt, 1).unwrap();
+                            let t2 = ctx.module.types.base().element_at(strukt, 2).unwrap();
+                            assert!(t0.is_i32()); // i32
+                            assert!(t1.is_pointer(&ctx.module.types)); // void ()*
+                            assert!(t2.is_pointer(&ctx.module.types)); // i8*
+                            assert!(elems.len() == 1);
+                        }
+                        if let ConstantValue::Struct(ConstantStruct { elems, .. }) = &elems[0] {
+                            if let ConstantValue::GlobalRef(name, _) = &elems[1] {
+                                ctor = ctx.module.find_function_by_name(name.as_string());
+                            }
+                        } else {
+                            todo!()
+                        }
+                    }
                     ConstantValue::Array(ConstantArray {
                         is_string: false,
                         elems,
@@ -507,6 +534,10 @@ impl<'a> ContextBuilder<'a> {
                 }
             }
             ctx.globals.insert(name.clone(), GenericValue::Ptr(ptr));
+        }
+
+        if let Some(ctor) = ctor {
+            run_function(&ctx, ctor, vec![]);
         }
 
         ctx
