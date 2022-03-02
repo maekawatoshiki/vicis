@@ -478,6 +478,71 @@ fn exec_sprintf() {
 }
 
 #[test]
+fn exec_gep() {
+    let asm = r#"
+%struct.type = type { i8, %struct.type2, i32 }
+%struct.type2 = type { i32, i64, [3 x i8] }
+
+@.str = private unnamed_addr constant [18 x i8] c"%d %d %lld %s %d\0A\00", align 1
+@buf = common global [128 x i8] zeroinitializer, align 1
+
+define dso_local i8* @f() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca %struct.type, align 8
+  store i32 0, i32* %1, align 4
+  %3 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 0
+  store i8 65, i8* %3, align 8
+  %4 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %5 = getelementptr inbounds %struct.type2, %struct.type2* %4, i32 0, i32 0
+  store i32 123, i32* %5, align 8
+  %6 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %7 = getelementptr inbounds %struct.type2, %struct.type2* %6, i32 0, i32 1
+  store i64 12345678900, i64* %7, align 8
+  %8 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %9 = getelementptr inbounds %struct.type2, %struct.type2* %8, i32 0, i32 2
+  %10 = getelementptr inbounds [3 x i8], [3 x i8]* %9, i64 0, i64 0
+  store i8 104, i8* %10, align 8
+  %11 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %12 = getelementptr inbounds %struct.type2, %struct.type2* %11, i32 0, i32 2
+  %13 = getelementptr inbounds [3 x i8], [3 x i8]* %12, i64 0, i64 1
+  store i8 105, i8* %13, align 1
+  %14 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %15 = getelementptr inbounds %struct.type2, %struct.type2* %14, i32 0, i32 2
+  %16 = getelementptr inbounds [3 x i8], [3 x i8]* %15, i64 0, i64 2
+  store i8 0, i8* %16, align 2
+  %17 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 2
+  store i32 456, i32* %17, align 8
+  %18 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 0
+  %19 = load i8, i8* %18, align 8
+  %20 = sext i8 %19 to i32
+  %21 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %22 = getelementptr inbounds %struct.type2, %struct.type2* %21, i32 0, i32 0
+  %23 = load i32, i32* %22, align 8
+  %24 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %25 = getelementptr inbounds %struct.type2, %struct.type2* %24, i32 0, i32 1
+  %26 = load i64, i64* %25, align 8
+  %27 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 1
+  %28 = getelementptr inbounds %struct.type2, %struct.type2* %27, i32 0, i32 2
+  %29 = getelementptr inbounds [3 x i8], [3 x i8]* %28, i64 0, i64 0
+  %30 = getelementptr inbounds %struct.type, %struct.type* %2, i32 0, i32 2
+  %31 = load i32, i32* %30, align 8
+  %32 = call i32 (i8*, i8*, ...) @sprintf(
+      i8* getelementptr inbounds ([128 x i8], [128 x i8]* @buf, i64 0, i64 0),
+      i8* getelementptr inbounds ([18 x i8], [18 x i8]* @.str, i64 0, i64 0),
+      i32 %20, i32 %23, i64 %26, i8* %29, i32 %31)
+  ret i8* getelementptr inbounds ([128 x i8], [128 x i8]* @buf, i64 0, i64 0)
+}
+
+declare i32 @sprintf(i8*, i8*, ...)
+      "#;
+    let v = run_libc(asm, "f", vec![]);
+    let str_ = unsafe { std::ffi::CStr::from_ptr(v.to_ptr().unwrap() as *mut c_char) }
+        .to_str()
+        .unwrap();
+    assert_eq!(str_, "65 123 12345678900 hi 456\n");
+}
+
+#[test]
 fn exec_array_load_store() {
     let asm = r#"
       @buf = common global [26 x i8] zeroinitializer, align 1

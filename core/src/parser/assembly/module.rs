@@ -156,6 +156,7 @@ generate_test!(parse_example_br, "br.ll");
 generate_test!(parse_example_call, "call.ll");
 generate_test!(parse_example_cast, "cast.ll");
 generate_test!(parse_example_cgep, "cgep.ll");
+generate_test!(parse_example_cgep2, "cgep2.ll");
 generate_test!(parse_example_dce, "dce.ll");
 generate_test!(parse_example_gblvar, "gblvar.ll");
 generate_test!(parse_example_icmp, "icmp.ll");
