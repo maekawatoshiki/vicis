@@ -17,7 +17,7 @@ use vicis_core::ir::{
         Function, FunctionId,
     },
     module::{linkage::Linkage, name::Name, Module},
-    types::{self, ArrayType, CompoundType, StructType, Type, Types},
+    types::{self, Type, Types},
     value::{ConstantArray, ConstantStruct, ConstantValue, ValueId},
 };
 
@@ -142,7 +142,13 @@ fn run_alloca(
     align: u32,
 ) {
     let alloc_ty = tys[0];
-    let alloc_sz = frame.func.types.size_of(alloc_ty) * num_elements.as_int().cast_to_usize();
+    let alloc_sz = frame
+        .ctx
+        .module
+        .target()
+        .datalayout
+        .get_size_of(&frame.func.types, alloc_ty)
+        * num_elements.as_int().cast_to_usize();
     let alloc_align = if align > 0 { align } else { 8 } as usize;
     let ptr = unsafe {
         alloc::alloc_zeroed(
@@ -265,21 +271,33 @@ fn run_gep(frame: &mut StackFrame, id: InstructionId, tys: &[Type], args: &[Valu
     let arg = frame.get_val(args[0]).unwrap().to_ptr().unwrap();
     let mut total = 0;
     let mut cur_ty = tys[1];
+    let dl = &frame.ctx.module.target().datalayout;
     for &idx in &args[1..] {
+        let idx = match frame.get_val(idx).unwrap() {
+            GenericValue::Int32(idx) => idx as isize,
+            GenericValue::Int64(idx) => idx as isize,
+            _ => panic!(),
+        };
         if cur_ty.is_struct(&frame.func.types) {
-            todo!()
+            let sl = dl
+                .new_struct_layout_for(&frame.func.types, cur_ty)
+                .expect("cur_ty must be struct");
+            let offset = sl.get_elem_offset(idx as usize).unwrap() as isize;
+            let inner = frame
+                .func
+                .types
+                .base()
+                .element_at(cur_ty, idx as usize)
+                .unwrap();
+            total += offset;
+            cur_ty = inner;
         } else {
             let inner = frame.func.types.get_element(cur_ty).unwrap();
-            let idx = match frame.get_val(idx).unwrap() {
-                GenericValue::Int32(idx) => idx as usize,
-                GenericValue::Int64(idx) => idx as usize,
-                _ => panic!(),
-            };
-            total += frame.func.types.size_of(inner) as usize * idx;
+            total += dl.get_size_of(&frame.func.types, inner) as isize * idx;
             cur_ty = inner;
         }
     }
-    frame.set_inst_val(id, GenericValue::Ptr(unsafe { arg.add(total) }));
+    frame.set_inst_val(id, GenericValue::Ptr(unsafe { arg.offset(total) }));
 }
 
 fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[ValueId]) {
@@ -466,9 +484,10 @@ impl<'a> ContextBuilder<'a> {
         };
 
         let mut ctor = None;
+        let dl = &ctx.module.target().datalayout;
 
         for (name, gv) in ctx.module.global_variables() {
-            let sz = ctx.module.types.size_of(gv.ty);
+            let sz = dl.get_size_of(&ctx.module.types, gv.ty);
             let align = if gv.align > 0 { gv.align } else { 8 } as usize;
             let special = matches!(name, Name::Name(ref n) if n == "__dso_handle"); // TODO: Better find another way to treat this.
             if matches!(
@@ -551,53 +570,6 @@ impl<'a> Context<'a> {
         self.libs
             .iter()
             .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
-    }
-}
-
-trait TypeSize {
-    fn size_of(&self, ty: Type) -> usize;
-}
-
-impl TypeSize for Types {
-    // Returns the size of the type in byte
-    fn size_of(&self, ty: Type) -> usize {
-        fn align(n: usize, m: usize) -> usize {
-            let rem = n % m;
-            if rem == 0 {
-                n
-            } else {
-                n - rem + m
-            }
-        }
-
-        match self.get(ty) {
-            Some(ty) => match &*ty {
-                CompoundType::Array(ArrayType {
-                    inner,
-                    num_elements,
-                }) => self.size_of(*inner) * *num_elements as usize,
-                CompoundType::Pointer(_) => 8,
-                CompoundType::Struct(StructType {
-                    elems, is_packed, ..
-                }) => {
-                    if *is_packed {
-                        elems.iter().map(|&e| self.size_of(e)).sum()
-                    } else {
-                        align(elems.iter().map(|&e| self.size_of(e)).sum(), 8)
-                    }
-                }
-                _ => todo!(),
-            },
-            None => match ty {
-                types::VOID => return 0,
-                types::I1 => return 1,
-                types::I8 => return 1,
-                types::I16 => return 2,
-                types::I32 => return 4,
-                types::I64 => return 8,
-                a => todo!("sizeof {:?}", a),
-            },
-        }
     }
 }
 

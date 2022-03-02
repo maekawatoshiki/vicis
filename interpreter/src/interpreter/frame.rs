@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use super::Context;
-use crate::{generic_value::GenericValue, interpreter::TypeSize};
+use crate::generic_value::GenericValue;
 use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
     value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
@@ -76,7 +76,8 @@ impl<'a> StackFrame<'a> {
                             } else {
                                 // Array
                                 let ty = types.get_element(tys[0]).unwrap();
-                                let sz = types.size_of(ty) as i64;
+                                let sz = self.ctx.module.target().datalayout.get_size_of(types, ty)
+                                    as i64;
                                 Some(GenericValue::Ptr(((v as i64) + n * sz) as *mut u8))
                             }
                         }
