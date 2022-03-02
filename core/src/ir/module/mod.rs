@@ -1,4 +1,5 @@
 pub mod attributes;
+pub mod data_layout;
 pub mod global_variable;
 pub mod linkage;
 pub mod metadata;
