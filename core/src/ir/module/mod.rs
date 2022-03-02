@@ -13,6 +13,7 @@ use super::{
     types::{Type, Types},
 };
 use attributes::Attribute;
+use data_layout::DataLayout;
 use global_variable::GlobalVariable;
 use id_arena::{Arena, Id};
 use metadata::Metadata;
@@ -23,7 +24,7 @@ use std::fmt;
 #[derive(Debug, Clone, Default)]
 pub struct Target {
     pub triple: String,
-    pub datalayout: String,
+    pub datalayout: DataLayout,
 }
 
 pub struct Module {
@@ -142,7 +143,11 @@ impl<'a> TryFrom<&'a str> for Module {
 impl fmt::Debug for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
-        writeln!(f, "target datalayout = \"{}\"", self.target.datalayout)?;
+        writeln!(
+            f,
+            "target datalayout = \"{}\"",
+            self.target.datalayout.as_str()
+        )?;
         writeln!(f, "target triple = \"{}\"", self.target.triple)?;
         writeln!(f)?;
         write!(f, "{:?}", self.types)?;
