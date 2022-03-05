@@ -1,8 +1,6 @@
+use super::util::{spaces, string_literal};
 use crate::ir::function::param_attrs::ParameterAttribute;
-use crate::ir::{
-    types,
-    util::{spaces, string_literal},
-};
+use crate::ir::types;
 use nom::{
     branch::alt,
     bytes::complete::tag,

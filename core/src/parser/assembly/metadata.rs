@@ -1,9 +1,7 @@
+use super::util::{spaces, string_literal};
 use super::value::parse_constant_int;
 use crate::ir::module::{metadata::Metadata, name::Name};
-use crate::ir::{
-    types,
-    util::{spaces, string_literal},
-};
+use crate::ir::types;
 use nom::{
     self,
     branch::alt,

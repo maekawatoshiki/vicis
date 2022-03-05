@@ -3,7 +3,6 @@ use crate::{
         module::{global_variable::GlobalVariable, linkage::Linkage},
         types,
         types::Types,
-        util::spaces,
         value,
     },
     parser::assembly::{preemption_specifier, visibility},
@@ -17,6 +16,8 @@ use nom::{
     sequence::preceded,
     IResult,
 };
+
+use super::util::spaces;
 
 // @<GlobalVarName> = [Linkage] [PreemptionSpecifier] [Visibility]
 //                    [DLLStorageClass] [ThreadLocal]

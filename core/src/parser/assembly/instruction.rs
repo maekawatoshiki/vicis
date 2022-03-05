@@ -2,6 +2,7 @@ use super::attributes::parse_attributes;
 use super::function::ParserContext;
 use super::name::identifier;
 use super::param_attrs::parse_param_attrs;
+use super::util::{spaces, string_literal};
 use crate::ir::function::instruction::{
     Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId,
     IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store, Switch,
@@ -13,10 +14,10 @@ use crate::ir::{
         param_attrs::ParameterAttribute,
     },
     module::metadata::Metadata,
+    types,
     types::I32,
-    util::string_literal,
+    value,
 };
-use crate::ir::{types, util::spaces, value};
 use nom::{
     branch::alt,
     bytes::complete::tag,

@@ -1,8 +1,10 @@
-use super::Error;
+use super::{
+    util::{spaces, string_literal},
+    Error,
+};
 use crate::ir::{
     module::{attributes::Attribute, Module},
     types,
-    util::{spaces, string_literal},
 };
 use nom::{
     bytes::complete::tag,

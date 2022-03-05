@@ -1,4 +1,8 @@
-use super::{param_attrs::parse_param_attrs, Error};
+use super::{
+    param_attrs::parse_param_attrs,
+    util::{spaces, string_literal},
+    Error,
+};
 use crate::ir::{
     function::{
         basic_block::BasicBlockId,
@@ -9,7 +13,6 @@ use crate::ir::{
     },
     module::{linkage, name, preemption_specifier, visibility},
     types::Types,
-    util::{spaces, string_literal},
     value::{ArgumentValue, Value, ValueId},
 };
 use nom::{

@@ -1,9 +1,10 @@
 use crate::ir::module::name::Name;
-use crate::ir::util::{spaces, string_literal};
 use nom::{
     branch::alt, bytes::complete::take_while1, character::complete::digit1, combinator::map,
     error::VerboseError, sequence::preceded, IResult,
 };
+
+use super::util::{spaces, string_literal};
 
 pub fn parse(source: &str) -> IResult<&str, Name, VerboseError<&str>> {
     preceded(

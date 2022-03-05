@@ -10,6 +10,7 @@ pub mod param_attrs;
 pub mod preemption_specifier;
 pub mod types;
 pub mod unnamed_addr;
+pub mod util;
 pub mod value;
 pub mod visibility;
 

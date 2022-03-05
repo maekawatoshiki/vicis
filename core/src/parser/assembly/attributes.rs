@@ -1,5 +1,4 @@
 use crate::ir::module::attributes::Attribute;
-use crate::ir::util::{spaces, string_literal};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -10,6 +9,8 @@ use nom::{
     sequence::{preceded, tuple},
     IResult,
 };
+
+use super::util::{spaces, string_literal};
 
 pub fn parse_attribute(source: &str) -> IResult<&str, Attribute, VerboseError<&str>> {
     alt((

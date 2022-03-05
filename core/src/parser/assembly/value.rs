@@ -1,7 +1,9 @@
-use super::function::ParserContext;
+use super::{
+    function::ParserContext,
+    util::{spaces, string_literal},
+};
 use crate::ir::{
     types::{Type, Types, I1, I32, I64, I8},
-    util::{spaces, string_literal},
     value::{
         ConstantArray, ConstantExpr, ConstantInt, ConstantStruct, ConstantValue, Value, ValueId,
     },

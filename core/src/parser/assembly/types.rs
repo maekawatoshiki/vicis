@@ -1,5 +1,4 @@
 use crate::ir::types::{ArrayType, FunctionType, Type, Types, I1, I16, I32, I64, I8, VOID};
-use crate::ir::util::spaces;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -9,6 +8,8 @@ use nom::{
     sequence::preceded,
     IResult,
 };
+
+use super::util::spaces;
 
 pub fn parse<'a: 'b, 'b>(
     types: &'b Types,
