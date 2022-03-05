@@ -12,7 +12,7 @@ use vicis_core::ir::{
         basic_block::BasicBlockId,
         instruction::{
             Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, InstructionId,
-            IntBinary, Load, Opcode, Operand, Phi, Ret, Store,
+            IntBinary, Invoke, Load, Opcode, Operand, Phi, Ret, Store,
         },
         Function, FunctionId,
     },
@@ -93,6 +93,15 @@ pub fn run_function(
                     args,
                 }) => run_gep(&mut frame, inst_id, tys, args),
                 Operand::Call(Call { tys, args, .. }) => run_call(&mut frame, inst_id, tys, args),
+                Operand::Invoke(Invoke {
+                    tys, args, blocks, ..
+                }) => {
+                    run_call(&mut frame, inst_id, tys, args);
+                    // TODO: Add support for exception label.
+                    last_block = block;
+                    block = blocks[0];
+                    continue 'main;
+                }
                 Operand::CondBr(CondBr { arg, blocks }) => {
                     let arg = frame.get_val(*arg).unwrap();
                     last_block = block;
