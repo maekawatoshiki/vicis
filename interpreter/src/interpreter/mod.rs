@@ -481,13 +481,7 @@ impl<'a> ContextBuilder<'a> {
         let mut ctx = Context {
             module: self.module,
             globals: self.globals,
-            libs: {
-                let mut libs = vec![];
-                for lib in self.libs {
-                    libs.push(lib?)
-                }
-                libs
-            },
+            libs: self.libs.into_iter().collect::<Result<_, _>>()?,
         };
 
         let mut ctor = None;
