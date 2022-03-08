@@ -19,6 +19,7 @@ rustc-hash = "^1.1.0"
 id-arena = "^2.2.1"
 anyhow = "^1.0.38"
 log = "0.4.14"
+thiserror = "1.0.30"
 
 [target.tarpaulin.dev-dependencies]
 insta = { version = "^1.7.1", features = ["backtrace"] }

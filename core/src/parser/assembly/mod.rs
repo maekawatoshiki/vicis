@@ -15,23 +15,18 @@ pub mod value;
 pub mod visibility;
 
 use nom::error::VerboseError;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum Error<'a> {
+    #[error("Parsing error occurred at {0}")]
     Located(&'a str, &'static str),
+    #[error("Nom error: {0}")]
     Nom(nom::Err<VerboseError<&'a str>>),
 }
 
 impl<'a> From<nom::Err<VerboseError<&'a str>>> for Error<'a> {
     fn from(err: nom::Err<VerboseError<&'a str>>) -> Self {
         Error::Nom(err)
-    }
-}
-
-impl std::error::Error for Error<'_> {}
-
-impl std::fmt::Display for Error<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self)
     }
 }
