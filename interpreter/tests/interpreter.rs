@@ -592,7 +592,7 @@ fn exec_test_phi() {
 #[cfg(test)]
 fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
     let module = Module::try_from(asm).unwrap();
-    let ctx = interpreter::ContextBuilder::new(&module).build();
+    let ctx = interpreter::ContextBuilder::new(&module).build().unwrap();
     let main = module.find_function_by_name("main").unwrap();
     interpreter::run_function(&ctx, main, args).unwrap()
 }
@@ -603,23 +603,17 @@ fn run_libc(asm: &str, fname: &str, args: Vec<GenericValue>) -> GenericValue {
     let mut ctx_builder = interpreter::ContextBuilder::new(&module);
     #[cfg(target_os = "macos")]
     {
-        ctx_builder = ctx_builder
-            .with_lib("libc.dylib")
-            .expect("failed to load libc");
+        ctx_builder = ctx_builder.with_lib("libc.dylib");
     }
     #[cfg(target_os = "linux")]
     {
-        ctx_builder = ctx_builder
-            .with_lib("libc.so.6")
-            .expect("failed to load libc");
+        ctx_builder = ctx_builder.with_lib("libc.so.6");
     }
     #[cfg(target_os = "windows")]
     {
-        ctx_builder = ctx_builder
-            .with_lib("msvcrt.dll")
-            .expect("failed to load msvcrt.dll");
+        ctx_builder = ctx_builder.with_lib("msvcrt.dll");
     }
-    let ctx = ctx_builder.build();
+    let ctx = ctx_builder.build().unwrap();
     let main = module.find_function_by_name(fname).unwrap();
     interpreter::run_function(&ctx, main, args).unwrap()
 }

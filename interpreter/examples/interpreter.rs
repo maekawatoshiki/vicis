@@ -26,8 +26,8 @@ fn main() {
         .expect("failed to lookup 'main'");
     let ctx = interpreter::ContextBuilder::new(&module)
         .with_libs(opt.libs)
-        .expect("failed to load library")
-        .build();
+        .build()
+        .expect("failed to create interpreter context");
     let ret = interpreter::run_function(&ctx, main, vec![]);
     process::exit(ret.expect("unknown error").sext_to_i64().unwrap_or(0) as i32)
 }

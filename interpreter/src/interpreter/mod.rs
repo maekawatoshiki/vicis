@@ -32,7 +32,7 @@ pub struct Context<'a> {
 pub struct ContextBuilder<'a> {
     module: &'a Module,
     globals: FxHashMap<Name, GenericValue>,
-    libs: Vec<libloading::Library>,
+    libs: Vec<Result<libloading::Library, libloading::Error>>,
 }
 
 pub fn run_function(
@@ -465,31 +465,29 @@ impl<'a> ContextBuilder<'a> {
         }
     }
 
-    pub fn with_lib<T: AsRef<ffi::OsStr>>(mut self, lib: T) -> Option<Self> {
-        self.libs
-            .push(unsafe { libloading::Library::new(lib).ok()? });
-        Some(self)
+    pub fn with_lib<T: AsRef<ffi::OsStr>>(mut self, lib: T) -> Self {
+        self.libs.push(unsafe { libloading::Library::new(lib) });
+        self
     }
 
-    pub fn with_lib_file(mut self, lib: &str) -> Option<Self> {
-        self.libs
-            .push(unsafe { libloading::Library::new(libloading::library_filename(lib)).ok()? });
-        Some(self)
-    }
-
-    pub fn with_libs<T: AsRef<ffi::OsStr>>(mut self, libs: Vec<T>) -> Option<Self> {
+    pub fn with_libs<T: AsRef<ffi::OsStr>>(mut self, libs: Vec<T>) -> Self {
         for lib in libs {
-            self.libs
-                .push(unsafe { libloading::Library::new(lib).ok()? });
+            self.libs.push(unsafe { libloading::Library::new(lib) });
         }
-        Some(self)
+        self
     }
 
-    pub fn build(self) -> Context<'a> {
+    pub fn build(self) -> Result<Context<'a>, libloading::Error> {
         let mut ctx = Context {
             module: self.module,
             globals: self.globals,
-            libs: self.libs,
+            libs: {
+                let mut libs = vec![];
+                for lib in self.libs {
+                    libs.push(lib?)
+                }
+                libs
+            },
         };
 
         let mut ctor = None;
@@ -570,7 +568,7 @@ impl<'a> ContextBuilder<'a> {
             run_function(&ctx, ctor, vec![]);
         }
 
-        ctx
+        Ok(ctx)
     }
 }
 
