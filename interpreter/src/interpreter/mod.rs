@@ -18,7 +18,7 @@ use vicis_core::ir::{
     },
     module::{linkage::Linkage, name::Name, Module},
     types::{self, Type, Types},
-    value::{ConstantArray, ConstantStruct, ConstantValue, ValueId},
+    value::{ConstantArray, ConstantInt, ConstantStruct, ConstantValue, ValueId},
 };
 
 /// An execution context for interpreters.
@@ -552,7 +552,10 @@ impl<'a> ContextBuilder<'a> {
                         // Already zeroed.
                         // unsafe { ptr::write_bytes(ptr, 0, sz) };
                     }
-                    e => todo!("{:?}", e),
+                    ConstantValue::Int(ConstantInt::Int32(i)) => unsafe {
+                        *(ptr as *mut i32) = *i;
+                    },
+                    e => todo!("Unsupported global initializer: {:?}", e),
                 }
             }
             ctx.globals.insert(name.clone(), GenericValue::Ptr(ptr));
