@@ -1,0 +1,12 @@
+{
+  "name": "vicis-interpreter",
+  "version": "0.2.0",
+  "files": [
+    "vicis_interpreter_bg.wasm",
+    "vicis_interpreter.js",
+    "vicis_interpreter.d.ts"
+  ],
+  "module": "vicis_interpreter.js",
+  "types": "vicis_interpreter.d.ts",
+  "sideEffects": false
+}

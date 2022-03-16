@@ -1,7 +1,7 @@
 mod frame;
 
-extern crate libffi;
-extern crate libloading;
+// extern crate libffi;
+// extern crate libloading;
 
 use super::generic_value::GenericValue;
 use frame::StackFrame;
@@ -25,14 +25,14 @@ use vicis_core::ir::{
 pub struct Context<'a> {
     pub module: &'a Module,
     globals: FxHashMap<Name, GenericValue>,
-    libs: Vec<libloading::Library>,
+    // libs: Vec<libloading::Library>,
 }
 
 /// A builder for `Context`.
 pub struct ContextBuilder<'a> {
     module: &'a Module,
     globals: FxHashMap<Name, GenericValue>,
-    libs: Vec<Result<libloading::Library, libloading::Error>>,
+    // libs: Vec<Result<libloading::Library, libloading::Error>>,
 }
 
 pub fn run_function(
@@ -461,27 +461,27 @@ impl<'a> ContextBuilder<'a> {
         ContextBuilder {
             module,
             globals: FxHashMap::default(),
-            libs: vec![],
+            // libs: vec![],
         }
     }
 
     pub fn with_lib<T: AsRef<ffi::OsStr>>(mut self, lib: T) -> Self {
-        self.libs.push(unsafe { libloading::Library::new(lib) });
+        // self.libs.push(unsafe { libloading::Library::new(lib) });
         self
     }
 
     pub fn with_libs<T: AsRef<ffi::OsStr>>(mut self, libs: Vec<T>) -> Self {
         for lib in libs {
-            self.libs.push(unsafe { libloading::Library::new(lib) });
+            // self.libs.push(unsafe { libloading::Library::new(lib) });
         }
         self
     }
 
-    pub fn build(self) -> Result<Context<'a>, libloading::Error> {
+    pub fn build(self) -> Result<Context<'a>, ()> {
         let mut ctx = Context {
             module: self.module,
             globals: self.globals,
-            libs: self.libs.into_iter().collect::<Result<_, _>>()?,
+            // libs: self.libs.into_iter().collect::<Result<_, _>>()?,
         };
 
         let mut ctor = None;
@@ -496,10 +496,10 @@ impl<'a> ContextBuilder<'a> {
                 Some(Linkage::External) | Some(Linkage::ExternalWeak)
             ) && !special
             {
-                let p = *ctx
-                    .lookup::<*mut u8>(name.as_string().as_str())
-                    .expect("external not found");
-                ctx.globals.insert(name.clone(), GenericValue::Ptr(p));
+                // let p = *ctx
+                //     .lookup::<*mut u8>(name.as_string().as_str())
+                //     .expect("external not found");
+                // ctx.globals.insert(name.clone(), GenericValue::Ptr(p));
                 continue;
             }
             let ptr = unsafe {
@@ -569,109 +569,110 @@ impl<'a> ContextBuilder<'a> {
     }
 }
 
-impl<'a> Context<'a> {
-    fn lookup<T>(&self, name: &str) -> Option<libloading::Symbol<T>> {
-        self.libs
-            .iter()
-            .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
-    }
-}
+// impl<'a> Context<'a> {
+//     fn lookup<T>(&self, name: &str) -> Option<libloading::Symbol<T>> {
+//         self.libs
+//             .iter()
+//             .find_map(|lib| unsafe { lib.get(name.as_bytes()) }.ok())
+//     }
+// }
 
-fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
-    match ty {
-        types::VOID => unsafe { libffi::low::types::void },
-        types::I32 => unsafe { libffi::low::types::sint32 },
-        types::I64 => unsafe { libffi::low::types::sint64 },
-        ty if ty.is_pointer(types) => unsafe { libffi::low::types::pointer },
-        e => panic!("{:?}", e),
-    }
-}
+// fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
+//     match ty {
+//         types::VOID => unsafe { libffi::low::types::void },
+//         types::I32 => unsafe { libffi::low::types::sint32 },
+//         types::I64 => unsafe { libffi::low::types::sint64 },
+//         ty if ty.is_pointer(types) => unsafe { libffi::low::types::pointer },
+//         e => panic!("{:?}", e),
+//     }
+// }
 
 fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> GenericValue {
-    #[cfg(debug_assertions)]
-    log::debug!("external enter: {}", func.name);
-
-    let mut args_ty = Vec::with_capacity(args.len());
-    let mut new_args = Vec::with_capacity(args.len());
-    let mut tmps = vec![]; // Used to store temporary values for libffi invoke.
-    let mut args: Vec<GenericValue> = args.to_vec();
-
-    for arg in &mut args {
-        match arg {
-            GenericValue::Int32(ref mut i) => {
-                args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
-                new_args.push(i as *mut _ as *mut c_void)
-            }
-            GenericValue::Int64(ref mut i) => {
-                args_ty.push(unsafe { &mut libffi::low::types::sint64 as *mut _ });
-                new_args.push(i as *mut _ as *mut c_void)
-            }
-            GenericValue::Ptr(ref mut p) => {
-                args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
-                new_args.push(&mut *p as *mut _ as *mut c_void);
-            }
-            GenericValue::Id(_) => {
-                // If `arg` is (an id for) an external function, get its address.
-                if let Some(id) = arg.to_id::<FunctionId>() {
-                    let f = &ctx.module.functions()[*id];
-                    let sym = ctx
-                        .lookup::<*const u8>(&f.name)
-                        .map_or(dummy_func as *const u8, |s| *s);
-                    tmps.push(sym);
-                    args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
-                    new_args.push(&mut *tmps.last_mut().unwrap() as *mut _ as *mut c_void);
-                    continue;
-                }
-                todo!();
-                // args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
-                // new_args.push(&mut 0 as *mut _ as *mut c_void);
-            }
-            e => todo!("{:?}", e),
-        }
-    }
-
-    let mut ret_ty = ffitype(func.result_ty, &func.types);
-    let mut cif: libffi::low::ffi_cif = Default::default();
-    let prms_len = func.params.len();
-    let func1 = ctx.lookup::<unsafe extern "C" fn()>(func.name()).unwrap();
-    let func1 = libffi::low::CodePtr(unsafe { func1.into_raw() }.into_raw());
-
-    unsafe {
-        libffi::low::prep_cif_var(
-            &mut cif,
-            libffi::low::ffi_abi_FFI_DEFAULT_ABI,
-            prms_len,
-            args_ty.len(),
-            &mut ret_ty,
-            args_ty.as_mut_ptr(),
-        )
-    }
-    .unwrap();
-
-    let ret = match func.result_ty {
-        types::VOID => {
-            unsafe { libffi::low::call::<c_void>(&mut cif, func1, new_args.as_mut_ptr()) };
-            GenericValue::Void
-        }
-        types::I32 => {
-            let r: i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-            GenericValue::Int32(r)
-        }
-        types::I64 => {
-            let r: i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-            GenericValue::Int64(r)
-        }
-        ty if ty.is_pointer(&func.types) => {
-            let r: *mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
-            GenericValue::Ptr(r)
-        }
-        _ => panic!(),
-    };
-
-    #[cfg(debug_assertions)]
-    log::debug!("external exit: {}", func.name);
-
-    ret
+    todo!()
+    // #[cfg(debug_assertions)]
+    // log::debug!("external enter: {}", func.name);
+    //
+    // let mut args_ty = Vec::with_capacity(args.len());
+    // let mut new_args = Vec::with_capacity(args.len());
+    // let mut tmps = vec![]; // Used to store temporary values for libffi invoke.
+    // let mut args: Vec<GenericValue> = args.to_vec();
+    //
+    // for arg in &mut args {
+    //     match arg {
+    //         GenericValue::Int32(ref mut i) => {
+    //             args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
+    //             new_args.push(i as *mut _ as *mut c_void)
+    //         }
+    //         GenericValue::Int64(ref mut i) => {
+    //             args_ty.push(unsafe { &mut libffi::low::types::sint64 as *mut _ });
+    //             new_args.push(i as *mut _ as *mut c_void)
+    //         }
+    //         GenericValue::Ptr(ref mut p) => {
+    //             args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+    //             new_args.push(&mut *p as *mut _ as *mut c_void);
+    //         }
+    //         GenericValue::Id(_) => {
+    //             // If `arg` is (an id for) an external function, get its address.
+    //             if let Some(id) = arg.to_id::<FunctionId>() {
+    //                 let f = &ctx.module.functions()[*id];
+    //                 let sym = ctx
+    //                     .lookup::<*const u8>(&f.name)
+    //                     .map_or(dummy_func as *const u8, |s| *s);
+    //                 tmps.push(sym);
+    //                 args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+    //                 new_args.push(&mut *tmps.last_mut().unwrap() as *mut _ as *mut c_void);
+    //                 continue;
+    //             }
+    //             todo!();
+    //             // args_ty.push(unsafe { &mut libffi::low::types::pointer as *mut _ });
+    //             // new_args.push(&mut 0 as *mut _ as *mut c_void);
+    //         }
+    //         e => todo!("{:?}", e),
+    //     }
+    // }
+    //
+    // let mut ret_ty = ffitype(func.result_ty, &func.types);
+    // let mut cif: libffi::low::ffi_cif = Default::default();
+    // let prms_len = func.params.len();
+    // let func1 = ctx.lookup::<unsafe extern "C" fn()>(func.name()).unwrap();
+    // let func1 = libffi::low::CodePtr(unsafe { func1.into_raw() }.into_raw());
+    //
+    // unsafe {
+    //     libffi::low::prep_cif_var(
+    //         &mut cif,
+    //         libffi::low::ffi_abi_FFI_DEFAULT_ABI,
+    //         prms_len,
+    //         args_ty.len(),
+    //         &mut ret_ty,
+    //         args_ty.as_mut_ptr(),
+    //     )
+    // }
+    // .unwrap();
+    //
+    // let ret = match func.result_ty {
+    //     types::VOID => {
+    //         unsafe { libffi::low::call::<c_void>(&mut cif, func1, new_args.as_mut_ptr()) };
+    //         GenericValue::Void
+    //     }
+    //     types::I32 => {
+    //         let r: i32 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+    //         GenericValue::Int32(r)
+    //     }
+    //     types::I64 => {
+    //         let r: i64 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+    //         GenericValue::Int64(r)
+    //     }
+    //     ty if ty.is_pointer(&func.types) => {
+    //         let r: *mut u8 = unsafe { libffi::low::call(&mut cif, func1, new_args.as_mut_ptr()) };
+    //         GenericValue::Ptr(r)
+    //     }
+    //     _ => panic!(),
+    // };
+    //
+    // #[cfg(debug_assertions)]
+    // log::debug!("external exit: {}", func.name);
+    //
+    // ret
 }
 
 extern "C" fn dummy_func() {

@@ -7,14 +7,18 @@ edition = "2021"
 
 [dependencies]
 vicis-core = { path = "../core" }
-libffi = { git = "https://github.com/tov/libffi-rs", tag = "libffi-sys-v1.3.2" }
-libloading = "0.7.3"
+# libffi = { git = "https://github.com/tov/libffi-rs", tag = "libffi-sys-v1.3.2" }
+# libloading = "0.7.3"
 rustc-hash = "^1.1.0"
 id-arena = "^2.2.1"
 anyhow = "^1.0.38"
 log = "0.4.14"
+wasm-bindgen = "0.2.79"
 
 [dev-dependencies]
 vicis-interpreter = { path = "../interpreter" }
 structopt = "0.3.18"
 env_logger = "0.9.0"
+
+[lib]
+crate-type = ["cdylib"]

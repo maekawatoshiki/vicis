@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+    <script type="module">
+import init, {greet} from "./pkg/vicis_interpreter.js";
+init().then(() => {
+  greet(document.getElementById("result").value)
+});
+function run() {
+  greet(document.getElementById("result").value)
+}
+    </script>
+  <body>
+    <input type='button' onclick="run()" value="click">
+    <textarea id='result'>
+    </textarea>
+  </body>
+</html>

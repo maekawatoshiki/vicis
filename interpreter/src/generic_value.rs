@@ -8,7 +8,7 @@ pub enum GenericValue {
     Int32(i32),
     Int64(i64),
     Ptr(*mut u8),
-    Id([u8; 16]),
+    Id([u8; 8]),
 }
 
 impl GenericValue {
@@ -51,6 +51,6 @@ impl GenericValue {
     }
 
     pub fn id<T>(id: Id<T>) -> Self {
-        Self::Id(unsafe { ::std::mem::transmute::<Id<T>, [u8; 16]>(id) })
+        Self::Id(unsafe { ::std::mem::transmute::<Id<T>, [u8; 8]>(id) })
     }
 }
