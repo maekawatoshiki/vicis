@@ -5,11 +5,11 @@
   </head>
   <body>
     <script type="module">
-import init, {greet} from "./pkg/vicis_interpreter.js";
+import init, {interpret} from "./pkg/vicis_interpreter.js";
 init();
 window.interpret = () => {
   let asm = document.getElementById("result").value;
-  let result = greet(asm);
+  let result = interpret(asm);
   alert(result);
 };
     </script>

@@ -13,7 +13,7 @@ use wasm_bindgen::prelude::*;
 // }
 
 #[wasm_bindgen]
-pub fn greet(ir: &str) -> String {
+pub fn interpret(ir: &str) -> String {
     let module = Module::try_from(ir).expect("failed to parse LLVM Assembly");
     let main = module
         .find_function_by_name("main")
