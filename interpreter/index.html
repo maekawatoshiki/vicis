@@ -3,18 +3,17 @@
   <head>
     <meta charset="utf-8">
   </head>
+  <body>
     <script type="module">
 import init, {greet} from "./pkg/vicis_interpreter.js";
-init().then(() => {
-  greet(document.getElementById("result").value)
-});
-function run() {
-  greet(document.getElementById("result").value)
-}
+init();
+window.interpret = () => {
+  let asm = document.getElementById("result").value;
+  let result = greet(asm);
+  alert(result);
+};
     </script>
-  <body>
-    <input type='button' onclick="run()" value="click">
-    <textarea id='result'>
-    </textarea>
+    <input type='button' onclick="window.interpret()" value="click">
+    <textarea id='result'></textarea>
   </body>
 </html>
