@@ -2,6 +2,7 @@ use super::util::{spaces, string_literal};
 use super::value::parse_constant_int;
 use crate::ir::module::{metadata::Metadata, name::Name};
 use crate::ir::types;
+use nom::combinator::opt;
 use nom::{
     self,
     branch::alt,
@@ -48,6 +49,8 @@ fn int(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, Verbose
 fn node(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, VerboseError<&str>> + '_ {
     move |source| {
         tuple((
+            spaces,
+            opt(tag("distinct")),
             exclamation,
             spaces,
             char('{'),
@@ -55,7 +58,9 @@ fn node(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, Verbos
             spaces,
             char('}'),
         ))(source)
-        .map(|(i, (_, _, _, list, _, _))| (i, Metadata::Node(list)))
+        .map(|(i, (_, distinct, _, _, _, list, _, _))| {
+            (i, Metadata::Node(list, distinct.is_some()))
+        })
     }
 }
 
@@ -82,7 +87,8 @@ fn test1() {
         !3 = !{}
         !4 = !{i32 2849348}
         !4 = !{i32 2849319}
-        !4 = !{i32 2849383}";
+        !4 = !{i32 2849383}
+        !5 = distinct !{i32 1}";
 
     insta::assert_debug_snapshot!(many1(parse(&Types::new()))(source));
 }

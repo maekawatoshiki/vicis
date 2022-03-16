@@ -1,8 +1,7 @@
 ---
 source: core/src/parser/assembly/metadata.rs
-assertion_line: 89
+assertion_line: 93
 expression: "many1(parse(&Types::new()))(source)"
-
 ---
 Ok(
     (
@@ -55,6 +54,10 @@ Ok(
             (
                 4,
                 !{i32 2849383},
+            ),
+            (
+                5,
+                distinct !{i32 1},
             ),
         ],
     ),

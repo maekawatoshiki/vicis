@@ -6,7 +6,7 @@ pub enum Metadata {
     String(String),
     Name(Name),
     Int(ConstantInt),
-    Node(Vec<Self>),
+    Node(Vec<Self>, bool /* is distinct */),
 }
 
 // struct MetadataNode(Vec<Metadata>);
@@ -30,8 +30,8 @@ impl fmt::Debug for Metadata {
             Self::String(s) => write!(f, "!\"{}\"", s),
             Self::Name(n) => write!(f, "!{}", n),
             Self::Int(i) => fmt_int(i, f),
-            Self::Node(list) => {
-                write!(f, "!{{")?;
+            Self::Node(list, distinct) => {
+                write!(f, "{}!{{", if *distinct { "distinct " } else { "" })?;
                 for (k, m) in list.iter().enumerate() {
                     if k == 0 {
                         write!(f, "{:?}", m)?;
