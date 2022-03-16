@@ -2,18 +2,64 @@
 <html>
   <head>
     <meta charset="utf-8">
+<style>
+#asm {
+  width: 300px;
+  height: 200px;
+}
+</style>
   </head>
   <body>
     <script type="module">
 import init, {interpret} from "./pkg/vicis_interpreter.js";
 init();
 window.interpret = () => {
-  let asm = document.getElementById("result").value;
+  let asm = document.getElementById("asm").value;
   let result = interpret(asm);
-  alert(result);
+  document.getElementById("result").innerHTML += `<div>${result}</div>\n`;
 };
     </script>
+    <div>
+      <textarea id='asm'>
+define dso_local i32 @fibo(i32 %0) {
+  %2 = alloca i32, align 4
+  %3 = alloca i32, align 4
+  store i32 %0, i32* %3, align 4
+  %4 = load i32, i32* %3, align 4
+  %5 = icmp sle i32 %4, 2
+  br i1 %5, label %6, label %7
+
+6:                                      
+  store i32 1, i32* %2, align 4
+  br label %15
+
+7:                                                
+  %8 = load i32, i32* %3, align 4
+  %9 = sub nsw i32 %8, 1
+  %10 = call i32 @fibo(i32 %9)
+  %11 = load i32, i32* %3, align 4
+  %12 = sub nsw i32 %11, 2
+  %13 = call i32 @fibo(i32 %12)
+  %14 = add nsw i32 %10, %13
+  store i32 %14, i32* %2, align 4
+  br label %15
+
+15:                                   
+  %16 = load i32, i32* %2, align 4
+  ret i32 %16
+}
+
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  store i32 0, i32* %1, align 4
+  %2 = call i32 @fibo(i32 10)
+  ret i32 %2
+}
+
+      </textarea>
+    </div>
     <input type='button' onclick="window.interpret()" value="interpret">
-    <textarea id='result'></textarea>
+    <div id='result'>
+    </div>
   </body>
 </html>
