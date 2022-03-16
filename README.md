@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/maekawatoshiki/vicis/branch/master/graph/badge.svg)](https://codecov.io/gh/maekawatoshiki/vicis)
 [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Vicis enables you to manipulate LLVM IR in pure Rust (without LLVM!).
+Manipulate LLVM IR in pure Rust (without LLVM).
 
 Feel free to create issues and pull requests!
 
