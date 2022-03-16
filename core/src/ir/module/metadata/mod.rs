@@ -1,42 +1,47 @@
-use crate::ir::{module::name::Name, value::ConstantInt};
+use crate::ir::{
+    module::name::Name,
+    types::{Typed, Types},
+    value::ConstantValue,
+};
 use std::fmt;
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Metadata {
     String(String),
     Name(Name),
-    Int(ConstantInt),
+    Const(ConstantValue),
     Node(Vec<Self>, bool /* is distinct */),
 }
 
-// struct MetadataNode(Vec<Metadata>);
+impl Metadata {
+    pub fn display<'a>(&'a self, types: &'a Types) -> DisplayMetadata<'a> {
+        DisplayMetadata { meta: self, types }
+    }
+}
 
-// Metadata Node
+pub struct DisplayMetadata<'a> {
+    pub meta: &'a Metadata,
+    pub types: &'a Types,
+}
 
-impl fmt::Debug for Metadata {
+impl fmt::Display for DisplayMetadata<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fn fmt_int(i: &ConstantInt, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            // TODO: Find another simpler way
-            match i {
-                ConstantInt::Int1(_) => write!(f, "i1 "),
-                ConstantInt::Int8(_) => write!(f, "i8 "),
-                ConstantInt::Int32(_) => write!(f, "i32 "),
-                ConstantInt::Int64(_) => write!(f, "i64 "),
-            }?;
-            write!(f, "{}", i)
-        }
-
-        match self {
-            Self::String(s) => write!(f, "!\"{}\"", s),
-            Self::Name(n) => write!(f, "!{}", n),
-            Self::Int(i) => fmt_int(i, f),
-            Self::Node(list, distinct) => {
+        match self.meta {
+            Metadata::String(s) => write!(f, "!\"{}\"", s),
+            Metadata::Name(n) => write!(f, "!{}", n),
+            Metadata::Const(c) => write!(
+                f,
+                "{} {}",
+                self.types.to_string(c.ty()),
+                c.to_string(self.types)
+            ),
+            Metadata::Node(list, distinct) => {
                 write!(f, "{}!{{", if *distinct { "distinct " } else { "" })?;
                 for (k, m) in list.iter().enumerate() {
                     if k == 0 {
-                        write!(f, "{:?}", m)?;
+                        write!(f, "{}", m.display(self.types))?;
                     } else {
-                        write!(f, ", {:?}", m)?;
+                        write!(f, ", {}", m.display(self.types))?;
                     }
                 }
                 write!(f, "}}")

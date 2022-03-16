@@ -189,7 +189,7 @@ impl<'a, 'b: 'a> FunctionAsmPrinter<'a, 'b> {
         )?;
 
         for (kind, meta) in &inst.metadata {
-            write!(self.fmt, ", !{} {:?}", kind, meta)?;
+            write!(self.fmt, ", !{} {}", kind, meta.display(types))?;
         }
 
         Ok(())

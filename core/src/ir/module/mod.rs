@@ -166,7 +166,7 @@ impl fmt::Debug for Module {
             writeln!(f, "}}")?
         }
         for (n, meta) in &self.metas {
-            writeln!(f, "!{} = {:?}", n, meta)?;
+            writeln!(f, "!{} = {}", n, meta.display(&self.types))?;
         }
         Ok(())
     }

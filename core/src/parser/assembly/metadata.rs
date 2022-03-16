@@ -1,5 +1,5 @@
 use super::util::{spaces, string_literal};
-use super::value::parse_constant_int;
+use super::value::parse_constant;
 use crate::ir::module::{metadata::Metadata, name::Name};
 use crate::ir::types;
 use nom::combinator::opt;
@@ -42,7 +42,7 @@ fn name(source: &str) -> IResult<&str, Metadata, VerboseError<&str>> {
 fn int(types: &types::Types) -> impl Fn(&str) -> IResult<&str, Metadata, VerboseError<&str>> + '_ {
     move |source| {
         let (source, ty) = super::types::parse(types)(source)?;
-        parse_constant_int(source, ty).map(|(source, v)| (source, Metadata::Int(v)))
+        parse_constant(source, types, ty).map(|(source, v)| (source, Metadata::Const(v)))
     }
 }
 
@@ -89,6 +89,13 @@ fn test1() {
         !4 = !{i32 2849319}
         !4 = !{i32 2849383}
         !5 = distinct !{i32 1}";
+    let types = Types::new();
 
-    insta::assert_debug_snapshot!(many1(parse(&Types::new()))(source));
+    insta::assert_snapshot!(many1(parse(&types))(source)
+        .unwrap()
+        .1
+        .into_iter()
+        .fold("".to_string(), |acc, (name, node)| {
+            format!("{}!{} = {}\n", acc, name, node.display(&types))
+        }));
 }
