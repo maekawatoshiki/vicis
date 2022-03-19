@@ -47,12 +47,12 @@ pub fn print_function(
     function: &Function<X86_64>,
     fn_idx: usize,
 ) -> fmt::Result {
-    if function.is_prototype {
+    if function.is_declaration {
         return Ok(());
     }
 
-    writeln!(f, "  .globl {}", function.name)?;
-    writeln!(f, "{}:", function.name)?;
+    writeln!(f, "  .globl {}", function.ir.name())?;
+    writeln!(f, "{}:", function.ir.name())?;
 
     for block in function.layout.block_iter() {
         writeln!(f, ".LBL{}_{}:", fn_idx, block.index())?;

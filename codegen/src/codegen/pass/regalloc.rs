@@ -10,7 +10,7 @@ use anyhow::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::VecDeque;
 
-pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) -> Result<()> {
+pub fn run_on_module<'a, 'b, T: TargetIsa>(module: &'b mut Module<'a, T>) -> Result<()> {
     for (_, func) in &mut module.functions {
         run_on_function(func);
     }
@@ -18,7 +18,7 @@ pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) -> Result<()> {
 }
 
 // Linear-scan
-pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
+pub fn run_on_function<'a, 'b, T: TargetIsa>(function: &'b mut Function<'a, T>) {
     let mut liveness = liveness::Liveness::<T>::new();
     liveness.analyze_function(function);
     debug!(&function);

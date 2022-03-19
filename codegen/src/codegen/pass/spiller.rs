@@ -10,13 +10,13 @@ use crate::codegen::{
     register::VReg,
 };
 
-pub struct Spiller<'a, T: TargetIsa> {
-    function: &'a mut Function<T>,
+pub struct Spiller<'a, 'b, T: TargetIsa> {
+    function: &'a mut Function<'b, T>,
     liveness: &'a mut Liveness<T>,
 }
 
-impl<'a, T: TargetIsa> Spiller<'a, T> {
-    pub fn new(function: &'a mut Function<T>, liveness: &'a mut Liveness<T>) -> Self {
+impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
+    pub fn new(function: &'a mut Function<'b, T>, liveness: &'a mut Liveness<T>) -> Self {
         Self { function, liveness }
     }
 

@@ -9,28 +9,23 @@ use crate::codegen::function::instruction::InstructionInfo;
 use instruction::InstructionId;
 use std::{fmt, marker::PhantomData};
 use vicis_core::ir::{
-    function::Parameter,
-    module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
+    function::Function as IrFunction,
     types::{Type, Types},
 };
 
-pub struct Function<T: TargetIsa> {
-    pub name: String,
-    pub is_var_arg: bool,
+pub struct Function<'a, T: TargetIsa> {
+    pub ir: &'a IrFunction,
     pub result_ty: Type,
-    pub params: Vec<Parameter>,
-    pub preemption_specifier: PreemptionSpecifier,
-    pub attributes: Vec<Attribute>,
     pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
     pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
     pub slots: slot::Slots<T>,
     pub types: Types,
-    pub is_prototype: bool,
+    pub is_declaration: bool,
     pub call_conv: CallConvKind,
     pub _isa: PhantomData<fn() -> T>,
 }
 
-impl<T: TargetIsa> Function<T> {
+impl<T: TargetIsa> Function<'_, T> {
     pub fn remove_inst(
         &mut self,
         inst: InstructionId<<T::InstInfo as InstructionInfo>::Data>,
@@ -39,31 +34,35 @@ impl<T: TargetIsa> Function<T> {
     }
 }
 
-impl<T: TargetIsa> fmt::Debug for Function<T> {
+impl<T: TargetIsa> fmt::Debug for Function<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_prototype {
+        if self.is_declaration {
             write!(f, "declare ")?
         } else {
             write!(f, "define ")?
         }
-        write!(f, "{:?} ", self.preemption_specifier)?;
+        write!(f, "{:?} ", self.ir.preemption_specifier)?;
         write!(f, "{} ", self.types.to_string(self.result_ty))?;
-        write!(f, "@{}(", self.name)?;
-        for (i, param) in self.params.iter().enumerate() {
+        write!(f, "@{}(", self.ir.name)?;
+        for (i, param) in self.ir.params.iter().enumerate() {
             write!(
                 f,
                 "{} %A{}{}",
                 self.types.to_string(param.ty),
                 i,
-                if i == self.params.len() - 1 { "" } else { ", " }
+                if i == self.ir.params.len() - 1 {
+                    ""
+                } else {
+                    ", "
+                }
             )?;
         }
         write!(f, ") ")?;
-        for attr in &self.attributes {
+        for attr in &self.ir.func_attrs {
             write!(f, "{:?}", attr)?;
         }
 
-        if self.is_prototype {
+        if self.is_declaration {
             writeln!(f)?;
         } else {
             writeln!(f, "{{")?;

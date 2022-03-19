@@ -16,7 +16,7 @@ pub trait TargetIsa: Copy {
     type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;
 
-    fn module_pass_list() -> Vec<fn(&mut Module<Self>) -> Result<()>>;
+    fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>>;
     fn default_call_conv() -> CallConvKind;
     fn type_size(types: &Types, ty: Type) -> u32;
 }

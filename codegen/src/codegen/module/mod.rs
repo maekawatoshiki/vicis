@@ -11,7 +11,7 @@ use vicis_core::ir::{
 
 pub struct Module<'a, T: TargetIsa> {
     pub module: &'a IrModule,
-    pub functions: Arena<Function<T>>,
+    pub functions: Arena<Function<'a, T>>,
     pub attributes: FxHashMap<u32, Vec<Attribute>>,
     pub global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,

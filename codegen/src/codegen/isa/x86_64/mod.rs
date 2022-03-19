@@ -18,7 +18,7 @@ impl TargetIsa for X86_64 {
     type RegClass = register::RegClass;
     type RegInfo = register::RegInfo;
 
-    fn module_pass_list() -> Vec<fn(&mut Module<Self>) -> Result<()>> {
+    fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>> {
         vec![
             regalloc::run_on_module,
             pass::phi_elimination::run_on_module, // TODO: should be target independent

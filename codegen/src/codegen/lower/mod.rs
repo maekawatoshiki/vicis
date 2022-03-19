@@ -69,7 +69,7 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachMod
         _isa: PhantomData,
     };
 
-    for pass in T::module_pass_list() {
+    for pass in T::module_passes() {
         pass(&mut mach_module)?
     }
 
@@ -211,17 +211,13 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
     }
 
     Ok(MachFunction {
-        name: function.name.to_owned(),
-        is_var_arg: function.is_var_arg,
+        ir: function,
         result_ty: function.result_ty,
-        params: function.params.clone(),
-        preemption_specifier: function.preemption_specifier,
-        attributes: function.func_attrs.clone(),
         data,
         layout,
         slots,
         types: function.types.clone(),
-        is_prototype: function.is_prototype(),
+        is_declaration: function.is_prototype(),
         call_conv,
         _isa: PhantomData,
     })
