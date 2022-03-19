@@ -3,18 +3,10 @@ use rustc_hash::FxHashSet;
 
 pub type BasicBlockId = Id<BasicBlock>;
 
+#[derive(Default)]
 pub struct BasicBlock {
     pub preds: FxHashSet<BasicBlockId>,
     pub succs: FxHashSet<BasicBlockId>,
-}
-
-impl Default for BasicBlock {
-    fn default() -> Self {
-        Self {
-            preds: FxHashSet::default(),
-            succs: FxHashSet::default(),
-        }
-    }
 }
 
 impl BasicBlock {
