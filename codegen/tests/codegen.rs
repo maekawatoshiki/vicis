@@ -1,42 +1,40 @@
-use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
+use std::fs;
+use vicis_codegen::codegen::{
+    isa::x86_64::X86_64, lower::compile_module, module::Module as MachModule,
+};
 use vicis_core::ir::module::Module;
 
-#[test]
-fn compile_tests() {
-    use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-    use std::fs;
-
-    let files_count = fs::read_dir("./tests/codegen")
-        .expect("Failed to open file")
-        .count() as u64
-        / 2;
-    let paths = fs::read_dir("./tests/codegen").unwrap();
-    let pb = ProgressBar::with_draw_target(files_count, ProgressDrawTarget::stdout());
-    pb.set_style(ProgressStyle::default_bar().template("{bar:60} {pos:>4}/{len:>4} {msg}"));
-
-    for path in paths {
-        let input = path.as_ref().unwrap().path().to_str().unwrap().to_string();
-        if !input.ends_with(".ll") {
-            continue;
+macro_rules! test {
+    ($testname:ident, $name:expr) => {
+        #[test]
+        fn $testname() {
+            let mach_module = exec_test($name);
+            insta::assert_display_snapshot!(mach_module);
         }
-        let output = format!("{}.s", input.trim_end_matches(".ll"));
-        pb.set_message(input.as_str());
+    };
+}
 
-        let input_body = &fs::read_to_string(&input).unwrap();
-        let output_body = &fs::read_to_string(output).unwrap();
+test!(test_add, "ary1");
+test!(test_ary2, "ary2");
+test!(test_ary3, "ary3");
+test!(test_ary4, "ary4");
+test!(test_ary5, "ary5");
+test!(test_br, "br");
+test!(test_call1, "call1");
+test!(test_call2, "call2");
+test!(test_condbr, "condbr");
+test!(test_fibo, "fibo");
+test!(test_load_add, "load_add");
+test!(test_phi, "phi");
+test!(test_phi2, "phi2");
+test!(test_puts, "puts");
+test!(test_sum, "sum");
 
-        let module = Module::try_from(input_body.as_str()).unwrap();
-        let mach_module = compile_module(X86_64, &module).unwrap();
-
-        assert_eq!(
-            &format!("{}", mach_module),
-            output_body,
-            "Failed at {}",
-            input
-        );
-
-        pb.inc(1);
-    }
-
-    pb.finish();
+#[cfg(test)]
+fn compile(name: &str) -> MachModule<X86_64> {
+    let parent = "./tests/codegen/";
+    let input = format!("{}{}.ll", parent, name);
+    let input_body = &fs::read_to_string(input).unwrap();
+    let module = Module::try_from(input_body.as_str()).unwrap();
+    compile_module(X86_64, &module).unwrap()
 }

@@ -91,9 +91,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
- "regex",
  "terminal_size",
- "unicode-width",
  "winapi",
 ]
 
@@ -303,18 +301,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indicatif"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7baab56125e25686df467fe470785512329883aab42696d661247aca2a2896e4"
-dependencies = [
- "console",
- "lazy_static",
- "number_prefix",
- "regex",
-]
-
-[[package]]
 name = "insta"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -420,12 +406,6 @@ dependencies = [
  "minimal-lexical",
  "version_check",
 ]
-
-[[package]]
-name = "number_prefix"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b02fc0ff9a9e4b35b3342880f48e896ebf69f2967921fe8646bf5b7125956a"
 
 [[package]]
 name = "object"
@@ -724,7 +704,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "id-arena",
- "indicatif",
+ "insta",
  "rustc-hash",
  "vicis-core",
 ]
