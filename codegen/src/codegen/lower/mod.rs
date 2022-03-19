@@ -68,7 +68,7 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachMod
         attributes: module.attributes().to_owned(),
         global_variables: module.global_variables().to_owned(),
         types: module.types.clone(),
-        isa,
+        _isa: PhantomData,
     };
 
     for pass in T::module_pass_list() {

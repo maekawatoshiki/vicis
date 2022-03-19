@@ -1,7 +1,7 @@
 use super::{function::Function, isa::TargetIsa};
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 use vicis_core::ir::{
     module::{
         attributes::Attribute, global_variable::GlobalVariable, name::Name, Target as ModuleTarget,
@@ -17,8 +17,7 @@ pub struct Module<T: TargetIsa> {
     pub attributes: FxHashMap<u32, Vec<Attribute>>,
     pub global_variables: FxHashMap<Name, GlobalVariable>,
     pub types: Types,
-    // TODO: Metadata
-    pub isa: T,
+    pub _isa: PhantomData<fn() -> T>,
 }
 
 impl<T: TargetIsa> fmt::Debug for Module<T> {
