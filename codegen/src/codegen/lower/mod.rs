@@ -61,9 +61,7 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachMod
     }
 
     let mut mach_module = MachModule {
-        name: module.name().to_owned(),
-        source_filename: module.source_filename().to_owned(),
-        target: module.target().to_owned(),
+        module,
         functions,
         attributes: module.attributes().to_owned(),
         global_variables: module.global_variables().to_owned(),

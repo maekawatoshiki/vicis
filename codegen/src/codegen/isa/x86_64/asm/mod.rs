@@ -86,7 +86,7 @@ pub fn print_function(
     Ok(())
 }
 
-impl fmt::Display for Module<X86_64> {
+impl fmt::Display for Module<'_, X86_64> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         print(f, self)
     }

@@ -4,15 +4,13 @@ use rustc_hash::FxHashMap;
 use std::{fmt, marker::PhantomData};
 use vicis_core::ir::{
     module::{
-        attributes::Attribute, global_variable::GlobalVariable, name::Name, Target as ModuleTarget,
+        attributes::Attribute, global_variable::GlobalVariable, name::Name, Module as IrModule,
     },
     types::Types,
 };
 
-pub struct Module<T: TargetIsa> {
-    pub name: String,
-    pub source_filename: String,
-    pub target: ModuleTarget, // TODO
+pub struct Module<'a, T: TargetIsa> {
+    pub module: &'a IrModule,
     pub functions: Arena<Function<T>>,
     pub attributes: FxHashMap<u32, Vec<Attribute>>,
     pub global_variables: FxHashMap<Name, GlobalVariable>,
@@ -20,11 +18,15 @@ pub struct Module<T: TargetIsa> {
     pub _isa: PhantomData<fn() -> T>,
 }
 
-impl<T: TargetIsa> fmt::Debug for Module<T> {
+impl<T: TargetIsa> fmt::Debug for Module<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "source_filename = \"{}\"", self.source_filename)?;
-        writeln!(f, "target datalayout = \"{}\"", self.target.datalayout())?;
-        writeln!(f, "target triple = \"{}\"", self.target.triple())?;
+        writeln!(f, "source_filename = \"{}\"", self.module.source_filename())?;
+        writeln!(
+            f,
+            "target datalayout = \"{}\"",
+            self.module.target().datalayout()
+        )?;
+        writeln!(f, "target triple = \"{}\"", self.module.target().triple())?;
         writeln!(f)?;
         for gv in self.global_variables.values() {
             writeln!(f, "{}", gv.to_string(&self.types))?;
