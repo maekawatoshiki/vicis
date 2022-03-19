@@ -15,7 +15,7 @@ use super::{
 use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{error::Error, fmt, mem};
+use std::{error::Error, fmt, marker::PhantomData, mem};
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
@@ -224,8 +224,8 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
         slots,
         types: function.types.clone(),
         is_prototype: function.is_prototype(),
-        isa,
         call_conv,
+        _isa: PhantomData,
     })
 }
 

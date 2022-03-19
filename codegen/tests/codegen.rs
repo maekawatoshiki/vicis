@@ -8,7 +8,7 @@ macro_rules! test {
     ($testname:ident, $name:expr) => {
         #[test]
         fn $testname() {
-            let mach_module = exec_test($name);
+            let mach_module = compile($name);
             insta::assert_display_snapshot!(mach_module);
         }
     };

@@ -7,7 +7,7 @@ pub mod slot;
 use super::{call_conv::CallConvKind, isa::TargetIsa};
 use crate::codegen::function::instruction::InstructionInfo;
 use instruction::InstructionId;
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 use vicis_core::ir::{
     function::Parameter,
     module::{attributes::Attribute, preemption_specifier::PreemptionSpecifier},
@@ -27,7 +27,7 @@ pub struct Function<T: TargetIsa> {
     pub types: Types,
     pub is_prototype: bool,
     pub call_conv: CallConvKind,
-    pub isa: T,
+    pub _isa: PhantomData<fn() -> T>,
 }
 
 impl<T: TargetIsa> Function<T> {
