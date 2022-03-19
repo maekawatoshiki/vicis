@@ -61,10 +61,8 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachMod
     }
 
     let mut mach_module = MachModule {
-        module,
+        ir: module,
         functions,
-        attributes: module.attributes().to_owned(),
-        global_variables: module.global_variables().to_owned(),
         types: module.types.clone(),
         _isa: PhantomData,
     };
@@ -212,7 +210,6 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
 
     Ok(MachFunction {
         ir: function,
-        result_ty: function.result_ty,
         data,
         layout,
         slots,

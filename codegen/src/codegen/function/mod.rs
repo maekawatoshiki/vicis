@@ -8,14 +8,10 @@ use super::{call_conv::CallConvKind, isa::TargetIsa};
 use crate::codegen::function::instruction::InstructionInfo;
 use instruction::InstructionId;
 use std::{fmt, marker::PhantomData};
-use vicis_core::ir::{
-    function::Function as IrFunction,
-    types::{Type, Types},
-};
+use vicis_core::ir::{function::Function as IrFunction, types::Types};
 
 pub struct Function<'a, T: TargetIsa> {
     pub ir: &'a IrFunction,
-    pub result_ty: Type,
     pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
     pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
     pub slots: slot::Slots<T>,
@@ -42,7 +38,7 @@ impl<T: TargetIsa> fmt::Debug for Function<'_, T> {
             write!(f, "define ")?
         }
         write!(f, "{:?} ", self.ir.preemption_specifier)?;
-        write!(f, "{} ", self.types.to_string(self.result_ty))?;
+        write!(f, "{} ", self.types.to_string(self.ir.result_ty))?;
         write!(f, "@{}(", self.ir.name)?;
         for (i, param) in self.ir.params.iter().enumerate() {
             write!(
