@@ -5,11 +5,8 @@ use super::{
 };
 use crate::ir::{
     function::{
-        basic_block::BasicBlockId,
-        data::Data,
-        instruction::{Br, CondBr, Opcode, Operand},
-        layout::Layout,
-        Function, Parameter, PersonalityFunc,
+        basic_block::BasicBlockId, data::Data, instruction::Opcode, layout::Layout, Function,
+        Parameter, PersonalityFunc,
     },
     module::{linkage, name, preemption_specifier, visibility},
     types::Types,
@@ -274,18 +271,9 @@ impl<'a> ParserContext<'a> {
                 continue;
             }
             let br = maybe_br;
-            match br.operand {
-                Operand::Br(Br { block }) => {
-                    self.data.basic_blocks[br.parent].succs.insert(block);
-                    self.data.basic_blocks[block].preds.insert(br.parent);
-                }
-                Operand::CondBr(CondBr { blocks, .. }) => {
-                    for &block in blocks.iter() {
-                        self.data.basic_blocks[br.parent].succs.insert(block);
-                        self.data.basic_blocks[block].preds.insert(br.parent);
-                    }
-                }
-                _ => continue,
+            for &block in br.operand.blocks() {
+                self.data.basic_blocks[br.parent].succs.insert(block);
+                self.data.basic_blocks[block].preds.insert(br.parent);
             }
         }
     }
