@@ -104,8 +104,8 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         Operand::Call(Call {
             ref args, ref tys, ..
         }) => lower_call(ctx, inst.id.unwrap(), tys, args),
-        Operand::Ret(Ret { val: None, .. }) => Err(LoweringError::Todo.into()),
-        Operand::Ret(Ret { val: Some(val), ty }) => lower_return(ctx, ty, val),
+        Operand::Ret(Ret { val: None, .. }) => lower_return(ctx, None),
+        Operand::Ret(Ret { val: Some(val), ty }) => lower_return(ctx, Some((ty, val))),
         _ => Err(LoweringError::Todo.into()),
     }
 }
@@ -374,19 +374,21 @@ fn lower_call(
     Ok(())
 }
 
-fn lower_return(ctx: &mut LoweringContext<X86_64>, ty: Type, value: ValueId) -> Result<()> {
-    let vreg = val_to_vreg(ctx, ty, value)?;
-    assert!(ty.is_i32());
-    ctx.inst_seq.push(MachInstruction::new(
-        InstructionData {
-            opcode: Opcode::MOVrr32,
-            operands: vec![
-                MO::output(OperandData::Reg(GR32::EAX.into())),
-                MO::input(vreg.into()),
-            ],
-        },
-        ctx.block_map[&ctx.cur_block],
-    ));
+fn lower_return(ctx: &mut LoweringContext<X86_64>, arg: Option<(Type, ValueId)>) -> Result<()> {
+    if let Some((ty, value)) = arg {
+        let vreg = val_to_vreg(ctx, ty, value)?;
+        assert!(ty.is_i32());
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::MOVrr32,
+                operands: vec![
+                    MO::output(OperandData::Reg(GR32::EAX.into())),
+                    MO::input(vreg.into()),
+                ],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+    }
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::RET,
