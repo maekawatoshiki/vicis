@@ -31,6 +31,7 @@ pub enum Opcode {
     MOVrr32,
     MOVrr64,
     MOVri32,
+    MOVri64,
     MOVrm32,
     MOVmi32,
     MOVmr32,

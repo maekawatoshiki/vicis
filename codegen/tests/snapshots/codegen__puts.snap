@@ -1,12 +1,10 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 30
+assertion_line: 32
 expression: mach_module
 ---
   .text
   .intel_syntax noprefix
-.str:
-  .string "hello world"
   .globl main
 main:
 .LBL0_0:
@@ -20,4 +18,6 @@ main:
   add rsp, 16
   pop rbp
   ret 
+.str:
+  .string "hello world"
 

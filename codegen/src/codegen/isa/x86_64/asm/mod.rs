@@ -1,3 +1,8 @@
+use vicis_core::ir::{
+    module::{linkage::Linkage, name::Name},
+    value::{ConstantStruct, ConstantValue},
+};
+
 use crate::codegen::{
     function::Function,
     isa::x86_64::{
@@ -8,35 +13,76 @@ use crate::codegen::{
     module::Module,
 };
 use std::fmt;
+use std::str;
 
 pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result {
     writeln!(f, "  .text")?;
     writeln!(f, "  .intel_syntax noprefix")?;
 
+    for (i, (_, func)) in module.functions.iter().enumerate() {
+        print_function(f, func, i)?
+    }
+
+    let mut ctor = None;
+
     for gv in module.ir.global_variables().values() {
-        if let Some(init) = &gv.init {
-            let arr = init.as_array();
-            if !arr.is_string {
-                continue;
+        let is_extern = matches!(
+            gv.linkage,
+            Some(Linkage::External) | Some(Linkage::ExternalWeak)
+        );
+        if is_extern {
+            continue;
+        }
+
+        if gv.init.is_none() {
+            continue;
+        }
+
+        let init = gv.init.as_ref().unwrap();
+        match init {
+            ConstantValue::Array(arr) => {
+                if matches!(gv.name, Name::Name(ref name) if name == "llvm.global_ctors") {
+                    // TODO
+                    if let ConstantValue::Struct(ConstantStruct { elems, .. }) = &arr.elems[0] {
+                        if let ConstantValue::GlobalRef(name, _) = &elems[1] {
+                            ctor = module.ir.find_function_by_name(name.as_string());
+                        }
+                    }
+                    continue;
+                }
+
+                if !arr.is_string {
+                    continue;
+                }
+
+                let mut s = vec![];
+                for elem in &arr.elems {
+                    s.push(*elem.as_int().as_i8() as u8)
+                }
+                let s = str::from_utf8(
+                    s.into_iter()
+                        .flat_map(::std::ascii::escape_default)
+                        .collect::<Vec<u8>>()
+                        .as_slice(),
+                )
+                .unwrap()
+                .to_string();
+                let s = s.trim_end_matches("\\x00"); // TODO
+                debug!(&s);
+                writeln!(f, "{}:", gv.name.as_string())?;
+                writeln!(f, "  .string \"{}\"", s)?;
             }
-            let mut s = vec![];
-            for elem in &arr.elems {
-                s.push(*elem.as_int().as_i8() as u8)
+            ConstantValue::AggregateZero(_ty) => {
+                writeln!(f, "  .comm {},{},{}", gv.name.as_string(), 1, 1)?;
             }
-            let s: Vec<u8> = s
-                .into_iter()
-                .flat_map(::std::ascii::escape_default)
-                .collect();
-            let s = ::std::str::from_utf8(s.as_slice()).unwrap().to_string();
-            let s = s.trim_end_matches("\\x00"); // TODO
-            debug!(&s);
-            writeln!(f, "{}:", gv.name.as_string())?;
-            writeln!(f, "  .string \"{}\"", s)?;
+            e => todo!("Unsupported initializer: {:?}", e),
         }
     }
 
-    for (i, (_, func)) in module.functions.iter().enumerate() {
-        print_function(f, func, i)?
+    if let Some(ctor) = ctor {
+        let ctor = &module.ir.functions()[ctor];
+        writeln!(f, "  .section .init_array")?;
+        writeln!(f, "  .quad {}", ctor.name())?;
     }
 
     Ok(())
@@ -107,6 +153,7 @@ impl fmt::Display for Opcode {
                 Self::MOVrr32 => "mov",
                 Self::MOVrr64 => "mov",
                 Self::MOVri32 => "mov",
+                Self::MOVri64 => "mov",
                 Self::MOVrm32 => "mov",
                 Self::MOVmi32 => "mov",
                 Self::MOVmr32 => "mov",

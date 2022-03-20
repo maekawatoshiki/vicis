@@ -465,14 +465,28 @@ fn val_to_operand_data(
             let dst = ctx.mach_data.vregs.add_vreg_data(ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVri32, // TODO: MOVri64 is correct
+                    opcode: Opcode::MOVri64,
                     operands: vec![MO::output(dst.into()), MO::new(src)],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
             Ok(dst.into())
         }
-        _ => Err(LoweringError::Todo.into()),
+        Value::Constant(ConstantValue::GlobalRef(ref name, ty)) => {
+            assert!(ty.is_pointer(&ctx.types));
+            let addr = ctx.mach_data.vregs.add_vreg_data(ty);
+            let src = OperandData::GlobalAddress(name.to_string().unwrap().to_owned());
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVri64,
+                    operands: vec![MO::output(addr.into()), MO::new(src)],
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            Ok(addr.into())
+        }
+        ref e => todo!("{:?}", e),
+        // _ => Err(LoweringError::Todo.into()),
     }
 }
 
