@@ -18,5 +18,5 @@ pub trait TargetIsa: Copy {
 
     fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>>;
     fn default_call_conv() -> CallConvKind;
-    fn type_size(types: &Types, ty: Type) -> u32;
+    fn type_size(types: &Types, ty: Type) -> u32; // TODO: FIXME: DataLayout can replace this.
 }

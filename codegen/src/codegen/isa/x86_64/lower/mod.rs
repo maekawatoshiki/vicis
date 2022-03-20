@@ -5,7 +5,7 @@ use crate::codegen::{
     function::instruction::Instruction as MachInstruction,
     isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand as MO, OperandData},
-        register::{RegClass, RegInfo, GR32},
+        register::{RegClass, RegInfo, GR32, GR64},
         X86_64,
     },
     isa::TargetIsa,
@@ -326,7 +326,9 @@ fn lower_call(
     tys: &[Type],
     args: &[ValueId],
 ) -> Result<()> {
-    let output = new_empty_inst_output(ctx, tys[0], id);
+    let result_ty = tys[0];
+    let result_sz = X86_64::type_size(ctx.types, result_ty);
+    let output = new_empty_inst_output(ctx, result_ty, id);
 
     let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
     for (gpr_used, (&arg, &ty)) in args[1..].iter().zip(tys[1..].iter()).enumerate() {
@@ -336,7 +338,16 @@ fn lower_call(
             InstructionData {
                 opcode: match &arg {
                     OperandData::Int32(_) => Opcode::MOVri32,
-                    OperandData::VReg(_) | OperandData::Reg(_) => Opcode::MOVrr32,
+                    OperandData::Reg(_) => Opcode::MOVrr32, // TODO: FIXME
+                    OperandData::VReg(vreg) => {
+                        let ty = ctx.mach_data.vregs.type_for(*vreg);
+                        let sz = X86_64::type_size(ctx.types, ty);
+                        match sz {
+                            4 => Opcode::MOVrr32,
+                            8 => Opcode::MOVrr64,
+                            _ => return Err(LoweringError::Todo.into()),
+                        }
+                    }
                     _ => return Err(LoweringError::Todo.into()),
                 },
                 operands: vec![MO::output(r.into()), MO::input(arg)],
@@ -349,7 +360,11 @@ fn lower_call(
         Value::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => name.clone(),
         _ => return Err(LoweringError::Todo.into()),
     };
-    let result_reg: Reg = GR32::EAX.into(); // TODO: do not hard code
+    let result_reg: Reg = match result_sz {
+        4 => GR32::EAX.into(),
+        8 => GR64::RAX.into(),
+        _ => GR32::EAX.into(),
+    };
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::CALL,
@@ -362,6 +377,11 @@ fn lower_call(
     ));
 
     if !ctx.ir_data.users_of(id).is_empty() {
+        match result_sz {
+            4 => Opcode::MOVrr32,
+            8 => Opcode::MOVrr64,
+            _ => todo!("Function results less than 32 bit are not supported yet"),
+        };
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::MOVrr32,
@@ -448,18 +468,30 @@ fn val_to_operand_data(
     match ctx.ir_data.values[val] {
         Value::Instruction(id) => Ok(get_or_generate_inst_output(ctx, ty, id)?.into()),
         Value::Argument(ref a) => Ok(ctx.arg_idx_to_vreg[&a.nth].into()),
-        Value::Constant(ConstantValue::Int(ConstantInt::Int32(i))) => Ok(OperandData::Int32(i)),
-        Value::Constant(ConstantValue::Expr(ConstantExpr::GetElementPtr {
+        Value::Constant(ref konst) => const_to_operand_data(ctx, ty, konst),
+        ref e => todo!("{:?}", e),
+        // _ => Err(LoweringError::Todo.into()),
+    }
+}
+
+fn const_to_operand_data(
+    ctx: &mut LoweringContext<X86_64>,
+    ty: Type,
+    konst: &ConstantValue,
+) -> Result<OperandData> {
+    match konst {
+        ConstantValue::Int(ConstantInt::Int32(i)) => Ok(OperandData::Int32(*i)),
+        ConstantValue::Expr(ConstantExpr::GetElementPtr {
             inbounds: _,
             tys: _,
             ref args,
-        })) => {
-            // TODO: Split up into functions
+        }) => {
+            // TODO: Just refactor this.
             assert!(ty.is_pointer(&ctx.types));
             assert!(matches!(args[0], ConstantValue::GlobalRef(_, _)));
             let all_indices_0 = args[1..]
                 .iter()
-                .all(|arg| matches!(arg, ConstantValue::Int(ConstantInt::Int64(0))));
+                .all(|arg| matches!(arg, ConstantValue::Int(i) if i.is_zero()));
             assert!(all_indices_0);
             let src = OperandData::GlobalAddress(args[0].as_global_ref().as_string().clone());
             let dst = ctx.mach_data.vregs.add_vreg_data(ty);
@@ -472,9 +504,17 @@ fn val_to_operand_data(
             ));
             Ok(dst.into())
         }
-        Value::Constant(ConstantValue::GlobalRef(ref name, ty)) => {
+        ConstantValue::Expr(ConstantExpr::Bitcast {
+            tys: [from, to],
+            arg,
+        }) => {
+            assert!(from.is_pointer(&ctx.types));
+            assert!(to.is_pointer(&ctx.types));
+            const_to_operand_data(ctx, *to, arg)
+        }
+        ConstantValue::GlobalRef(ref name, ty) => {
             assert!(ty.is_pointer(&ctx.types));
-            let addr = ctx.mach_data.vregs.add_vreg_data(ty);
+            let addr = ctx.mach_data.vregs.add_vreg_data(*ty);
             let src = OperandData::GlobalAddress(name.to_string().unwrap().to_owned());
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
@@ -485,8 +525,7 @@ fn val_to_operand_data(
             ));
             Ok(addr.into())
         }
-        ref e => todo!("{:?}", e),
-        // _ => Err(LoweringError::Todo.into()),
+        e => todo!("{:?}", e),
     }
 }
 
