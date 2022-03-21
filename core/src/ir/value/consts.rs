@@ -118,7 +118,7 @@ impl ConstantInt {
 
     pub fn is_zero(&self) -> bool {
         match self {
-            Self::Int1(i) => *i == false,
+            Self::Int1(i) => !(*i),
             Self::Int8(i) => *i == 0,
             Self::Int32(i) => *i == 0,
             Self::Int64(i) => *i == 0,

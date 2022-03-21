@@ -176,7 +176,7 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
     let (source, func_attrs) = super::attributes::parse_attributes(source)?;
     let (source, section) = opt(map(
         tuple((spaces, tag("section"), spaces, string_literal)),
-        |(_, _, _, section)| section.to_owned(),
+        |(_, _, _, section)| section,
     ))(source)?;
     let (source, _) = opt(tuple((spaces, tag("align"), spaces, digit1)))(source)?; // TODO: do not ignore 'align N'
     let (mut source, personality) = parse_personality(source, &types)?;

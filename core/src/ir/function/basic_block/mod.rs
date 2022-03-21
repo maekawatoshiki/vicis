@@ -4,21 +4,11 @@ use rustc_hash::FxHashSet;
 
 pub type BasicBlockId = Id<BasicBlock>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BasicBlock {
     pub name: Option<Name>,
     pub preds: FxHashSet<BasicBlockId>,
     pub succs: FxHashSet<BasicBlockId>,
-}
-
-impl Default for BasicBlock {
-    fn default() -> Self {
-        Self {
-            name: None,
-            preds: FxHashSet::default(),
-            succs: FxHashSet::default(),
-        }
-    }
 }
 
 impl BasicBlock {

@@ -130,7 +130,7 @@ impl<'a, M: Module> InstCompiler<'a, M> {
                 let callee = self
                     .lower_ctx
                     .clif_mod
-                    .declare_func_in_func(func_id, &mut self.builder.func);
+                    .declare_func_in_func(func_id, self.builder.func);
                 let call = self.builder.ins().call(callee, &args);
                 let result_ty = tys[0];
                 if !result_ty.is_void() {

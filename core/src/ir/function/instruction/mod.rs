@@ -453,7 +453,7 @@ impl Operand {
             Self::Resume(Resume { ty, .. }) => slice::from_ref(ty),
             Self::Br(Br { .. }) => &[],
             Self::CondBr(CondBr { .. }) => &[],
-            Self::Switch(Switch { tys, .. }) => &tys,
+            Self::Switch(Switch { tys, .. }) => tys,
             Self::Unreachable => &[],
             Self::Invalid => &[],
         }

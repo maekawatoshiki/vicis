@@ -28,7 +28,7 @@ pub struct LiveSegment {
     pub end: ProgramPoint,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BlockData {
     def: FxHashSet<Reg>,
     live_in: FxHashSet<Reg>,
@@ -457,16 +457,6 @@ impl LiveSegment {
 
     pub fn interfere(&self, other: &Self) -> bool {
         self.start < other.end && self.end > other.start
-    }
-}
-
-impl Default for BlockData {
-    fn default() -> Self {
-        Self {
-            def: FxHashSet::default(),
-            live_in: FxHashSet::default(),
-            live_out: FxHashSet::default(),
-        }
     }
 }
 

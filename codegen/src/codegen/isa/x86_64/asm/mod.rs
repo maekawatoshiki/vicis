@@ -146,17 +146,15 @@ impl fmt::Display for Opcode {
             match self {
                 Self::PUSH64 => "push",
                 Self::POP64 => "pop",
-                Self::ADDr64i32 => "add",
-                Self::ADDri32 => "add",
-                Self::ADDrr32 => "add",
+                Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 => "add",
                 Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
-                Self::MOVrr32 => "mov",
-                Self::MOVrr64 => "mov",
-                Self::MOVri32 => "mov",
-                Self::MOVri64 => "mov",
-                Self::MOVrm32 => "mov",
-                Self::MOVmi32 => "mov",
-                Self::MOVmr32 => "mov",
+                Self::MOVrr32
+                | Self::MOVrr64
+                | Self::MOVri32
+                | Self::MOVri64
+                | Self::MOVrm32
+                | Self::MOVmi32
+                | Self::MOVmr32 => "mov",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
                 Self::CMPri32 => "cmp",
                 Self::JMP => "jmp",

@@ -30,7 +30,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
             worklist.push(inst_id);
             let output = *inst.data.operands[0].data.as_reg();
             for i in (0..inst.data.operands[1..].len()).step_by(2) {
-                let val = inst.data.operands[1 + i + 0].data.clone();
+                let val = inst.data.operands[1 + i /*+ 0*/].data.clone();
                 let block = *inst.data.operands[1 + i + 1].data.as_block();
                 map.entry(output)
                     .or_insert_with(Vec::new)

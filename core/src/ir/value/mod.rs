@@ -106,7 +106,7 @@ impl std::fmt::Display for DisplayValue<'_> {
                 if self.display_type {
                     write!(f, "{} ", self.types.to_string(inst.ty()))?;
                 }
-                if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
+                if let Some(name) = self.name_fn.as_ref().and_then(|f| f(self.val)) {
                     write!(f, "%{}", name)
                 } else if let Some(dest) = &inst.dest {
                     write!(f, "%{}", dest)
@@ -122,7 +122,7 @@ impl std::fmt::Display for DisplayValue<'_> {
                 if self.display_type {
                     write!(f, "{} ", self.types.to_string(n.ty()))?;
                 }
-                if let Some(name) = self.name_fn.as_ref().map(|f| f(self.val)).flatten() {
+                if let Some(name) = self.name_fn.as_ref().and_then(|f| f(self.val)) {
                     write!(f, "%{}", name)
                 } else if let Some(Name::Name(name)) = n.name.as_ref() {
                     write!(f, "%{}", name)

@@ -16,7 +16,7 @@ pub trait TargetIsa: Copy {
     type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;
 
-    fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>>;
+    fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>>; // TODO: Implement a pass manager for machine modules
     fn default_call_conv() -> CallConvKind;
     fn type_size(types: &Types, ty: Type) -> u32; // TODO: FIXME: DataLayout can replace this.
 }

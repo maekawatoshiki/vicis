@@ -22,6 +22,7 @@ pub struct Mem2Reg<'a> {
 
 type InstructionIndex = usize;
 
+#[derive(Default)]
 struct InstructionIndexes(FxHashMap<InstructionId, InstructionIndex>);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -462,12 +463,6 @@ impl<'a> Mem2Reg<'a> {
             last_parent = Some(user.parent);
             eq
         })
-    }
-}
-
-impl Default for InstructionIndexes {
-    fn default() -> Self {
-        Self(FxHashMap::default())
     }
 }
 

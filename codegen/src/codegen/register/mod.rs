@@ -14,6 +14,7 @@ pub struct RegUnit(pub u16, pub u16); // Same as top-level register
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VReg(pub u32);
 
+#[derive(Default)]
 pub struct VRegs {
     pub map: FxHashMap<VReg, VRegData>,
     pub cur: u32,
@@ -50,15 +51,6 @@ pub trait RegisterClass {
 impl RegUnit {
     pub fn apply<RC: RegisterClass>(self, rc: &RC) -> Reg {
         rc.apply_for(self)
-    }
-}
-
-impl Default for VRegs {
-    fn default() -> Self {
-        Self {
-            map: FxHashMap::default(),
-            cur: 0,
-        }
     }
 }
 

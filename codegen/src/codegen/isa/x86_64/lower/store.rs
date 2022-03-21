@@ -120,7 +120,6 @@ fn lower_store_gep(
         Value::Constant,
     };
 
-    let mem;
     let gep = &ctx.ir_data.instructions[gep_id];
     let gep_args: Vec<&Value> = gep
         .operand
@@ -129,7 +128,7 @@ fn lower_store_gep(
         .map(|&arg| &ctx.ir_data.values[arg])
         .collect();
 
-    match &gep_args[..] {
+    let mem = match &gep_args[..] {
         [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Const(Int(Int64(idx1)))] => {
             let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
             let base_ty = gep.operand.types()[0];
@@ -138,14 +137,14 @@ fn lower_store_gep(
                     * X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i64;
             // debug!(offset);
 
-            mem = vec![
+            vec![
                 MOperand::new(OperandData::MemStart),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),
                 MOperand::input(OperandData::None),
                 MOperand::new(OperandData::None),
-            ];
+            ]
         }
         [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
             let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
@@ -160,7 +159,7 @@ fn lower_store_gep(
 
             assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
 
-            mem = vec![
+            vec![
                 MOperand::new(OperandData::MemStart),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
@@ -170,10 +169,10 @@ fn lower_store_gep(
                     ctx.types,
                     ctx.types.get_element(base_ty).unwrap(),
                 ) as i32)),
-            ];
+            ]
         }
         _ => return Err(LoweringError::Todo.into()),
-    }
+    };
 
     let src = args[0];
     let src_ty = tys[0];

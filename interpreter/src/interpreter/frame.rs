@@ -2,6 +2,7 @@ use rustc_hash::FxHashMap;
 
 use super::Context;
 use crate::generic_value::GenericValue;
+use std::ptr;
 use vicis_core::ir::{
     function::{instruction::InstructionId, Function},
     value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
@@ -44,7 +45,7 @@ impl<'a> StackFrame<'a> {
     fn get_val_from_const(&self, konst: &ConstantValue) -> Option<GenericValue> {
         match konst {
             ConstantValue::Null(ty) if ty.is_pointer(&self.ctx.module.types) => {
-                return Some(GenericValue::Ptr(0 as *mut _));
+                Some(GenericValue::Ptr(ptr::null_mut()))
             }
             ConstantValue::Int(ConstantInt::Int1(i)) => Some(GenericValue::Int1(*i)),
             ConstantValue::Int(ConstantInt::Int8(i)) => Some(GenericValue::Int8(*i)),

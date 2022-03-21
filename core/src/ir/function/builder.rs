@@ -9,6 +9,7 @@ pub struct Builder<'a> {
     pub(super) cur_block: Option<BasicBlockId>,
 }
 
+#[derive(Default)]
 struct Context {
     is_inserted: FxHashSet<BasicBlockId>,
 }
@@ -45,14 +46,6 @@ impl<'a> Builder<'a> {
 
     pub fn value<T: Into<Value>>(&mut self, val: T) -> ValueId {
         self.func.data.create_value(val.into())
-    }
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        Self {
-            is_inserted: FxHashSet::default(),
-        }
     }
 }
 

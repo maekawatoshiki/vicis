@@ -1,6 +1,7 @@
 use crate::ir::function::{basic_block::BasicBlockId, instruction::InstructionId};
 use rustc_hash::FxHashMap;
 
+#[derive(Default)]
 pub struct Layout {
     basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode>,
     instructions: FxHashMap<InstructionId, InstructionNode>,
@@ -33,17 +34,6 @@ pub struct InstructionIter<'a> {
     block: BasicBlockId,
     head: Option<InstructionId>,
     tail: Option<InstructionId>,
-}
-
-impl Default for Layout {
-    fn default() -> Self {
-        Self {
-            basic_blocks: FxHashMap::default(),
-            instructions: FxHashMap::default(),
-            first_block: None,
-            last_block: None,
-        }
-    }
 }
 
 impl Layout {

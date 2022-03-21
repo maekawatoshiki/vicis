@@ -53,7 +53,7 @@ impl fmt::Display for DisplayInstruction<'_> {
                         .block_ref(block_id)
                         .name
                         .to_owned()
-                        .unwrap_or(Name::Number(block_id.index()))
+                        .unwrap_or_else(|| Name::Number(block_id.index()))
                 })
         }
 
@@ -63,7 +63,7 @@ impl fmt::Display for DisplayInstruction<'_> {
                 self_
                     .data
                     .value_ref(val_id)
-                    .display(&self_.data, &self_.types)
+                    .display(self_.data, self_.types)
                     .display_type(false)
                     .display_as_operand(true)
                     .set_name_fn(Box::new(|v| match v {
@@ -81,7 +81,7 @@ impl fmt::Display for DisplayInstruction<'_> {
                 self.inst
                     .dest
                     .to_owned()
-                    .unwrap_or(Name::Number(self.inst.id.unwrap().index()))
+                    .unwrap_or_else(|| Name::Number(self.inst.id.unwrap().index()))
             });
 
         match &self.inst.operand {
@@ -95,7 +95,7 @@ impl fmt::Display for DisplayInstruction<'_> {
                     "%{dest:?} = alloca {}, {} {}{}",
                     self.types.to_string(tys[0]),
                     self.types.to_string(tys[1]),
-                    num_elements.to_string(&self.types),
+                    num_elements.to_string(self.types),
                     if *align > 0 {
                         format!(", align {}", align)
                     } else {
@@ -114,8 +114,8 @@ impl fmt::Display for DisplayInstruction<'_> {
                             format!(
                                 "{}[{}, %{:?}], ",
                                 acc,
-                                value_string(&self, *arg),
-                                block_name(&self, block)
+                                value_string(self, *arg),
+                                block_name(self, block)
                             )
                         })
                         .trim_end_matches(", ")

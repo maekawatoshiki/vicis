@@ -519,7 +519,7 @@ pub fn parse_landingpad<'a, 'b>(
         catches.push((ty, arg));
         source = source_;
     }
-    assert!(cleanup.is_some() || (cleanup.is_none() && catches.len() > 0));
+    assert!(cleanup.is_some() || (cleanup.is_none() && !catches.is_empty()));
     let inst = Opcode::LandingPad
         .with_block(ctx.cur_block)
         .with_operand(Operand::LandingPad(LandingPad {

@@ -140,8 +140,8 @@ impl Types {
     }
 }
 
-impl TypesBase {
-    pub fn new() -> Self {
+impl Default for TypesBase {
+    fn default() -> Self {
         static ID: AtomicU32 = AtomicU32::new(1); // 0 is reserved for primitive types
         let arena_id = ID.fetch_add(1, atomic::Ordering::SeqCst);
         Self {
@@ -156,6 +156,12 @@ impl TypesBase {
                 named_types: Cache::default(),
             },
         }
+    }
+}
+
+impl TypesBase {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn get(&self, ty: Type) -> Option<&CompoundType> {
@@ -266,7 +272,7 @@ impl TypesBase {
             }
             // If `ty` is a struct type, name it.
             Some(CompoundType::Struct(ref mut strukt)) => {
-                let mut strukt = mem::replace(strukt, StructType::default());
+                let mut strukt = mem::take(strukt);
                 strukt.name = Some(name.clone());
                 if let Name::Name(name) = name {
                     self.caches.named_struct.insert(name, named_ty);
@@ -449,13 +455,13 @@ impl FunctionType {
 impl ToString for Type {
     fn to_string(&self) -> String {
         if self.is_primitive() {
-            return match self {
-                &VOID => "void".to_string(),
-                &I1 => "i1".to_string(),
-                &I8 => "i8".to_string(),
-                &I16 => "i16".to_string(),
-                &I32 => "i32".to_string(),
-                &I64 => "i64".to_string(),
+            return match *self {
+                VOID => "void".to_string(),
+                I1 => "i1".to_string(),
+                I8 => "i8".to_string(),
+                I16 => "i16".to_string(),
+                I32 => "i32".to_string(),
+                I64 => "i64".to_string(),
                 _ => todo!(),
             };
         }

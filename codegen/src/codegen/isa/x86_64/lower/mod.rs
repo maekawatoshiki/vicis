@@ -30,14 +30,8 @@ use vicis_core::ir::{
     value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Lower {}
-
-impl Default for Lower {
-    fn default() -> Self {
-        Lower {}
-    }
-}
 
 impl Lower {
     pub fn new() -> Self {
@@ -487,7 +481,7 @@ fn const_to_operand_data(
             ref args,
         }) => {
             // TODO: Just refactor this.
-            assert!(ty.is_pointer(&ctx.types));
+            assert!(ty.is_pointer(ctx.types));
             assert!(matches!(args[0], ConstantValue::GlobalRef(_, _)));
             let all_indices_0 = args[1..]
                 .iter()
@@ -508,12 +502,12 @@ fn const_to_operand_data(
             tys: [from, to],
             arg,
         }) => {
-            assert!(from.is_pointer(&ctx.types));
-            assert!(to.is_pointer(&ctx.types));
+            assert!(from.is_pointer(ctx.types));
+            assert!(to.is_pointer(ctx.types));
             const_to_operand_data(ctx, *to, arg)
         }
         ConstantValue::GlobalRef(ref name, ty) => {
-            assert!(ty.is_pointer(&ctx.types));
+            assert!(ty.is_pointer(ctx.types));
             let addr = ctx.mach_data.vregs.add_vreg_data(*ty);
             let src = OperandData::GlobalAddress(name.to_string().unwrap().to_owned());
             ctx.inst_seq.push(MachInstruction::new(

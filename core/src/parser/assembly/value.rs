@@ -47,10 +47,10 @@ pub fn parse_constant<'a>(
     parse_constant_expr(source, types)
 }
 
-pub fn parse_constant_int<'a>(
-    source: &'a str,
+pub fn parse_constant_int(
+    source: &str,
     ty: Type,
-) -> IResult<&'a str, ConstantInt, VerboseError<&'a str>> {
+) -> IResult<&str, ConstantInt, VerboseError<&str>> {
     let (source, num) = preceded(
         spaces,
         recognize(tuple((
@@ -105,7 +105,7 @@ pub fn parse_constant_array<'a>(
         break;
     }
     let (source, _) = preceded(spaces, char(']'))(source)?;
-    return Ok((
+    Ok((
         source,
         ConstantValue::Array(ConstantArray {
             ty,
@@ -113,7 +113,7 @@ pub fn parse_constant_array<'a>(
             elems,
             is_string: false,
         }),
-    ));
+    ))
 }
 
 pub fn parse_constant_expr<'a>(
