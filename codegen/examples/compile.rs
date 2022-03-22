@@ -22,7 +22,8 @@ fn main() {
     let opt = Opt::from_args();
     let ir = fs::read_to_string(&opt.ir_file).expect("failed to load *.ll file");
     let module = Module::try_from(ir.as_str()).expect("failed to parse LLVM Assembly");
-    let module = compile_module(&X86_64, &module).unwrap();
+    let isa = X86_64::default();
+    let module = compile_module(&isa, &module).unwrap();
     File::create(
         opt.out_file
             .unwrap_or_else(|| opt.ir_file.trim_end_matches(".ll").to_owned() + ".s"),

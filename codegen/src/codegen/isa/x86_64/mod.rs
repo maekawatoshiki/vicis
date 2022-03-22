@@ -7,10 +7,23 @@ pub mod register;
 use super::TargetIsa;
 use crate::codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc};
 use anyhow::Result;
-use vicis_core::ir::types::{self, ArrayType, CompoundType, Type, Types};
+use vicis_core::ir::{
+    module::data_layout::DataLayout,
+    types::{self, ArrayType, CompoundType, Type, Types},
+};
 
-#[derive(Copy, Clone)]
-pub struct X86_64;
+#[derive(Clone)]
+pub struct X86_64 {
+    data_layout: DataLayout,
+}
+
+impl Default for X86_64 {
+    fn default() -> Self {
+        Self {
+            data_layout: DataLayout("".to_string()),
+        }
+    }
+}
 
 impl TargetIsa for X86_64 {
     type InstInfo = instruction::InstructionInfo;
@@ -55,5 +68,9 @@ impl TargetIsa for X86_64 {
                 _ => unreachable!(),
             },
         }
+    }
+
+    fn data_layout(&self) -> &DataLayout {
+        &self.data_layout
     }
 }
