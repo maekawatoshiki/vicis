@@ -87,7 +87,7 @@ pub fn lower_load(
         }
     }
 
-    Err(LoweringError::Todo.into())
+    Err(LoweringError::Todo("Unsupported load pattern".into()).into())
 }
 
 fn lower_load_gep(
@@ -163,7 +163,7 @@ fn lower_load_gep(
                 )),
             ]
         }
-        _ => return Err(LoweringError::Todo.into()),
+        _ => return Err(LoweringError::Todo("Unsupported GEP pattern for load".into()).into()),
     };
 
     let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
@@ -181,7 +181,7 @@ fn lower_load_gep(
             ctx.block_map[&ctx.cur_block],
         )]);
     } else {
-        return Err(LoweringError::Todo.into());
+        return Err(LoweringError::Todo("Load result must be i32".into()).into());
     }
 
     Ok(())

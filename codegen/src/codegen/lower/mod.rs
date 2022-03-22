@@ -51,7 +51,7 @@ pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
 
 #[derive(Debug)]
 pub enum LoweringError {
-    Todo,
+    Todo(String),
 }
 
 pub fn compile_module<'a, T: TargetIsa>(
@@ -249,7 +249,7 @@ impl Error for LoweringError {}
 impl fmt::Display for LoweringError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Todo => write!(f, "Todo"),
+            Self::Todo(msg) => write!(f, "Todo: {}", msg),
         }
     }
 }

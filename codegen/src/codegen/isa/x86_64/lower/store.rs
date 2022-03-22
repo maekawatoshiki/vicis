@@ -23,7 +23,8 @@ pub fn lower_store(
 ) -> Result<()> {
     let mut dst_slot = None;
 
-    match ctx.ir_data.value_ref(args[1]) {
+    let dst = args[1];
+    match ctx.ir_data.value_ref(dst) {
         Value::Instruction(id) => {
             // Maybe Alloca
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
@@ -32,18 +33,23 @@ pub fn lower_store(
                 return lower_store_gep(ctx, tys, args, _align, *id);
             }
         }
-        _ => return Err(LoweringError::Todo.into()),
+        _ => {
+            return Err(
+                LoweringError::Todo("Store dest must be an instruction result".into()).into(),
+            )
+        }
     }
 
     let mut imm = None;
     let mut inst = None;
     let mut arg = None;
 
-    match ctx.ir_data.value_ref(args[0]) {
+    let src = args[0];
+    match ctx.ir_data.value_ref(src) {
         Value::Constant(ConstantValue::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
         Value::Argument(a) => arg = ctx.arg_idx_to_vreg.get(&a.nth).copied(),
-        _ => return Err(LoweringError::Todo.into()),
+        e => return Err(LoweringError::Todo(format!("Unsupported store source: {:?}", e)).into()),
     }
 
     match (dst_slot, inst, arg, imm) {
@@ -102,7 +108,7 @@ pub fn lower_store(
             )]);
             Ok(())
         }
-        _ => Err(LoweringError::Todo.into()),
+        e => Err(LoweringError::Todo(format!("Unsupported store dest pattern: {:?}", e)).into()),
     }
 }
 
@@ -182,7 +188,11 @@ fn lower_store_gep(
                 )),
             ]
         }
-        _ => return Err(LoweringError::Todo.into()),
+        e => {
+            return Err(
+                LoweringError::Todo(format!("Unsupported GEP pattern for store: {:?}", e)).into(),
+            )
+        }
     };
 
     let src = args[0];
@@ -213,7 +223,7 @@ fn lower_store_gep(
                 ctx.block_map[&ctx.cur_block],
             )]);
         }
-        _ => return Err(LoweringError::Todo.into()),
+        e => return Err(LoweringError::Todo(format!("Unsupported store source: {:?}", e)).into()),
     }
 
     Ok(())

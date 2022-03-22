@@ -100,7 +100,7 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         }) => lower_call(ctx, inst.id.unwrap(), tys, args),
         Operand::Ret(Ret { val: None, .. }) => lower_return(ctx, None),
         Operand::Ret(Ret { val: Some(val), ty }) => lower_return(ctx, Some((ty, val))),
-        _ => Err(LoweringError::Todo.into()),
+        ref e => Err(LoweringError::Todo(format!("Unsupported instruction: {:?}", e)).into()),
     }
 }
 
@@ -170,7 +170,11 @@ fn lower_bin(
                     IrOpcode::Add => Opcode::ADDri32,
                     IrOpcode::Sub => Opcode::SUBri32,
                     // IrOpcode::Mul => Opcode::MULri32,
-                    _ => return Err(LoweringError::Todo.into()),
+                    op => {
+                        return Err(
+                            LoweringError::Todo(format!("Unsupported opcode: {:?}", op)).into()
+                        )
+                    }
                 },
                 operands: vec![MO::input_output(output.into()), MO::new(rhs.into())],
             }
@@ -182,12 +186,16 @@ fn lower_bin(
                     IrOpcode::Add => Opcode::ADDrr32,
                     IrOpcode::Sub => Opcode::SUBrr32,
                     IrOpcode::Mul => Opcode::IMULrr32,
-                    _ => return Err(LoweringError::Todo.into()),
+                    op => {
+                        return Err(
+                            LoweringError::Todo(format!("Unsupported opcode: {:?}", op)).into()
+                        )
+                    }
                 },
                 operands: vec![MO::input_output(output.into()), MO::input(rhs.into())],
             }
         }
-        _ => return Err(LoweringError::Todo.into()),
+        e => return Err(LoweringError::Todo(format!("Unsupported operand: {:?}", e)).into()),
     };
 
     ctx.inst_seq
@@ -221,7 +229,11 @@ fn lower_sext(
 
             get_or_generate_inst_output(ctx, from, id)?
         }
-        _ => return Err(LoweringError::Todo.into()),
+        _ => {
+            return Err(
+                LoweringError::Todo(format!("Sext argument must be an instruction result")).into(),
+            )
+        }
     };
 
     let output = new_empty_inst_output(ctx, to, self_id);
@@ -284,7 +296,7 @@ fn lower_condbr(
                     ctx.block_map[&ctx.cur_block],
                 ));
             }
-            _ => return Err(LoweringError::Todo.into()),
+            e => return Err(LoweringError::Todo(format!("Unsupported operand: {:?}", e)).into()),
         }
 
         ctx.inst_seq.push(MachInstruction::new(
@@ -296,7 +308,13 @@ fn lower_condbr(
                     ICmpCond::Slt => Opcode::JL,
                     ICmpCond::Sge => Opcode::JGE,
                     ICmpCond::Sgt => Opcode::JG,
-                    _ => return Err(LoweringError::Todo.into()),
+                    e => {
+                        return Err(LoweringError::Todo(format!(
+                            "Unsupported icmp condition: {:?}",
+                            e
+                        ))
+                        .into())
+                    }
                 },
                 operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
             },
@@ -312,7 +330,7 @@ fn lower_condbr(
         return Ok(());
     }
 
-    Err(LoweringError::Todo.into())
+    Err(LoweringError::Todo("Unsupported conditional br pattern".into()).into())
 }
 
 fn lower_call(
@@ -340,10 +358,20 @@ fn lower_call(
                         match sz {
                             4 => Opcode::MOVrr32,
                             8 => Opcode::MOVrr64,
-                            _ => return Err(LoweringError::Todo.into()),
+                            e => {
+                                return Err(LoweringError::Todo(format!(
+                                    "Unsupported argument size: {:?}",
+                                    e
+                                ))
+                                .into())
+                            }
                         }
                     }
-                    _ => return Err(LoweringError::Todo.into()),
+                    e => {
+                        return Err(
+                            LoweringError::Todo(format!("Unsupported argument: {:?}", e)).into(),
+                        )
+                    }
                 },
                 operands: vec![MO::output(r.into()), MO::input(arg)],
             },
@@ -351,9 +379,10 @@ fn lower_call(
         ));
     }
 
-    let name = match &ctx.ir_data.values[args[0]] {
+    let callee = args[0];
+    let name = match &ctx.ir_data.values[callee] {
         Value::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => name.clone(),
-        _ => return Err(LoweringError::Todo.into()),
+        e => return Err(LoweringError::Todo(format!("Unsupported callee: {:?}", e)).into()),
     };
     let result_reg: Reg = match result_sz {
         4 => GR32::EAX.into(),
@@ -538,6 +567,6 @@ fn val_to_vreg(ctx: &mut LoweringContext<X86_64>, ty: Type, val: ValueId) -> Res
             Ok(output)
         }
         OperandData::VReg(vr) => Ok(vr),
-        _ => Err(LoweringError::Todo.into()),
+        e => Err(LoweringError::Todo(format!("Unsupported operand: {:?}", e)).into()),
     }
 }

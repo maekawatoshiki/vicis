@@ -204,7 +204,7 @@ pub struct Ret {
     pub val: Option<ValueId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Operand {
     Alloca(Alloca),
     Phi(Phi),
