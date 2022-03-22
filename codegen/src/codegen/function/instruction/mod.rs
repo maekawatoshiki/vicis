@@ -28,7 +28,7 @@ pub trait InstructionData: Clone + fmt::Debug {
     fn is_call(&self) -> bool;
 }
 
-pub trait InstructionInfo {
+pub trait TargetInst {
     type Data: InstructionData;
     fn store_vreg_to_slot<T: TargetIsa>(
         f: &Function<T>,

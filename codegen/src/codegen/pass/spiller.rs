@@ -2,7 +2,7 @@ use super::liveness::{Liveness, ProgramPoint};
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{InstructionData as ID, InstructionId, InstructionInfo as II},
+        instruction::{InstructionData as ID, InstructionId, TargetInst},
         slot::SlotId,
         Function,
     },
@@ -63,7 +63,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
                 def_block = inst.parent;
                 inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
             }
-            let inst = T::InstInfo::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
+            let inst = T::Inst::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
             let inst = self.function.data.create_inst(inst);
             self.insert_inst_after(def_id, inst, def_block);
             return;
@@ -83,7 +83,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
             }
             let def_id = def_id.unwrap();
             let def_block = def_block.unwrap();
-            let inst = T::InstInfo::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
+            let inst = T::Inst::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
             let inst = self.function.data.create_inst(inst);
             self.insert_inst_after(def_id, inst, def_block);
             return;
@@ -114,7 +114,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
                 use_block = inst.parent;
                 inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
             }
-            let inst = T::InstInfo::load_from_slot(self.function, new_vreg, slot, use_block);
+            let inst = T::Inst::load_from_slot(self.function, new_vreg, slot, use_block);
             let inst = self.function.data.create_inst(inst);
             self.insert_inst_before(use_id, inst, use_block);
         }
@@ -122,8 +122,8 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     fn insert_inst_after(
         &mut self,
-        after: InstructionId<<T::InstInfo as II>::Data>,
-        inst: InstructionId<<T::InstInfo as II>::Data>,
+        after: InstructionId<<T::Inst as TargetInst>::Data>,
+        inst: InstructionId<<T::Inst as TargetInst>::Data>,
         block: BasicBlockId,
     ) {
         let after_pp = self.liveness.inst_to_pp[&after];
@@ -136,8 +136,8 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     fn insert_inst_before(
         &mut self,
-        before: InstructionId<<T::InstInfo as II>::Data>,
-        inst: InstructionId<<T::InstInfo as II>::Data>,
+        before: InstructionId<<T::Inst as TargetInst>::Data>,
+        inst: InstructionId<<T::Inst as TargetInst>::Data>,
         block: BasicBlockId,
     ) {
         let before_pp = self.liveness.inst_to_pp[&before];

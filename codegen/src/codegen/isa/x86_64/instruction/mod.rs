@@ -1,7 +1,7 @@
 use crate::codegen::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData as ID, InstructionId, InstructionInfo as II},
+        instruction::{Instruction, InstructionData as ID, InstructionId, TargetInst},
         slot::SlotId,
         Function,
     },
@@ -73,7 +73,7 @@ pub enum OperandData {
     None,
 }
 
-impl II for InstructionInfo {
+impl TargetInst for InstructionInfo {
     type Data = InstructionData;
 
     fn store_vreg_to_slot<T: TargetIsa>(

@@ -2,7 +2,7 @@ pub mod x86_64;
 
 use crate::codegen::{
     call_conv::CallConvKind,
-    function::instruction::InstructionInfo,
+    function::instruction::TargetInst,
     lower,
     module::Module,
     register::{RegisterClass, RegisterInfo},
@@ -14,7 +14,7 @@ use vicis_core::ir::{
 };
 
 pub trait TargetIsa: Clone {
-    type InstInfo: InstructionInfo;
+    type Inst: TargetInst;
     type RegClass: RegisterClass;
     type RegInfo: RegisterInfo;
     type Lower: lower::Lower<Self>;

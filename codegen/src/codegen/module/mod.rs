@@ -1,13 +1,13 @@
 use super::{function::Function, isa::TargetIsa};
 use id_arena::Arena;
-use std::{fmt, marker::PhantomData};
+use std::fmt;
 use vicis_core::ir::{module::Module as IrModule, types::Types};
 
 pub struct Module<'a, T: TargetIsa> {
     pub ir: &'a IrModule,
     pub functions: Arena<Function<'a, T>>,
     pub types: Types,
-    pub _isa: PhantomData<fn() -> T>,
+    pub isa: &'a T,
 }
 
 impl<T: TargetIsa> fmt::Debug for Module<'_, T> {

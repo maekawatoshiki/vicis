@@ -3,7 +3,7 @@ use super::{
     function::{
         basic_block::BasicBlockId as MachBasicBlockId,
         data::Data,
-        instruction::{Instruction as MachInstruction, InstructionInfo as II},
+        instruction::{Instruction as MachInstruction, TargetInst},
         layout::Layout,
         slot::{SlotId, Slots},
         Function as MachFunction,
@@ -15,7 +15,7 @@ use super::{
 use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{error::Error, fmt, marker::PhantomData, mem};
+use std::{error::Error, fmt, mem};
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
@@ -35,11 +35,11 @@ pub trait Lower<T: TargetIsa> {
 // TODO: So confusing. Need refactoring.
 pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
-    pub mach_data: &'a mut Data<<T::InstInfo as II>::Data>,
+    pub mach_data: &'a mut Data<<T::Inst as TargetInst>::Data>,
     pub slots: &'a mut Slots<'b, T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
-    pub inst_seq: &'a mut Vec<MachInstruction<<T::InstInfo as II>::Data>>,
+    pub inst_seq: &'a mut Vec<MachInstruction<<T::Inst as TargetInst>::Data>>,
     pub types: &'a Types,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
     pub merged_inst: &'a mut FxHashSet<IrInstructionId>,
@@ -67,7 +67,7 @@ pub fn compile_module<'a, T: TargetIsa>(
         ir: module,
         functions,
         types: module.types.clone(),
-        _isa: PhantomData,
+        isa,
     };
 
     for pass in T::module_passes() {
@@ -222,7 +222,7 @@ pub fn compile_function<'a, T: TargetIsa>(
         types: function.types.clone(),
         is_declaration: function.is_prototype(),
         call_conv,
-        _isa: PhantomData,
+        isa,
     })
 }
 
