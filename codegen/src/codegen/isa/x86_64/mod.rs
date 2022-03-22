@@ -7,10 +7,7 @@ pub mod register;
 use super::TargetIsa;
 use crate::codegen::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc};
 use anyhow::Result;
-use vicis_core::ir::{
-    module::data_layout::DataLayout,
-    types::{self, ArrayType, CompoundType, Type, Types},
-};
+use vicis_core::ir::module::data_layout::DataLayout;
 
 #[derive(Clone)]
 pub struct X86_64 {
@@ -43,31 +40,6 @@ impl TargetIsa for X86_64 {
 
     fn default_call_conv() -> CallConvKind {
         CallConvKind::SystemV
-    }
-
-    fn type_size(types: &Types, ty: Type) -> u32 {
-        match types.get(ty) {
-            Some(ty) => match &*ty {
-                CompoundType::Pointer(_) => 8,
-                CompoundType::Array(ArrayType {
-                    inner,
-                    num_elements,
-                }) => Self::type_size(types, *inner) * num_elements,
-                CompoundType::Function(_) => 0,
-                CompoundType::Struct(_) => todo!(),
-                CompoundType::Metadata => todo!(),
-                CompoundType::Alias(_) => todo!(),
-            },
-            None => match ty {
-                types::VOID => 0,
-                types::I1 => 1,
-                types::I8 => 1,
-                types::I16 => 2,
-                types::I32 => 4,
-                types::I64 => 8,
-                _ => unreachable!(),
-            },
-        }
     }
 
     fn data_layout(&self) -> &DataLayout {

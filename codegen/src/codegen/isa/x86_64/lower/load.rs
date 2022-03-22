@@ -113,9 +113,13 @@ fn lower_load_gep(
         [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Const(Int(Int64(idx1)))] => {
             let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
             let base_ty = gep.operand.types()[0];
-            let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64
+            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64
                 + idx1
-                    * X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) as i64;
+                    * ctx
+                        .isa
+                        .data_layout()
+                        .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                        as i64;
             // debug!(offset);
 
             vec![
@@ -131,14 +135,19 @@ fn lower_load_gep(
             let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
 
             let base_ty = gep.operand.types()[0];
-            let offset = idx0 * X86_64::type_size(ctx.types, base_ty) as i64;
+            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64;
             // debug!(offset);
 
             let idx1_ty = gep.operand.types()[3];
             assert!(idx1_ty.is_i64());
             let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
 
-            assert!(X86_64::type_size(ctx.types, ctx.types.get_element(base_ty).unwrap()) == 4);
+            assert!(
+                ctx.isa
+                    .data_layout()
+                    .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                    == 4
+            );
 
             vec![
                 MOperand::new(OperandData::MemStart),
@@ -146,10 +155,12 @@ fn lower_load_gep(
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),
                 MOperand::input(OperandData::VReg(idx1)),
-                MOperand::new(OperandData::Int32(X86_64::type_size(
-                    ctx.types,
-                    ctx.types.get_element(base_ty).unwrap(),
-                ) as i32)),
+                MOperand::new(OperandData::Int32(
+                    ctx.isa
+                        .data_layout()
+                        .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                        as i32,
+                )),
             ]
         }
         _ => return Err(LoweringError::Todo.into()),

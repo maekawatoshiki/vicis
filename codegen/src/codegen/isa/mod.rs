@@ -8,10 +8,7 @@ use crate::codegen::{
     register::{RegisterClass, RegisterInfo},
 };
 use anyhow::Result;
-use vicis_core::ir::{
-    module::data_layout::DataLayout,
-    types::{Type, Types},
-};
+use vicis_core::ir::module::data_layout::DataLayout;
 
 pub trait TargetIsa: Clone {
     type Inst: TargetInst;
@@ -21,6 +18,5 @@ pub trait TargetIsa: Clone {
 
     fn module_passes() -> Vec<for<'a, 'b> fn(&'b mut Module<'a, Self>) -> Result<()>>; // TODO: Implement a pass manager for machine modules
     fn default_call_conv() -> CallConvKind;
-    fn type_size(types: &Types, ty: Type) -> u32; // TODO: FIXME: DataLayout can replace this.
     fn data_layout(&self) -> &DataLayout;
 }

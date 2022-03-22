@@ -111,9 +111,8 @@ fn lower_alloca(
     _num_elements: &ConstantValue,
     _align: u32,
 ) -> Result<()> {
-    let slot_id = ctx
-        .slots
-        .add_slot(tys[0], X86_64::type_size(ctx.types, tys[0]));
+    let sz = ctx.isa.data_layout().get_size_of(ctx.types, tys[0]) as u32;
+    let slot_id = ctx.slots.add_slot(tys[0], sz);
     ctx.inst_id_to_slot_id.insert(id, slot_id);
     Ok(())
 }
@@ -321,7 +320,7 @@ fn lower_call(
     args: &[ValueId],
 ) -> Result<()> {
     let result_ty = tys[0];
-    let result_sz = X86_64::type_size(ctx.types, result_ty);
+    let result_sz = ctx.isa.data_layout().get_size_of(ctx.types, result_ty);
     let output = new_empty_inst_output(ctx, result_ty, id);
 
     let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
@@ -335,7 +334,7 @@ fn lower_call(
                     OperandData::Reg(_) => Opcode::MOVrr32, // TODO: FIXME
                     OperandData::VReg(vreg) => {
                         let ty = ctx.mach_data.vregs.type_for(*vreg);
-                        let sz = X86_64::type_size(ctx.types, ty);
+                        let sz = ctx.isa.data_layout().get_size_of(ctx.types, ty);
                         match sz {
                             4 => Opcode::MOVrr32,
                             8 => Opcode::MOVrr64,

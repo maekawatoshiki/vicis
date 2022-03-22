@@ -46,6 +46,7 @@ pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub call_conv: CallConvKind,
     pub cur_block: IrBasicBlockId,
+    pub isa: &'a T,
 }
 
 #[derive(Debug)]
@@ -133,6 +134,7 @@ pub fn compile_function<'a, T: TargetIsa>(
                     block_map: &block_map,
                     call_conv,
                     cur_block: block_id,
+                    isa,
                 },
                 function.params(),
             )?;
@@ -159,6 +161,7 @@ pub fn compile_function<'a, T: TargetIsa>(
                     block_map: &block_map,
                     call_conv,
                     cur_block: block_id,
+                    isa,
                 },
                 inst,
             )?;
@@ -197,6 +200,7 @@ pub fn compile_function<'a, T: TargetIsa>(
                     block_map: &block_map,
                     call_conv,
                     cur_block: block_id,
+                    isa,
                 },
                 inst,
             )?;
