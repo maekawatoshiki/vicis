@@ -169,6 +169,7 @@ fn lower_bin(
                 opcode: match op {
                     IrOpcode::Add => Opcode::ADDri32,
                     IrOpcode::Sub => Opcode::SUBri32,
+                    // IrOpcode::Mul => Opcode::MULri32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
                 operands: vec![MO::input_output(output.into()), MO::new(rhs.into())],
@@ -180,6 +181,7 @@ fn lower_bin(
                 opcode: match op {
                     IrOpcode::Add => Opcode::ADDrr32,
                     IrOpcode::Sub => Opcode::SUBrr32,
+                    IrOpcode::Mul => Opcode::IMULrr32,
                     _ => return Err(LoweringError::Todo.into()),
                 },
                 operands: vec![MO::input_output(output.into()), MO::input(rhs.into())],

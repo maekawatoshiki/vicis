@@ -22,7 +22,6 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     pub fn spill(&mut self, vreg: VReg, new_vregs: &mut Vec<VReg>) {
         let ty = self.function.data.vregs.type_for(vreg);
-        assert!(ty.is_i32());
         let sz = self
             .function
             .isa

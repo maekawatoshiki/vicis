@@ -28,13 +28,17 @@ pub enum Opcode {
     SUBr64i32,
     SUBri32,
     SUBrr32,
+    // MULri32,
+    IMULrr32,
     MOVrr32,
     MOVrr64,
     MOVri32,
     MOVri64,
     MOVrm32,
+    MOVrm64,
     MOVmi32,
     MOVmr32,
+    MOVmr64,
     MOVSXDr64r32,
     MOVSXDr64m32,
     CMPri32,
@@ -83,10 +87,15 @@ impl TargetInst for InstructionInfo {
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
         let ty = f.data.vregs.type_for(vreg);
-        assert!(ty.is_i32());
+        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
+        assert!(sz == 4 || sz == 8);
         Instruction::new(
             InstructionData {
-                opcode: Opcode::MOVmr32,
+                opcode: match sz {
+                    4 => Opcode::MOVmr32,
+                    8 => Opcode::MOVmr64,
+                    _ => unreachable!(),
+                },
                 operands: vec![
                     Operand::new(OperandData::MemStart),
                     Operand::new(OperandData::Slot(slot)),
@@ -108,10 +117,15 @@ impl TargetInst for InstructionInfo {
         block: BasicBlockId,
     ) -> Instruction<Self::Data> {
         let ty = f.data.vregs.type_for(vreg);
-        assert!(ty.is_i32());
+        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
+        assert!(sz == 4 || sz == 8);
         Instruction::new(
             InstructionData {
-                opcode: Opcode::MOVrm32,
+                opcode: match sz {
+                    4 => Opcode::MOVrm32,
+                    8 => Opcode::MOVrm64,
+                    _ => unreachable!(),
+                },
                 operands: vec![
                     Operand::output(vreg.into()),
                     Operand::new(OperandData::MemStart),
