@@ -26,7 +26,7 @@ use vicis_core::ir::{
         Parameter,
     },
     module::name::Name,
-    types::Type,
+    types::{CompoundType, FunctionType, Type},
     value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
 };
 
@@ -339,7 +339,12 @@ fn lower_call(
     tys: &[Type],
     args: &[ValueId],
 ) -> Result<()> {
-    let result_ty = tys[0];
+    let result_ty = if let Some(ty) = ctx.types.get(tys[0])
+                    && let CompoundType::Function(FunctionType { ret, .. }) = &*ty {
+        *ret
+    } else {
+        tys[0]
+    };
     let result_sz = ctx.isa.data_layout().get_size_of(ctx.types, result_ty);
     let output = new_empty_inst_output(ctx, result_ty, id);
 

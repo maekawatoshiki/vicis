@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 extern crate vicis_core;
 
 #[macro_use]

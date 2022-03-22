@@ -23,7 +23,7 @@ impl DataLayout {
                 }
                 CompoundType::Pointer(_) => 8,
                 CompoundType::Struct(s) => StructLayout::new(self, types, s).get_size(),
-                _ => todo!(),
+                e => todo!("{:?}", e),
             },
             None => match ty {
                 types::VOID => 0,

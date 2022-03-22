@@ -135,6 +135,10 @@ impl Types {
         self.base().is_struct(ty)
     }
 
+    pub fn is_function(&self, ty: Type) -> bool {
+        self.base().is_function(ty)
+    }
+
     pub fn metadata(&self) -> Type {
         self.base().caches.metadata
     }
@@ -184,6 +188,10 @@ impl TypesBase {
 
     pub fn is_array(&self, ty: Type) -> bool {
         matches!(self.get(ty), Some(CompoundType::Array(_)))
+    }
+
+    pub fn is_function(&self, ty: Type) -> bool {
+        matches!(self.get(ty), Some(CompoundType::Function(_)))
     }
 
     pub fn new_type(&mut self, ty: CompoundType) -> Type {
@@ -430,6 +438,10 @@ impl Type {
 
     pub fn is_struct(&self, types: &Types) -> bool {
         types.is_struct(*self)
+    }
+
+    pub fn is_function(&self, types: &Types) -> bool {
+        types.is_function(*self)
     }
 }
 
