@@ -5,10 +5,13 @@ use vicis_core::ir::{
 
 use crate::codegen::{
     function::Function,
-    isa::x86_64::{
-        instruction::{Opcode, Operand, OperandData},
-        register::reg_to_str,
-        X86_64,
+    isa::{
+        x86_64::{
+            instruction::{Opcode, Operand, OperandData},
+            register::reg_to_str,
+            X86_64,
+        },
+        TargetIsa,
     },
     module::Module,
 };
@@ -72,8 +75,10 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
                 writeln!(f, "{}:", gv.name.as_string())?;
                 writeln!(f, "  .string \"{}\"", s)?;
             }
-            ConstantValue::AggregateZero(_ty) => {
-                writeln!(f, "  .comm {},{},{}", gv.name.as_string(), 1, 1)?;
+            ConstantValue::AggregateZero(ty) => {
+                let size = module.isa.data_layout().get_size_of(&module.types, *ty);
+                let align = module.isa.data_layout().get_align_of(&module.types, *ty);
+                writeln!(f, "  .comm {},{},{}", gv.name.as_string(), size, align)?;
             }
             e => todo!("Unsupported initializer: {:?}", e),
         }
