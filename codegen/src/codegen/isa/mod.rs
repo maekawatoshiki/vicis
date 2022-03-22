@@ -10,7 +10,7 @@ use crate::codegen::{
 use anyhow::Result;
 use vicis_core::ir::types::{Type, Types};
 
-pub trait TargetIsa: Copy {
+pub trait TargetIsa: Clone {
     type InstInfo: InstructionInfo;
     type RegClass: RegisterClass;
     type RegInfo: RegisterInfo;

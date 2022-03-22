@@ -4,8 +4,8 @@ use vicis_core::ir::types::Type;
 
 pub type SlotId = Id<Slot>;
 
-pub struct Slots<T: TargetIsa> {
-    pub isa: T,
+pub struct Slots<'a, T: TargetIsa> {
+    pub isa: &'a T,
     arena: Arena<Slot>,
 }
 
@@ -20,8 +20,8 @@ pub struct Slot {
     pub(crate) align: u32,
 }
 
-impl<T: TargetIsa> Slots<T> {
-    pub fn new(isa: T) -> Self {
+impl<'a, T: TargetIsa> Slots<'a, T> {
+    pub fn new(isa: &'a T) -> Self {
         Self {
             isa,
             arena: Arena::new(),

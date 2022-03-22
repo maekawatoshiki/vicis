@@ -10,7 +10,7 @@ macro_rules! test {
             let input = format!("{}{}.ll", parent, $name);
             let input_body = &fs::read_to_string(input).unwrap();
             let module = Module::try_from(input_body.as_str()).unwrap();
-            let mach_module = compile_module(X86_64, &module).unwrap();
+            let mach_module = compile_module(&X86_64, &module).unwrap();
             insta::assert_display_snapshot!(mach_module);
         }
     };

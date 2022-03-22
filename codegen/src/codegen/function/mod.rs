@@ -14,7 +14,7 @@ pub struct Function<'a, T: TargetIsa> {
     pub ir: &'a IrFunction,
     pub data: data::Data<<T::InstInfo as InstructionInfo>::Data>,
     pub layout: layout::Layout<<T::InstInfo as InstructionInfo>::Data>,
-    pub slots: slot::Slots<T>,
+    pub slots: slot::Slots<'a, T>,
     pub types: Types,
     pub is_declaration: bool,
     pub call_conv: CallConvKind,

@@ -33,10 +33,10 @@ pub trait Lower<T: TargetIsa> {
 }
 
 // TODO: So confusing. Need refactoring.
-pub struct LoweringContext<'a, T: TargetIsa> {
+pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
     pub mach_data: &'a mut Data<<T::InstInfo as II>::Data>,
-    pub slots: &'a mut Slots<T>,
+    pub slots: &'a mut Slots<'b, T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
     pub inst_seq: &'a mut Vec<MachInstruction<<T::InstInfo as II>::Data>>,
@@ -53,7 +53,10 @@ pub enum LoweringError {
     Todo,
 }
 
-pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachModule<T>> {
+pub fn compile_module<'a, T: TargetIsa>(
+    isa: &'a T,
+    module: &'a IrModule,
+) -> Result<MachModule<'a, T>> {
     let mut functions = Arena::new();
 
     for (_, function) in module.functions() {
@@ -74,7 +77,10 @@ pub fn compile_module<T: TargetIsa>(isa: T, module: &IrModule) -> Result<MachMod
     Ok(mach_module)
 }
 
-pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<MachFunction<T>> {
+pub fn compile_function<'a, T: TargetIsa>(
+    isa: &'a T,
+    function: &'a IrFunction,
+) -> Result<MachFunction<'a, T>> {
     let mut slots = Slots::new(isa);
     let mut data = Data::new();
     let mut layout = Layout::new();
@@ -220,7 +226,7 @@ pub fn compile_function<T: TargetIsa>(isa: T, function: &IrFunction) -> Result<M
     })
 }
 
-impl<'a, T: TargetIsa> LoweringContext<'a, T> {
+impl<'a, 'b, T: TargetIsa> LoweringContext<'a, 'b, T> {
     pub fn set_output_for_inst(&mut self, id: IrInstructionId, vreg: VReg) {
         self.inst_id_to_vreg.insert(id, vreg);
     }
