@@ -97,7 +97,14 @@ pub fn print_function(
         return Ok(());
     }
 
-    writeln!(f, "  .globl {}", function.ir.name())?;
+    if let Some(name) = &function.ir.section {
+        writeln!(f, "  .section {}", name)?;
+    } else {
+        writeln!(f, "  .text")?;
+    }
+    if !function.ir.linkage.is_internal() {
+        writeln!(f, "  .globl {}", function.ir.name())?;
+    }
     writeln!(f, "{}:", function.ir.name())?;
 
     for block in function.layout.block_iter() {

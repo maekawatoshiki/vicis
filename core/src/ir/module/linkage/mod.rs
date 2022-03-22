@@ -21,6 +21,12 @@ pub enum Linkage {
     LinkerPrivateWeak,
 }
 
+impl Linkage {
+    pub fn is_internal(&self) -> bool {
+        matches!(self, Linkage::Internal)
+    }
+}
+
 impl fmt::Debug for Linkage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

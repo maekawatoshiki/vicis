@@ -1,10 +1,11 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 26
+assertion_line: 29
 expression: mach_module
 ---
   .text
   .intel_syntax noprefix
+  .text
   .globl fibo
 fibo:
 .LBL0_0:
@@ -37,6 +38,7 @@ fibo:
   add rsp, 16
   pop rbp
   ret 
+  .text
   .globl main
 main:
 .LBL1_0:
