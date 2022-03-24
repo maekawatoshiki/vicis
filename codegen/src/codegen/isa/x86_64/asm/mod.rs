@@ -171,7 +171,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVmi32
                 | Self::MOVmr32 => "mov",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
-                Self::CMPri32 => "cmp",
+                Self::CMPri32 | Self::CMPrr32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
                 Self::JNE => "jne",

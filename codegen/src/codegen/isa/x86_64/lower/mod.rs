@@ -296,6 +296,17 @@ fn lower_condbr(
                     ctx.block_map[&ctx.cur_block],
                 ));
             }
+            Value::Instruction(id) => {
+                assert!(ty.is_i32());
+                let rhs = get_or_generate_inst_output(ctx, *ty, *id)?;
+                ctx.inst_seq.push(MachInstruction::new(
+                    InstructionData {
+                        opcode: Opcode::CMPrr32,
+                        operands: vec![MO::input(lhs.into()), MO::input(rhs.into())],
+                    },
+                    ctx.block_map[&ctx.cur_block],
+                ));
+            }
             e => return Err(LoweringError::Todo(format!("Unsupported operand: {:?}", e)).into()),
         }
 
