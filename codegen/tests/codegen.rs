@@ -32,3 +32,4 @@ test!(test_phi, "phi");
 test!(test_phi2, "phi2");
 test!(test_puts, "puts");
 test!(test_sum, "sum");
+test!(test_hello, "hello");

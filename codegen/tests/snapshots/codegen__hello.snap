@@ -1,0 +1,52 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 35
+expression: mach_module
+---
+  .text
+  .intel_syntax noprefix
+  .section .text.startup
+__cxx_global_var_init:
+.LBL0_0:
+  push rbp
+  mov rbp, rsp
+  mov rdi, offset _ZStL8__ioinit
+  call _ZNSt8ios_base4InitC1Ev
+  mov rdi, offset _ZNSt8ios_base4InitD1Ev
+  mov rsi, offset _ZStL8__ioinit
+  mov rdx, offset __dso_handle
+  call __cxa_atexit
+  pop rbp
+  ret 
+  .text
+  .globl main
+main:
+.LBL4_0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-4], 0
+  mov rdi, offset _ZSt4cout
+  mov rsi, offset .str
+  call _ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc
+  mov rdi, rax
+  mov rsi, offset _ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_
+  call _ZNSolsEPFRSoS_E
+  mov eax, 0
+  add rsp, 16
+  pop rbp
+  ret 
+  .section .text.startup
+_GLOBAL__sub_I_hello.cc:
+.LBL8_0:
+  push rbp
+  mov rbp, rsp
+  call __cxx_global_var_init
+  pop rbp
+  ret 
+  .comm _ZStL8__ioinit,1,1
+.str:
+  .string "hello world"
+  .section .init_array
+  .quad _GLOBAL__sub_I_hello.cc
+
