@@ -81,7 +81,7 @@ impl<'a> SCCP<'a> {
     fn is_foldable(&self, inst: &Instruction) -> bool {
         matches!(
             inst.opcode,
-            Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::ICmp | Opcode::Zext
+            Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::ICmp | Opcode::Zext | Opcode::Sext
         ) && inst
             .operand
             .args()

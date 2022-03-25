@@ -294,7 +294,17 @@ impl Instruction {
                     _ => None,
                 }
             }
-            Operand::Cast(_) => todo!(),
+            Operand::Cast(ref cast)
+                if self.opcode == Opcode::Sext && cast.tys[0].is_i32() && cast.tys[1].is_i64() =>
+            {
+                let arg = data.value_ref(cast.arg);
+                match arg {
+                    Value::Constant(ConstantValue::Int(ConstantInt::Int32(x))) => {
+                        Some(ConstantValue::Int(ConstantInt::Int64(*x as i64)))
+                    }
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
