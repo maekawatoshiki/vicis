@@ -171,18 +171,10 @@ pub fn compile_function<'a, T: TargetIsa>(
             let inst = function.data.inst_ref(inst_id);
 
             if inst.opcode == Opcode::Alloca || inst.opcode == Opcode::Phi {
-                break;
+                continue;
             }
 
-            // Check if `inst` has no side effects and has user instructions placed in
-            // the same basic block
-            if !inst.opcode.has_side_effects()
-                && function
-                    .data
-                    .users_of(inst_id)
-                    .iter()
-                    .all(|&user| function.data.inst_ref(user).parent == inst.parent)
-            {
+            if merged_inst.contains(&inst_id) {
                 continue;
             }
 

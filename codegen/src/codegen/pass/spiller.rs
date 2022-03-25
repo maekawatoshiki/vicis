@@ -90,7 +90,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
             return;
         }
 
-        panic!("invalid")
+        panic!("invalid defs len: {}", defs.len())
     }
 
     fn insert_reload(&mut self, vreg: VReg, slot: SlotId, new_vregs: &mut Vec<VReg>) {

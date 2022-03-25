@@ -195,6 +195,8 @@ fn lower_store_gep(
         }
     };
 
+    ctx.mark_as_merged(gep_id);
+
     let src = args[0];
     let src_ty = tys[0];
     match ctx.ir_data.value_ref(src) {

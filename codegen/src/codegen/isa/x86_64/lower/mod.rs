@@ -268,12 +268,12 @@ fn lower_condbr(
     fn is_icmp<'a>(
         data: &'a IrData,
         val: &Value,
-    ) -> Option<(&'a Type, &'a [ValueId; 2], &'a ICmpCond)> {
+    ) -> Option<(InstructionId, &'a Type, &'a [ValueId; 2], &'a ICmpCond)> {
         match val {
             Value::Instruction(id) => {
                 let inst = data.inst_ref(*id);
                 match &inst.operand {
-                    Operand::ICmp(ICmp { ty, args, cond }) => Some((ty, args, cond)),
+                    Operand::ICmp(ICmp { ty, args, cond }) => Some((*id, ty, args, cond)),
                     _ => None,
                 }
             }
@@ -283,7 +283,8 @@ fn lower_condbr(
 
     let arg = ctx.ir_data.value_ref(arg);
 
-    if let Some((ty, args, cond)) = is_icmp(ctx.ir_data, arg) {
+    if let Some((icmp, ty, args, cond)) = is_icmp(ctx.ir_data, arg) {
+        ctx.mark_as_merged(icmp);
         let lhs = val_to_vreg(ctx, *ty, args[0])?;
         let rhs = ctx.ir_data.value_ref(args[1]);
         match rhs {
@@ -479,16 +480,7 @@ fn get_or_generate_inst_output(
         return Ok(vreg);
     }
 
-    let inst = ctx.ir_data.inst_ref(id);
-
-    if inst.opcode.has_side_effects() {
-        let vreg = new_empty_inst_output(ctx, ty, id);
-        Ok(vreg)
-    } else {
-        // TODO: What about instruction scheduling?
-        lower(ctx, inst)?;
-        get_or_generate_inst_output(ctx, ty, id)
-    }
+    Ok(new_empty_inst_output(ctx, ty, id))
 }
 
 fn new_empty_inst_output(ctx: &mut LoweringContext<X86_64>, ty: Type, id: InstructionId) -> VReg {

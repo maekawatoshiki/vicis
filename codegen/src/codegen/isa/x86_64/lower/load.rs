@@ -166,6 +166,11 @@ fn lower_load_gep(
         _ => return Err(LoweringError::Todo("Unsupported GEP pattern for load".into()).into()),
     };
 
+    ctx.mark_as_merged(gep_id);
+    if let Some(sext) = sext {
+        ctx.mark_as_merged(sext);
+    }
+
     let output = new_empty_inst_output(ctx, tys[0], sext.unwrap_or(id));
 
     let src_ty = tys[0];

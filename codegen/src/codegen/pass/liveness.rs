@@ -251,10 +251,13 @@ impl<T: TargetIsa> Liveness<T> {
 
                 // inputs
                 for input in inst.data.input_vregs() {
-                    local_vreg_lr_map.get_mut(&input).unwrap().end =
-                        ProgramPoint(block_num, inst_num);
-                    local_vreg_lr_map.get_mut(&input).unwrap().end =
-                        ProgramPoint(block_num, inst_num);
+                    local_vreg_lr_map
+                        .entry(input)
+                        .or_insert_with(|| LiveSegment {
+                            start: ProgramPoint(block_num, 0),
+                            end: ProgramPoint(block_num, 0),
+                        })
+                        .end = ProgramPoint(block_num, inst_num);
                 }
                 for input in inst.data.input_regs() {
                     local_reg_lr_map
@@ -383,15 +386,35 @@ impl<T: TargetIsa> Liveness<T> {
         inst: &Instruction<<T::Inst as TargetInst>::Data>,
         block_id: BasicBlockId,
     ) {
-        for input in inst.data.input_vregs() {
-            self.propagate_reg(func, Reg::Virt(input), block_id);
+        for (i, input) in inst.data.input_vregs_with_indexes() {
+            self.propagate_reg(
+                func,
+                Reg::Virt(input),
+                block_id,
+                if inst.data.is_phi() {
+                    inst.data.block_at(i)
+                } else {
+                    None
+                },
+            );
         }
         for input in inst.data.input_regs() {
-            self.propagate_reg(func, Reg::Phys(T::RegInfo::to_reg_unit(input)), block_id);
+            self.propagate_reg(
+                func,
+                Reg::Phys(T::RegInfo::to_reg_unit(input)),
+                block_id,
+                None,
+            );
         }
     }
 
-    fn propagate_reg(&mut self, func: &Function<T>, input: Reg, block_id: BasicBlockId) {
+    fn propagate_reg(
+        &mut self,
+        func: &Function<T>,
+        input: Reg,
+        block_id: BasicBlockId,
+        phi_pred: Option<BasicBlockId>,
+    ) {
         {
             let data = self.block_data.get_mut(&block_id).unwrap();
 
@@ -404,7 +427,10 @@ impl<T: TargetIsa> Liveness<T> {
             }
         }
 
-        for pred_id in &func.data.basic_blocks[block_id].preds {
+        for pred_id in func.data.basic_blocks[block_id].preds.iter() {
+            if let Some(phi_pred) = phi_pred && *pred_id == phi_pred {
+                continue;
+            }
             if self
                 .block_data
                 .get_mut(pred_id)
@@ -412,7 +438,7 @@ impl<T: TargetIsa> Liveness<T> {
                 .live_out
                 .insert(input)
             {
-                self.propagate_reg(func, input, *pred_id);
+                self.propagate_reg(func, input, *pred_id, None);
             }
         }
     }

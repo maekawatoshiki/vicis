@@ -10,6 +10,7 @@ pub type InstructionId<Data> = Id<Instruction<Data>>;
 
 pub trait InstructionData: Clone + fmt::Debug {
     // TODO(FIXME): Too many methods?
+    fn input_vregs_with_indexes(&self) -> Vec<(usize, VReg)>;
     fn input_vregs(&self) -> Vec<VReg>;
     fn output_vregs(&self) -> Vec<VReg>;
     fn all_vregs(&self) -> Vec<VReg>;
@@ -24,8 +25,10 @@ pub trait InstructionData: Clone + fmt::Debug {
         from: VReg,
         to: VReg,
     );
+    fn block_at(&self, i: usize) -> Option<BasicBlockId>;
     fn is_copy(&self) -> bool;
     fn is_call(&self) -> bool;
+    fn is_phi(&self) -> bool;
 }
 
 pub trait TargetInst {

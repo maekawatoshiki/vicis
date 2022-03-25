@@ -18,7 +18,7 @@ pub struct InstructionData {
     pub operands: Vec<Operand>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Opcode {
     PUSH64,
     POP64,
@@ -158,6 +158,21 @@ impl ID for InstructionData {
         vrs
     }
 
+    fn input_vregs_with_indexes(&self) -> Vec<(usize, VReg)> {
+        let mut list = vec![];
+        for (i, operand) in self.operands.iter().enumerate() {
+            if let Operand {
+                data: OperandData::VReg(vr),
+                input: true,
+                ..
+            } = operand
+            {
+                list.push((i, *vr))
+            }
+        }
+        list
+    }
+
     fn output_vregs(&self) -> Vec<VReg> {
         let mut vrs = vec![];
         for operand in &self.operands {
@@ -257,12 +272,23 @@ impl ID for InstructionData {
         }
     }
 
+    fn block_at(&self, i: usize) -> Option<BasicBlockId> {
+        self.operands.get(i).and_then(|data| match data.data {
+            OperandData::Block(b) => Some(b),
+            _ => None,
+        })
+    }
+
     fn is_copy(&self) -> bool {
         matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
     }
 
     fn is_call(&self) -> bool {
-        matches!(self.opcode, Opcode::CALL)
+        self.opcode == Opcode::CALL
+    }
+
+    fn is_phi(&self) -> bool {
+        self.opcode == Opcode::Phi
     }
 }
 
@@ -381,6 +407,9 @@ impl fmt::Debug for Operand {
         // }
         if self.output {
             flags.push("def")
+        }
+        if self.input {
+            flags.push("use")
         }
         if self.implicit {
             flags.push("imp")

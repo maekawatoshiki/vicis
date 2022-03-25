@@ -1,5 +1,8 @@
 use crate::codegen::{
-    function::{instruction::InstructionData, Function},
+    function::{
+        instruction::{InstructionData, InstructionId, TargetInst},
+        Function,
+    },
     isa::TargetIsa,
     module::Module,
     pass::liveness,
@@ -21,7 +24,6 @@ pub fn run_on_module<T: TargetIsa>(module: &mut Module<T>) -> Result<()> {
 pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     let mut liveness = liveness::Liveness::<T>::new();
     liveness.analyze_function(function);
-    debug!(&function);
 
     let mut all_vregs = FxHashSet::default();
     for block_id in function.layout.block_iter() {
@@ -128,7 +130,8 @@ pub fn collect_preferred_registers<T: TargetIsa>(
 ) -> FxHashMap<VReg, Vec<Reg>> {
     let mut preferred = FxHashMap::default();
     for &vreg in all_vregs {
-        let rs = find_preferred_registers(function, vreg);
+        let mut visited = FxHashSet::default();
+        let rs = find_preferred_registers(function, vreg, &mut visited);
         if !rs.is_empty() {
             preferred.insert(vreg, rs);
         }
@@ -136,11 +139,18 @@ pub fn collect_preferred_registers<T: TargetIsa>(
     preferred
 }
 
-pub fn find_preferred_registers<T: TargetIsa>(function: &Function<T>, vreg: VReg) -> Vec<Reg> {
+pub fn find_preferred_registers<T: TargetIsa>(
+    function: &Function<T>,
+    vreg: VReg,
+    visited: &mut FxHashSet<InstructionId<<T::Inst as TargetInst>::Data>>,
+) -> Vec<Reg> {
     let mut list = vec![];
     let users = function.data.vreg_users.get(vreg);
     for user in users {
         let inst = function.data.inst_ref(user.inst_id);
+        if !visited.insert(user.inst_id) {
+            continue;
+        }
         if user.write {
             continue;
         }
@@ -154,7 +164,7 @@ pub fn find_preferred_registers<T: TargetIsa>(function: &Function<T>, vreg: VReg
             let regs = inst.data.output_vregs();
             if !regs.is_empty() {
                 let dst = regs[0]; // TODO: Why do we know the first element of `regs` is destination?
-                list.extend(find_preferred_registers(function, dst).into_iter());
+                list.extend(find_preferred_registers(function, dst, visited).into_iter());
             }
         }
     }
