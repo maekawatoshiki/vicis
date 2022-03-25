@@ -374,16 +374,16 @@ impl<'a> Mem2Reg<'a> {
 
             for inst_id in self.func.layout.inst_iter(data.cur) {
                 let inst = self.func.data.inst_ref(inst_id);
-                let alloca_id = *self
-                    .func
-                    .data
-                    .value_ref(match inst.opcode {
+                let alloca_id = if let Value::Instruction(id) =
+                    *self.func.data.value_ref(match inst.opcode {
                         Opcode::Store => inst.operand.as_store().unwrap().dst_val(),
                         Opcode::Load => inst.operand.as_load().unwrap().src_val(),
                         _ => continue,
-                    })
-                    .as_inst()
-                    .unwrap();
+                    }) {
+                    id
+                } else {
+                    continue;
+                };
                 if !alloca_list.contains(&alloca_id) {
                     continue;
                 }
