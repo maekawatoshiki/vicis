@@ -392,7 +392,7 @@ impl<T: TargetIsa> Liveness<T> {
                 Reg::Virt(input),
                 block_id,
                 if inst.data.is_phi() {
-                    inst.data.block_at(i)
+                    inst.data.block_at(i + 1)
                 } else {
                     None
                 },
@@ -428,7 +428,7 @@ impl<T: TargetIsa> Liveness<T> {
         }
 
         for pred_id in func.data.basic_blocks[block_id].preds.iter() {
-            if let Some(phi_pred) = phi_pred && *pred_id == phi_pred {
+            if let Some(phi_pred) = phi_pred && *pred_id != phi_pred {
                 continue;
             }
             if self
