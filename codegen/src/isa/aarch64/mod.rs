@@ -1,10 +1,12 @@
+#![allow(dead_code)]
+
 // pub mod asm;
 // pub mod instruction;
 // pub mod lower;
 // pub mod pass;
 // pub mod register;
 
-use super::TargetIsa;
+// use super::TargetIsa;
 // use crate::{call_conv::CallConvKind, isa::x86_64, module::Module, pass::regalloc};
 // use anyhow::Result;
 use vicis_core::ir::module::data_layout::DataLayout;
