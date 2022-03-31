@@ -1,7 +1,7 @@
 use crate::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData as ID, InstructionId, TargetInst},
+        instruction::{Instruction, InstructionId, TargetInst},
         Function,
     },
     isa::TargetIsa,
@@ -15,7 +15,7 @@ pub struct Liveness<T: TargetIsa> {
     pub block_data: FxHashMap<BasicBlockId, BlockData>,
     pub vreg_lrs_map: FxHashMap<VReg, LiveRange>,
     pub reg_lrs_map: FxHashMap<RegUnit, LiveRange>,
-    pub inst_to_pp: FxHashMap<InstructionId<<T::Inst as TargetInst>::Data>, ProgramPoint>,
+    pub inst_to_pp: FxHashMap<InstructionId<T::Inst>, ProgramPoint>,
 }
 
 // `LiveSegment`s are sorted in ascending order by `start`
@@ -350,11 +350,7 @@ impl<T: TargetIsa> Liveness<T> {
         }
     }
 
-    fn set_def_on_inst(
-        &mut self,
-        inst: &Instruction<<T::Inst as TargetInst>::Data>,
-        block_id: BasicBlockId,
-    ) {
+    fn set_def_on_inst(&mut self, inst: &Instruction<T::Inst>, block_id: BasicBlockId) {
         for output in inst.data.output_vregs() {
             self.block_data
                 .entry(block_id)
@@ -383,7 +379,7 @@ impl<T: TargetIsa> Liveness<T> {
     fn visit_inst(
         &mut self,
         func: &Function<T>,
-        inst: &Instruction<<T::Inst as TargetInst>::Data>,
+        inst: &Instruction<T::Inst>,
         block_id: BasicBlockId,
     ) {
         for (i, input) in inst.data.input_vregs_with_indexes() {

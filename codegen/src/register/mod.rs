@@ -1,6 +1,6 @@
 use crate::{
     call_conv::CallConvKind,
-    function::instruction::{InstructionData as ID, InstructionId},
+    function::instruction::{InstructionId, TargetInst},
 };
 use rustc_hash::FxHashMap;
 use vicis_core::ir::types::{Type, Types};
@@ -26,12 +26,12 @@ pub struct VRegData {
     // ...
 }
 
-pub struct VRegUsers<Data: ID> {
+pub struct VRegUsers<Data: TargetInst> {
     pub vreg_to_insts: FxHashMap<VReg, Vec<VRegUser<Data>>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VRegUser<Data: ID> {
+pub struct VRegUser<Data: TargetInst> {
     pub inst_id: InstructionId<Data>,
     pub read: bool,
     pub write: bool,
@@ -81,7 +81,7 @@ impl VRegs {
     }
 }
 
-impl<Data: ID> Default for VRegUsers<Data> {
+impl<Data: TargetInst> Default for VRegUsers<Data> {
     fn default() -> Self {
         Self {
             vreg_to_insts: FxHashMap::default(),
@@ -89,7 +89,7 @@ impl<Data: ID> Default for VRegUsers<Data> {
     }
 }
 
-impl<Data: ID> VRegUsers<Data> {
+impl<Data: TargetInst> VRegUsers<Data> {
     pub fn new() -> Self {
         Self::default()
     }

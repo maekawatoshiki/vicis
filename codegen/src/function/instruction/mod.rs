@@ -4,11 +4,11 @@ use crate::{
     register::{Reg, VReg, VRegUsers},
 };
 use id_arena::Id;
-use std::fmt;
+use std::fmt::Debug;
 
 pub type InstructionId<Data> = Id<Instruction<Data>>;
 
-pub trait InstructionData: Clone + fmt::Debug {
+pub trait TargetInst: Clone + Debug {
     // TODO(FIXME): Too many methods?
     fn input_vregs_with_indexes(&self) -> Vec<(usize, VReg)>;
     fn input_vregs(&self) -> Vec<VReg>;
@@ -29,32 +29,29 @@ pub trait InstructionData: Clone + fmt::Debug {
     fn is_copy(&self) -> bool;
     fn is_call(&self) -> bool;
     fn is_phi(&self) -> bool;
-}
 
-pub trait TargetInst {
-    type Data: InstructionData;
     fn store_vreg_to_slot<T: TargetIsa>(
         f: &Function<T>,
         vreg: VReg,
         slot: SlotId,
         block: BasicBlockId,
-    ) -> Instruction<Self::Data>;
+    ) -> Instruction<Self>;
     fn load_from_slot<T: TargetIsa>(
         f: &Function<T>,
         vreg: VReg,
         slot: SlotId,
         block: BasicBlockId,
-    ) -> Instruction<Self::Data>;
+    ) -> Instruction<Self>;
 }
 
 #[derive(Debug, Clone)]
-pub struct Instruction<Data: InstructionData> {
+pub struct Instruction<Data: TargetInst> {
     pub id: Option<InstructionId<Data>>,
     pub data: Data,
     pub parent: BasicBlockId,
 }
 
-impl<Data: InstructionData> Instruction<Data> {
+impl<Data: TargetInst> Instruction<Data> {
     pub fn new(data: Data, parent: BasicBlockId) -> Self {
         Self {
             id: None,
@@ -67,5 +64,23 @@ impl<Data: InstructionData> Instruction<Data> {
         if let Some(id) = self.id {
             self.data.replace_vreg(id, users, from, to)
         }
+    }
+
+    pub fn store_vreg_to_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Data> {
+        Data::store_vreg_to_slot(f, vreg, slot, block)
+    }
+
+    pub fn load_from_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Data> {
+        Data::load_from_slot(f, vreg, slot, block)
     }
 }

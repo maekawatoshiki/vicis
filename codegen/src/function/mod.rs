@@ -5,15 +5,14 @@ pub mod layout;
 pub mod slot;
 
 use super::{call_conv::CallConvKind, isa::TargetIsa};
-use crate::function::instruction::TargetInst;
 use instruction::InstructionId;
 use std::fmt;
 use vicis_core::ir::{function::Function as IrFunction, types::Types};
 
 pub struct Function<'a, T: TargetIsa> {
     pub ir: &'a IrFunction,
-    pub data: data::Data<<T::Inst as TargetInst>::Data>,
-    pub layout: layout::Layout<<T::Inst as TargetInst>::Data>,
+    pub data: data::Data<T::Inst>,
+    pub layout: layout::Layout<T::Inst>,
     pub slots: slot::Slots<'a, T>,
     pub types: Types,
     pub is_declaration: bool,
@@ -22,10 +21,7 @@ pub struct Function<'a, T: TargetIsa> {
 }
 
 impl<T: TargetIsa> Function<'_, T> {
-    pub fn remove_inst(
-        &mut self,
-        inst: InstructionId<<T::Inst as TargetInst>::Data>,
-    ) -> Option<()> {
+    pub fn remove_inst(&mut self, inst: InstructionId<T::Inst>) -> Option<()> {
         self.layout.remove_inst(inst)
     }
 }

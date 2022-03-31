@@ -23,7 +23,7 @@ impl Default for X86_64 {
 }
 
 impl TargetIsa for X86_64 {
-    type Inst = instruction::InstructionInfo;
+    type Inst = instruction::InstructionData;
     type Lower = x86_64::lower::Lower;
     type RegClass = register::RegClass;
     type RegInfo = register::RegInfo;

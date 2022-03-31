@@ -1,7 +1,7 @@
 use crate::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{Instruction, InstructionData as ID, InstructionId, TargetInst},
+        instruction::{Instruction, InstructionId, TargetInst},
         slot::SlotId,
         Function,
     },
@@ -9,8 +9,6 @@ use crate::{
     register::{Reg, VReg, VRegUsers},
 };
 use std::fmt;
-
-pub struct InstructionInfo;
 
 #[derive(Clone)]
 pub struct InstructionData {
@@ -78,71 +76,7 @@ pub enum OperandData {
     None,
 }
 
-impl TargetInst for InstructionInfo {
-    type Data = InstructionData;
-
-    fn store_vreg_to_slot<T: TargetIsa>(
-        f: &Function<T>,
-        vreg: VReg,
-        slot: SlotId,
-        block: BasicBlockId,
-    ) -> Instruction<Self::Data> {
-        let ty = f.data.vregs.type_for(vreg);
-        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
-        assert!(sz == 4 || sz == 8);
-        Instruction::new(
-            InstructionData {
-                opcode: match sz {
-                    4 => Opcode::MOVmr32,
-                    8 => Opcode::MOVmr64,
-                    _ => unreachable!(),
-                },
-                operands: vec![
-                    Operand::new(OperandData::MemStart),
-                    Operand::new(OperandData::Slot(slot)),
-                    Operand::new(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::new(OperandData::None),
-                    Operand::input(vreg.into()),
-                ],
-            },
-            block,
-        )
-    }
-
-    fn load_from_slot<T: TargetIsa>(
-        f: &Function<T>,
-        vreg: VReg,
-        slot: SlotId,
-        block: BasicBlockId,
-    ) -> Instruction<Self::Data> {
-        let ty = f.data.vregs.type_for(vreg);
-        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
-        assert!(sz == 4 || sz == 8);
-        Instruction::new(
-            InstructionData {
-                opcode: match sz {
-                    4 => Opcode::MOVrm32,
-                    8 => Opcode::MOVrm64,
-                    _ => unreachable!(),
-                },
-                operands: vec![
-                    Operand::output(vreg.into()),
-                    Operand::new(OperandData::MemStart),
-                    Operand::new(OperandData::Slot(slot)),
-                    Operand::new(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::input(OperandData::None),
-                    Operand::new(OperandData::None),
-                ],
-            },
-            block,
-        )
-    }
-}
-
-impl ID for InstructionData {
+impl TargetInst for InstructionData {
     fn input_vregs(&self) -> Vec<VReg> {
         let mut vrs = vec![];
         for operand in &self.operands {
@@ -289,6 +223,66 @@ impl ID for InstructionData {
 
     fn is_phi(&self) -> bool {
         self.opcode == Opcode::Phi
+    }
+
+    fn store_vreg_to_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self> {
+        let ty = f.data.vregs.type_for(vreg);
+        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
+        assert!(sz == 4 || sz == 8);
+        Instruction::new(
+            InstructionData {
+                opcode: match sz {
+                    4 => Opcode::MOVmr32,
+                    8 => Opcode::MOVmr64,
+                    _ => unreachable!(),
+                },
+                operands: vec![
+                    Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::Slot(slot)),
+                    Operand::new(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::new(OperandData::None),
+                    Operand::input(vreg.into()),
+                ],
+            },
+            block,
+        )
+    }
+
+    fn load_from_slot<T: TargetIsa>(
+        f: &Function<T>,
+        vreg: VReg,
+        slot: SlotId,
+        block: BasicBlockId,
+    ) -> Instruction<Self> {
+        let ty = f.data.vregs.type_for(vreg);
+        let sz = f.isa.data_layout().get_size_of(&f.types, ty);
+        assert!(sz == 4 || sz == 8);
+        Instruction::new(
+            InstructionData {
+                opcode: match sz {
+                    4 => Opcode::MOVrm32,
+                    8 => Opcode::MOVrm64,
+                    _ => unreachable!(),
+                },
+                operands: vec![
+                    Operand::output(vreg.into()),
+                    Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::Slot(slot)),
+                    Operand::new(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::input(OperandData::None),
+                    Operand::new(OperandData::None),
+                ],
+            },
+            block,
+        )
     }
 }
 

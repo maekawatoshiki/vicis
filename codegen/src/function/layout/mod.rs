@@ -1,41 +1,41 @@
 use crate::function::{
     basic_block::BasicBlockId,
-    instruction::{InstructionData, InstructionId},
+    instruction::{InstructionId, TargetInst},
 };
 use rustc_hash::FxHashMap;
 
-pub struct Layout<InstData: InstructionData> {
-    basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode<InstData>>,
-    instructions: FxHashMap<InstructionId<InstData>, InstructionNode<InstData>>,
+pub struct Layout<Inst: TargetInst> {
+    basic_blocks: FxHashMap<BasicBlockId, BasicBlockNode<Inst>>,
+    instructions: FxHashMap<InstructionId<Inst>, InstructionNode<Inst>>,
     pub first_block: Option<BasicBlockId>,
     pub last_block: Option<BasicBlockId>,
 }
 
-pub struct BasicBlockNode<InstData: InstructionData> {
+pub struct BasicBlockNode<Inst: TargetInst> {
     _prev: Option<BasicBlockId>,
     next: Option<BasicBlockId>,
-    first_inst: Option<InstructionId<InstData>>,
-    last_inst: Option<InstructionId<InstData>>,
+    first_inst: Option<InstructionId<Inst>>,
+    last_inst: Option<InstructionId<Inst>>,
 }
 
-pub struct InstructionNode<InstData: InstructionData> {
+pub struct InstructionNode<Inst: TargetInst> {
     block: Option<BasicBlockId>,
-    prev: Option<InstructionId<InstData>>,
-    next: Option<InstructionId<InstData>>,
+    prev: Option<InstructionId<Inst>>,
+    next: Option<InstructionId<Inst>>,
 }
 
-pub struct BasicBlockIter<'a, InstData: InstructionData> {
-    layout: &'a Layout<InstData>,
+pub struct BasicBlockIter<'a, Inst: TargetInst> {
+    layout: &'a Layout<Inst>,
     cur: Option<BasicBlockId>,
 }
 
-pub struct InstructionIter<'a, InstData: InstructionData> {
-    layout: &'a Layout<InstData>,
+pub struct InstructionIter<'a, Inst: TargetInst> {
+    layout: &'a Layout<Inst>,
     block: BasicBlockId,
-    cur: Option<InstructionId<InstData>>,
+    cur: Option<InstructionId<Inst>>,
 }
 
-impl<InstData: InstructionData> Default for Layout<InstData> {
+impl<Inst: TargetInst> Default for Layout<Inst> {
     fn default() -> Self {
         Self {
             basic_blocks: FxHashMap::default(),
@@ -46,19 +46,19 @@ impl<InstData: InstructionData> Default for Layout<InstData> {
     }
 }
 
-impl<InstData: InstructionData> Layout<InstData> {
+impl<Inst: TargetInst> Layout<Inst> {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn block_iter(&self) -> BasicBlockIter<InstData> {
+    pub fn block_iter(&self) -> BasicBlockIter<Inst> {
         BasicBlockIter {
             layout: self,
             cur: self.first_block,
         }
     }
 
-    pub fn inst_iter(&self, block: BasicBlockId) -> InstructionIter<InstData> {
+    pub fn inst_iter(&self, block: BasicBlockId) -> InstructionIter<Inst> {
         InstructionIter {
             layout: self,
             block,
@@ -90,19 +90,19 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
-    pub fn last_inst_of(&self, block: BasicBlockId) -> Option<InstructionId<InstData>> {
+    pub fn last_inst_of(&self, block: BasicBlockId) -> Option<InstructionId<Inst>> {
         self.basic_blocks[&block].last_inst
     }
 
-    pub fn prev_inst_of(&self, inst: InstructionId<InstData>) -> Option<InstructionId<InstData>> {
+    pub fn prev_inst_of(&self, inst: InstructionId<Inst>) -> Option<InstructionId<Inst>> {
         self.instructions[&inst].prev
     }
 
-    pub fn next_inst_of(&self, inst: InstructionId<InstData>) -> Option<InstructionId<InstData>> {
+    pub fn next_inst_of(&self, inst: InstructionId<Inst>) -> Option<InstructionId<Inst>> {
         self.instructions[&inst].next
     }
 
-    pub fn insert_inst_at_start(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
+    pub fn insert_inst_at_start(&mut self, inst: InstructionId<Inst>, block: BasicBlockId) {
         self.instructions
             .entry(inst)
             .or_insert(InstructionNode {
@@ -126,8 +126,8 @@ impl<InstData: InstructionData> Layout<InstData> {
 
     pub fn insert_inst_before(
         &mut self,
-        before: InstructionId<InstData>,
-        inst: InstructionId<InstData>,
+        before: InstructionId<Inst>,
+        inst: InstructionId<Inst>,
         block: BasicBlockId,
     ) {
         {
@@ -155,8 +155,8 @@ impl<InstData: InstructionData> Layout<InstData> {
 
     pub fn insert_inst_after(
         &mut self,
-        after: InstructionId<InstData>,
-        inst: InstructionId<InstData>,
+        after: InstructionId<Inst>,
+        inst: InstructionId<Inst>,
         block: BasicBlockId,
     ) {
         {
@@ -182,7 +182,7 @@ impl<InstData: InstructionData> Layout<InstData> {
         // }
     }
 
-    pub fn append_inst(&mut self, inst: InstructionId<InstData>, block: BasicBlockId) {
+    pub fn append_inst(&mut self, inst: InstructionId<Inst>, block: BasicBlockId) {
         self.instructions
             .entry(inst)
             .or_insert(InstructionNode {
@@ -204,7 +204,7 @@ impl<InstData: InstructionData> Layout<InstData> {
         }
     }
 
-    pub fn remove_inst(&mut self, inst: InstructionId<InstData>) -> Option<()> {
+    pub fn remove_inst(&mut self, inst: InstructionId<Inst>) -> Option<()> {
         let block = self.instructions[&inst].block?;
         let prev;
         let next;
@@ -228,7 +228,7 @@ impl<InstData: InstructionData> Layout<InstData> {
     }
 }
 
-impl<'a, InstData: InstructionData> Iterator for BasicBlockIter<'a, InstData> {
+impl<'a, Inst: TargetInst> Iterator for BasicBlockIter<'a, Inst> {
     type Item = BasicBlockId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -238,8 +238,8 @@ impl<'a, InstData: InstructionData> Iterator for BasicBlockIter<'a, InstData> {
     }
 }
 
-impl<'a, InstData: InstructionData> Iterator for InstructionIter<'a, InstData> {
-    type Item = InstructionId<InstData>;
+impl<'a, Inst: TargetInst> Iterator for InstructionIter<'a, Inst> {
+    type Item = InstructionId<Inst>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cur = self.cur?;

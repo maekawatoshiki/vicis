@@ -1,6 +1,6 @@
 use crate::{
     function::{
-        instruction::{InstructionData, InstructionId, TargetInst},
+        instruction::{InstructionId, TargetInst},
         Function,
     },
     isa::TargetIsa,
@@ -142,7 +142,7 @@ pub fn collect_preferred_registers<T: TargetIsa>(
 pub fn find_preferred_registers<T: TargetIsa>(
     function: &Function<T>,
     vreg: VReg,
-    visited: &mut FxHashSet<InstructionId<<T::Inst as TargetInst>::Data>>,
+    visited: &mut FxHashSet<InstructionId<T::Inst>>,
 ) -> Vec<Reg> {
     let mut list = vec![];
     let users = function.data.vreg_users.get(vreg);

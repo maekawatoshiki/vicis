@@ -2,7 +2,7 @@ use super::liveness::{Liveness, ProgramPoint};
 use crate::{
     function::{
         basic_block::BasicBlockId,
-        instruction::{InstructionData as ID, InstructionId, TargetInst},
+        instruction::{InstructionId, TargetInst},
         slot::SlotId,
         Function,
     },
@@ -123,8 +123,8 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     fn insert_inst_after(
         &mut self,
-        after: InstructionId<<T::Inst as TargetInst>::Data>,
-        inst: InstructionId<<T::Inst as TargetInst>::Data>,
+        after: InstructionId<T::Inst>,
+        inst: InstructionId<T::Inst>,
         block: BasicBlockId,
     ) {
         let after_pp = self.liveness.inst_to_pp[&after];
@@ -137,8 +137,8 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     fn insert_inst_before(
         &mut self,
-        before: InstructionId<<T::Inst as TargetInst>::Data>,
-        inst: InstructionId<<T::Inst as TargetInst>::Data>,
+        before: InstructionId<T::Inst>,
+        inst: InstructionId<T::Inst>,
         block: BasicBlockId,
     ) {
         let before_pp = self.liveness.inst_to_pp[&before];

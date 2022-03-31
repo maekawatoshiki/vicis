@@ -3,7 +3,7 @@ use super::{
     function::{
         basic_block::BasicBlockId as MachBasicBlockId,
         data::Data,
-        instruction::{Instruction as MachInstruction, TargetInst},
+        instruction::Instruction as MachInstruction,
         layout::Layout,
         slot::{SlotId, Slots},
         Function as MachFunction,
@@ -35,11 +35,11 @@ pub trait Lower<T: TargetIsa> {
 // TODO: So confusing. Need refactoring.
 pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
-    pub mach_data: &'a mut Data<<T::Inst as TargetInst>::Data>,
+    pub mach_data: &'a mut Data<T::Inst>,
     pub slots: &'a mut Slots<'b, T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
-    pub inst_seq: &'a mut Vec<MachInstruction<<T::Inst as TargetInst>::Data>>,
+    pub inst_seq: &'a mut Vec<MachInstruction<T::Inst>>,
     pub types: &'a Types,
     pub inst_id_to_vreg: &'a mut FxHashMap<IrInstructionId, VReg>,
     pub merged_inst: &'a mut FxHashSet<IrInstructionId>,
