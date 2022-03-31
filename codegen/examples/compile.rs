@@ -5,7 +5,7 @@ extern crate vicis_core;
 use std::fs::{self, File};
 use std::io::Write;
 use structopt::StructOpt;
-use vicis_codegen::codegen::{isa::x86_64::X86_64, lower::compile_module};
+use vicis_codegen::{isa::x86_64::X86_64, lower::compile_module};
 use vicis_core::ir::module::Module;
 
 #[derive(Debug, StructOpt)]
