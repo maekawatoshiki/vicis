@@ -10,6 +10,14 @@ pub struct Module<'a, T: TargetIsa> {
     pub isa: &'a T,
 }
 
+pub struct DisplayAsm<'a, T: TargetIsa>(pub &'a Module<'a, T>);
+
+impl<T: TargetIsa> Module<'_, T> {
+    pub fn display_asm(&self) -> DisplayAsm<T> {
+        DisplayAsm(self)
+    }
+}
+
 impl<T: TargetIsa> fmt::Debug for Module<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "source_filename = \"{}\"", self.ir.source_filename())?;

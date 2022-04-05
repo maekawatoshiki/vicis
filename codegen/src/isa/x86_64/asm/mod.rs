@@ -13,10 +13,15 @@ use crate::{
         },
         TargetIsa,
     },
-    module::Module,
+    module::{DisplayAsm, Module},
 };
-use std::fmt;
-use std::str;
+use std::{fmt, str};
+
+impl fmt::Display for DisplayAsm<'_, X86_64> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        print(f, self.0)
+    }
+}
 
 pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result {
     writeln!(f, "  .text")?;
@@ -144,12 +149,6 @@ pub fn print_function(
     Ok(())
 }
 
-impl fmt::Display for Module<'_, X86_64> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        print(f, self)
-    }
-}
-
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -200,23 +199,6 @@ fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) ->
         OperandData::None => write!(f, "none"),
     }
 }
-
-// impl fmt::Display for OperandData {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         match self {
-//             Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
-//             Self::VReg(r) => write!(f, "%{}", r.0),
-//             // Self::Mem(mem) => write!(f, "{}", mem),
-//             Self::Slot(slot) => write!(f, "{:?}", slot),
-//             Self::Int32(i) => write!(f, "{}", i),
-//             Self::Block(block) => write!(f, ".LBL{}", block.index()),
-//             Self::Label(name) => write!(f, "{}", name),
-//             Self::MemStart => Ok(()),
-//             Self::GlobalAddress(name) => write!(f, "offset {}", name),
-//             Self::None => write!(f, "none"),
-//         }
-//     }
-// }
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {

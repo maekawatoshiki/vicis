@@ -12,7 +12,7 @@ macro_rules! test {
             let module = Module::try_from(input_body.as_str()).unwrap();
             let isa = X86_64::default();
             let mach_module = compile_module(&isa, &module).unwrap();
-            insta::assert_display_snapshot!(mach_module);
+            insta::assert_display_snapshot!(mach_module.display_asm());
         }
     };
 }
