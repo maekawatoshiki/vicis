@@ -5,7 +5,7 @@ extern crate vicis_core;
 use std::fs::{self, File};
 use std::io::Write;
 use structopt::StructOpt;
-use vicis_codegen::{isa::x86_64::X86_64, lower::compile_module};
+use vicis_codegen::lower::compile_module;
 use vicis_core::ir::function::Function;
 use vicis_core::ir::module::Module;
 use vicis_core::pass::transform::mem2reg::Mem2RegPass;
@@ -39,7 +39,16 @@ fn main() {
         pm.run_on_module(&mut module);
     }
 
-    let isa = X86_64::default();
+    #[cfg(target_arch = "x86_64")]
+    let isa = {
+        use vicis_codegen::isa::x86_64::X86_64;
+        X86_64::default()
+    };
+    #[cfg(target_arch = "aarch64")]
+    let isa = {
+        use vicis_codegen::isa::aarch64::Aarch64;
+        Aarch64::default()
+    };
     let module = compile_module(&isa, &module).expect("failed to compile");
     File::create(
         opt.out_file
