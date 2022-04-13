@@ -10,8 +10,8 @@ Feel free to create issues and pull requests!
 
 # Requirements
 
-- ~~llvm (== 12.0.0) is used for tests~~
-  - You don't need it anymore!
+- Vicis itself is not depending on llvm
+  - However, I sometimes use llvm 13 for testing. (e.g. parsing the llvm-ir clang-13 emitted by vicis)
 
 # Examples
 
