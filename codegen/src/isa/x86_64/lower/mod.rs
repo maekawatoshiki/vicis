@@ -480,6 +480,9 @@ fn get_or_generate_inst_output(
         return Ok(vreg);
     }
 
+    let inst = ctx.ir_data.inst_ref(id);
+    lower(ctx, inst)?;
+
     Ok(new_empty_inst_output(ctx, ty, id))
 }
 

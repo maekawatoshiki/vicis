@@ -15,7 +15,7 @@ use super::{
 use anyhow::Result;
 use id_arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{error::Error, fmt, mem};
+use std::{error::Error, fmt};
 use vicis_core::ir::{
     function::{
         basic_block::BasicBlockId as IrBasicBlockId,
@@ -114,9 +114,7 @@ pub fn compile_function<'a, T: TargetIsa>(
     let call_conv = T::default_call_conv();
 
     for (i, block_id) in function.layout.block_iter().enumerate() {
-        let mut insts_seq = vec![];
         let mut inst_seq = vec![];
-        let mut prologue_seq = vec![];
 
         // entry block
         if i == 0 {
@@ -126,7 +124,7 @@ pub fn compile_function<'a, T: TargetIsa>(
                     mach_data: &mut data,
                     slots: &mut slots,
                     inst_id_to_slot_id: &mut inst_id_to_slot_id,
-                    inst_seq: &mut prologue_seq,
+                    inst_seq: &mut inst_seq,
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
@@ -153,7 +151,7 @@ pub fn compile_function<'a, T: TargetIsa>(
                     mach_data: &mut data,
                     slots: &mut slots,
                     inst_id_to_slot_id: &mut inst_id_to_slot_id,
-                    inst_seq: &mut prologue_seq,
+                    inst_seq: &mut inst_seq,
                     arg_idx_to_vreg: &mut arg_idx_to_vreg,
                     types: &function.types,
                     inst_id_to_vreg: &mut inst_id_to_vreg,
@@ -167,14 +165,18 @@ pub fn compile_function<'a, T: TargetIsa>(
             )?;
         }
 
-        for inst_id in function.layout.inst_iter(block_id).rev() {
+        for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref(inst_id);
 
             if inst.opcode == Opcode::Alloca || inst.opcode == Opcode::Phi {
                 continue;
             }
 
-            if merged_inst.contains(&inst_id) {
+            let all_users_in_one_block = function.data.users_of(inst_id).iter().all(|id| {
+                let user = function.data.inst_ref(*id);
+                user.parent == block_id
+            });
+            if !inst.opcode.has_side_effects() && all_users_in_one_block {
                 continue;
             }
 
@@ -196,17 +198,11 @@ pub fn compile_function<'a, T: TargetIsa>(
                 },
                 inst,
             )?;
-
-            insts_seq.push(mem::take(&mut inst_seq));
         }
 
-        insts_seq.push(prologue_seq);
-
-        for inst_seq in insts_seq.into_iter().rev() {
-            for mach_inst in inst_seq {
-                let mach_inst = data.create_inst(mach_inst);
-                layout.append_inst(mach_inst, block_map[&block_id])
-            }
+        for mach_inst in inst_seq {
+            let mach_inst = data.create_inst(mach_inst);
+            layout.append_inst(mach_inst, block_map[&block_id])
         }
     }
 

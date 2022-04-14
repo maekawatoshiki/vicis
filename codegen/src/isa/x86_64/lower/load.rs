@@ -11,7 +11,7 @@ use crate::{
 use anyhow::Result;
 use vicis_core::ir::{
     function::instruction::{InstructionId, Opcode as IrOpcode},
-    types::Type,
+    types::{self, Type},
     value::{ConstantInt, ConstantValue, Value, ValueId},
 };
 
@@ -55,8 +55,8 @@ pub fn lower_load(
             MOperand::new(OperandData::None),
         ];
 
-        if sext.is_some() {
-            let output = ctx.inst_id_to_vreg[&id];
+        if let Some(sext) = sext {
+            let output = new_empty_inst_output(ctx, types::I64, sext);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVSXDr64m32,
@@ -71,8 +71,7 @@ pub fn lower_load(
         }
 
         if src_ty.is_i32() {
-            // let output = new_empty_inst_output(ctx, src_ty, id);
-            let output = ctx.inst_id_to_vreg[&id];
+            let output = new_empty_inst_output(ctx, src_ty, id);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrm32,
