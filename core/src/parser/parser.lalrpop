@@ -1,6 +1,7 @@
 use crate::{
     parser::Context,
     ir::{
+        types::{self, Type},
         util::unescape,
         module::{attributes::Attribute, name::Name}
     }
@@ -19,7 +20,29 @@ ModuleSub: () = {
     "target" "datalayout" "=" <dl:StringLiteral> => ctx.module.target.datalayout = dl.into(),
     "target" "triple" "=" <tr:StringLiteral> => ctx.module.target.triple = tr.into(),
     <attr_group:AttributeGroup> => { ctx.module.attributes.insert(attr_group.0, attr_group.1); },
-    <name:LocalName> "=" => (),
+    <name:LocalTypeName> "=" "type" <t:Type> =>
+        ctx.module.types.base_mut().change_to_named_type(t, name),
+}
+
+LocalTypeName: Name = {
+    <name:LocalName> => {
+        ctx.module.types.base_mut().empty_named_type(name.clone());
+        name
+    }
+}
+
+Type: Type = {
+    <t:PrimitiveType> => t,
+}
+
+PrimitiveType: Type = {
+    "metadata" => ctx.module.types.metadata(),
+    "void" => types::VOID,
+    "i64" => types::I64,
+    "i32" => types::I32,
+    "i16" => types::I16,
+    "i8" => types::I8,
+    "i1" => types::I1,
 }
 
 LocalName: Name = {

@@ -21,8 +21,8 @@ fn parsertest() {
             target datalayout = "xxxxx"
             target triple = "xxxxx"
             attributes #0 = { alwaysinline nounwind }
-            %aaa_ = 
-            %"aaa!!" = 
+            %aaa_ = type i32
+            %"aaa!!ああ" = type void
             "#,
         )
         .unwrap();
