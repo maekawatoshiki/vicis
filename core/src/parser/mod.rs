@@ -29,6 +29,7 @@ fn parsertest() {
             %s2 = type <{ i8, i16 }>
             %f = type i32 (i8, %p)
             @a = common global i32 -123
+            @a = common constant [3 x i8] c"abc"
             ; comment :)
             "#,
         )

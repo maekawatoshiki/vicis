@@ -3,7 +3,7 @@ use crate::{
     ir::{
         types::{self, Type, ArrayType, FunctionType},
         util::unescape,
-        value::{ConstantValue, ConstantInt},
+        value::{ConstantValue, ConstantInt, ConstantArray},
         module::{
             attributes::Attribute,
             linkage::Linkage,
@@ -91,6 +91,20 @@ Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
                 types::I64 => ConstantInt::Int64(num.parse::<i64>().unwrap()),
                 _ => todo!(),
             }.into()
+        })
+    },
+    "c" <s:StringLiteral> => {
+        Box::new(move |ty| {
+            ConstantValue::Array(ConstantArray {
+                ty,
+                elem_ty: types::I8,
+                elems: s
+                    .as_bytes()
+                    .iter()
+                    .map(|c| ConstantValue::Int(ConstantInt::Int8(*c as i8)))
+                    .collect(),
+                    is_string: true,
+            }).into()
         })
     }
 };
