@@ -6,6 +6,9 @@ use crate::{
         module::{
             attributes::Attribute,
             linkage::Linkage,
+            visibility::Visibility,
+            unnamed_addr::UnnamedAddr,
+            global_variable::GlobalVariable,
             preemption_specifier::PreemptionSpecifier,
             name::Name
         }
@@ -30,8 +33,22 @@ ModuleSub: () = {
     <name:LocalTypeName> "=" "type" <t:Type> =>
         ctx.module.types.base_mut().change_to_named_type(t, name.1),
     <name:GlobalName> "=" <linkage:Linkage?> <preemption_specifier:PreemptionSpecifier?>
-        => (),
-}
+        <visibility:Visibility?> <unnamed_addr:UnnamedAddr?> <kind:r"global|constant">
+        <ty:Type> <align:CommaAlign?>
+        => {
+            ctx.module.global_variables.insert(name.clone(), GlobalVariable {
+                name,
+                linkage,
+                preemption_specifier,
+                visibility,
+                unnamed_addr,
+                ty,
+                init: None,
+                is_constant: kind == "constant",
+                align: align.unwrap_or(0),
+            });
+        },
+};
 
 // Types
 
@@ -53,7 +70,7 @@ Type: Type = {
     <t:Type> <p:FuncTypeParams> => ctx.module.types.base_mut().function(FunctionType::new(t, p.0, p.1)),
     <t:LocalTypeName> => t.0,
     <t:PrimitiveType> => t,
-}
+};
 
 FuncTypeParams: (Vec<Type>, bool) = {
     "(" <mut t:(<Type> ",") *> <e:Type?> ")" => {
@@ -63,7 +80,7 @@ FuncTypeParams: (Vec<Type>, bool) = {
     "(" <t:(<Type> ",") *> <e:"..."> ")" => {
         (t, true)
     }
-}
+};
 
 PrimitiveType: Type = {
     "metadata" => ctx.module.types.metadata(),
@@ -73,7 +90,7 @@ PrimitiveType: Type = {
     "i16" => types::I16,
     "i8" => types::I8,
     "i1" => types::I1,
-}
+};
 
 // Names
 
@@ -81,20 +98,20 @@ LocalName: Name = {
     <s:r#"%".*""#> => Name::Name(unescape(s.trim_start_matches("%\"").trim_end_matches("\"")).unwrap()),
     <s:r#"%[a-zA-Z][a-zA-Z0-9\._]*"#> => Name::Name(s.trim_start_matches('%').to_owned()),
     <s:r#"%[0-9]+"#> => Name::Number(s.trim_start_matches('%').parse().unwrap()),
-}
+};
 
 GlobalName: Name = {
     <s:r#"@".*""#> => Name::Name(unescape(s.trim_start_matches("@\"").trim_end_matches("\"")).unwrap()),
     <s:r#"@[a-zA-Z][a-zA-Z0-9\._]*"#> => Name::Name(s.trim_start_matches('@').to_owned()),
     <s:r#"@[0-9]+"#> => Name::Number(s.trim_start_matches('@').parse().unwrap()),
-}
+};
 
 LocalTypeName: (Type, Name) = {
     <name:LocalName> => {
         let ty = ctx.module.types.base_mut().empty_named_type(name.clone());
         (ty, name)
     }
-}
+};
 
 // Linkage
 
@@ -116,21 +133,36 @@ Linkage: Linkage = {
     "ghost"                => Linkage::Ghost,
     "linkerprivate"        => Linkage::LinkerPrivate,
     "linkerprivateweak"    => Linkage::LinkerPrivateWeak,
-}
+};
 
 // PreemptionSpecifier
 
 PreemptionSpecifier: PreemptionSpecifier = {
     "dso_local" => PreemptionSpecifier::DsoLocal,
     "dso_preemptable" => PreemptionSpecifier::DsoPreemptable,
-}
+};
+
+// Visibility
+
+Visibility: Visibility ={
+    "default" => Visibility::Default,
+    "hidden" => Visibility::Hidden,
+    "protected" => Visibility::Protected,
+};
+
+// UnnamedAddr
+
+UnnamedAddr: UnnamedAddr = {
+    "local_unnamed_addr" => UnnamedAddr::Local,
+    "unnamed_addr" => UnnamedAddr::Global,
+};
 
 // Attributes
 
 AttributeGroup: (u32, Vec<Attribute>) = {
     "attributes" <id:r"#[0-9]+"> "=" "{" <attrs:Attribute *> "}" =>
         (id.trim_start_matches('#').parse().unwrap(), attrs)
-}
+};
 
 Attribute: Attribute = {
     "alwaysinline"                => Attribute::AlwaysInline,
@@ -179,12 +211,16 @@ Attribute: Attribute = {
     "sspstrong"                   => Attribute::StackProtectStrong,
     "strictfp"                    => Attribute::StrictFP,
     "uwtable"                     => Attribute::UWTable,
-}
+};
 
 // Etc
 
 StringLiteral: String = {
     <s:r###"".*""###> => unescape(s.trim_matches('"')).unwrap(),
+};
+
+CommaAlign: u32 = {
+    "," "align" <n:r"[0-9]+"> => n.parse().unwrap(),
 }
 
 match {
