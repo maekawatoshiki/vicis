@@ -19,7 +19,10 @@ fn parsertest() {
             r#"
             source_filename = "a.c"
             target datalayout = "xxxxx"
-            attributes #0 = { alwaysinline  }
+            target triple = "xxxxx"
+            attributes #0 = { alwaysinline nounwind }
+            %aaa_ = 
+            %"aaa!!" = 
             "#,
         )
         .unwrap();

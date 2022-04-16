@@ -2,7 +2,7 @@ use crate::{
     parser::Context,
     ir::{
         util::unescape,
-        module::{attributes::Attribute}
+        module::{attributes::Attribute, name::Name}
     }
 };
 
@@ -19,6 +19,13 @@ ModuleSub: () = {
     "target" "datalayout" "=" <dl:StringLiteral> => ctx.module.target.datalayout = dl.into(),
     "target" "triple" "=" <tr:StringLiteral> => ctx.module.target.triple = tr.into(),
     <attr_group:AttributeGroup> => { ctx.module.attributes.insert(attr_group.0, attr_group.1); },
+    <name:LocalName> "=" => (),
+}
+
+LocalName: Name = {
+    <s:r#"%".*""#> => Name::Name(unescape(s.trim_start_matches("%\"").trim_end_matches("\"")).unwrap()),
+    <s:r#"%[a-zA-Z][a-zA-Z0-9\._]*"#> => Name::Name(s.trim_start_matches("%").to_owned()),
+    <s:r#"%[0-9]+"#> => Name::Number(s.parse().unwrap()),
 }
 
 AttributeGroup: (u32, Vec<Attribute>) = {
