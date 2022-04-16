@@ -1,7 +1,7 @@
 use crate::{
     parser::Context,
     ir::{
-        types::{self, Type, ArrayType},
+        types::{self, Type, ArrayType, FunctionType},
         util::unescape,
         module::{attributes::Attribute, name::Name}
     }
@@ -45,8 +45,20 @@ Type: Type = {
             if let Some(e) = e { t.push(e); }
             t
         }, true),
+    "opaque" => ctx.module.types.base_mut().anonymous_struct(vec![], false),
+    <t:Type> <p:FuncTypeParams> => ctx.module.types.base_mut().function(FunctionType::new(t, p.0, p.1)),
     <t:LocalTypeName> => t.0,
     <t:PrimitiveType> => t,
+}
+
+FuncTypeParams: (Vec<Type>, bool) = {
+    "(" <mut t:(<Type> ",") *> <e:Type?> ")" => {
+        if let Some(e) = e { t.push(e); }
+        (t, false)
+    },
+    "(" <t:(<Type> ",") *> <e:"..."> ")" => {
+        (t, true)
+    }
 }
 
 PrimitiveType: Type = {
