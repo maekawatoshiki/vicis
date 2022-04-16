@@ -3,6 +3,7 @@ use crate::{
     ir::{
         types::{self, Type, ArrayType, FunctionType},
         util::unescape,
+        value::ConstantValue,
         module::{
             attributes::Attribute,
             linkage::Linkage,
@@ -32,10 +33,17 @@ ModuleSub: () = {
     <attr_group:AttributeGroup> => { ctx.module.attributes.insert(attr_group.0, attr_group.1); },
     <name:LocalTypeName> "=" "type" <t:Type> =>
         ctx.module.types.base_mut().change_to_named_type(t, name.1),
+
+    // @<GlobalVarName> = [Linkage] [PreemptionSpecifier] [Visibility]
+    //                    [DLLStorageClass] [ThreadLocal]
+    //                    [(unnamed_addr|local_unnamed_addr)] [AddrSpace]
+    //                    [ExternallyInitialized]
+    //                    <global | constant> <Type> [<InitializerConstant>]
+    //                    [, section "name"] [, comdat [($name)]]
+    //                    [, align <Alignment>] (, !name !N)*
     <name:GlobalName> "=" <linkage:Linkage?> <preemption_specifier:PreemptionSpecifier?>
         <visibility:Visibility?> <unnamed_addr:UnnamedAddr?> <kind:r"global|constant">
-        <ty:Type> <align:CommaAlign?>
-        => {
+        <ty:Type> <init:Constant?> <align:CommaAlign?> => {
             ctx.module.global_variables.insert(name.clone(), GlobalVariable {
                 name,
                 linkage,
@@ -43,11 +51,16 @@ ModuleSub: () = {
                 visibility,
                 unnamed_addr,
                 ty,
-                init: None,
+                init,
                 is_constant: kind == "constant",
                 align: align.unwrap_or(0),
             });
         },
+};
+
+// Constant
+
+Constant: ConstantValue = {
 };
 
 // Types
