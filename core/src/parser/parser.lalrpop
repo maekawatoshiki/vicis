@@ -1,5 +1,5 @@
 use crate::{
-    parser::Context,
+    parser::{Context, TypedConstant},
     ir::{
         types::{self, Type, ArrayType, FunctionType},
         util::unescape,
@@ -51,7 +51,7 @@ ModuleSub: () = {
                 visibility,
                 unnamed_addr,
                 ty,
-                init,
+                init: init.map(|c| c(ty)),
                 is_constant: kind == "constant",
                 align: align.unwrap_or(0),
             });
@@ -60,7 +60,8 @@ ModuleSub: () = {
 
 // Constant
 
-Constant: ConstantValue = {
+Constant: TypedConstant = {
+    "undef" => |ty| ConstantValue::Undef(ty),
 };
 
 // Types

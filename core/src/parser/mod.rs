@@ -1,4 +1,4 @@
-use crate::ir::{function::Function, module::Module};
+use crate::ir::{function::Function, module::Module, types::Type, value::ConstantValue};
 
 pub mod assembly;
 pub mod bitcode;
@@ -9,6 +9,8 @@ pub struct Context {
     module: Module,
     func: Function,
 }
+
+type TypedConstant = impl FnOnce(Type) -> ConstantValue;
 
 #[test]
 fn parsertest() {
