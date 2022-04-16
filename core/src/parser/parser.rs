@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.19.7"
-// sha3: f7758fda3dae6138218c59815f69ee5d2f5c942e7f535692e62b78363e37ee
+// sha3: 12438bec124f0d3afc594cb24d6c2705486ea614a029a5ea6712efc92391
 use crate::ir::{
     util::unescape,
     module::{attributes::Attribute, Module}
@@ -2197,8 +2197,8 @@ fn __action1<
 ) -> ()
 {
     {
-    ()
-  }
+      ()
+    }
 }
 
 #[allow(unused_variables)]
