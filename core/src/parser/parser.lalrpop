@@ -1,7 +1,7 @@
 use crate::{
     parser::Context,
     ir::{
-        types::{self, Type, ArrayType, FunctionType},
+        types::{self, Type, ArrayType, FunctionType, Types},
         util::unescape,
         value::{ConstantValue, ConstantInt, ConstantArray},
         module::{
@@ -51,7 +51,7 @@ ModuleSub: () = {
                 visibility,
                 unnamed_addr,
                 ty,
-                init: init.map(|c| c(ty)),
+                init: init.map(|c| c(&ctx.module.types, ty)),
                 is_constant: kind == "constant",
                 align: align.unwrap_or(0),
             });
@@ -60,16 +60,16 @@ ModuleSub: () = {
 
 // Constant
 
-Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
-    "undef" => Box::new(|ty| ConstantValue::Undef(ty)),
-    "null" => Box::new(|ty| ConstantValue::Null(ty)),
-    "zeroinitializer" => Box::new(|ty| ConstantValue::AggregateZero(ty)),
-    "true" => Box::new(|_| ConstantInt::Int1(true).into()),
-    "false" => Box::new(|_| ConstantInt::Int1(false).into()),
+Constant: Box<dyn FnOnce(&Types, Type) -> ConstantValue> = {
+    "undef" => Box::new(|_, ty| ConstantValue::Undef(ty)),
+    "null" => Box::new(|_, ty| ConstantValue::Null(ty)),
+    "zeroinitializer" => Box::new(|_, ty| ConstantValue::AggregateZero(ty)),
+    "true" => Box::new(|_, _| ConstantInt::Int1(true).into()),
+    "false" => Box::new(|_, _| ConstantInt::Int1(false).into()),
     // TODO: FIXME: Why isn't r"-?[0-9]+" accepted?
     r"[0-9]+" => {
         let num = <>.to_owned();
-        Box::new(move |ty| {
+        Box::new(move |_, ty| {
             match ty {
                 types::I1 => ConstantInt::Int1(num == "true"),
                 types::I8 => ConstantInt::Int8(num.parse::<i8>().unwrap()),
@@ -82,7 +82,7 @@ Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
     },
     r"-[0-9]+" => {
         let num = <>.to_owned();
-        Box::new(move |ty| {
+        Box::new(move |_, ty| {
             match ty {
                 types::I1 => ConstantInt::Int1(num == "true"),
                 types::I8 => ConstantInt::Int8(num.parse::<i8>().unwrap()),
@@ -93,20 +93,33 @@ Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
             }.into()
         })
     },
-    "c" <s:StringLiteral> => {
-        Box::new(move |ty| {
-            ConstantValue::Array(ConstantArray {
+    "c" <s:StringLiteral> => Box::new(move |_, ty| {
+        ConstantValue::Array(ConstantArray {
+            ty,
+            elem_ty: types::I8,
+            elems: s
+                .as_bytes()
+                .iter()
+                .map(|c| ConstantValue::Int(ConstantInt::Int8(*c as i8)))
+                .collect(),
+                is_string: true,
+        }).into()
+    }),
+    "[" <mut elems:(<TypedConstant> ",") *> <e:TypedConstant?> "]" => {
+        if let Some(e) = e { elems.push(e); }
+        Box::new(|types, ty| {
+            ConstantArray {
                 ty,
-                elem_ty: types::I8,
-                elems: s
-                    .as_bytes()
-                    .iter()
-                    .map(|c| ConstantValue::Int(ConstantInt::Int8(*c as i8)))
-                    .collect(),
-                    is_string: true,
-            }).into()
+                elem_ty: types.get_element(ty).unwrap(),
+                elems,
+                is_string: false
+            }.into()
         })
     }
+};
+
+TypedConstant: ConstantValue = {
+    <ty:Type> <c:Constant> => c(&ctx.module.types, ty),
 };
 
 // Types

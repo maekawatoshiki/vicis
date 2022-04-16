@@ -263,6 +263,12 @@ impl Typed for ConstantExpr {
     }
 }
 
+impl From<ConstantArray> for ConstantValue {
+    fn from(a: ConstantArray) -> Self {
+        Self::Array(a)
+    }
+}
+
 impl From<ConstantInt> for ConstantValue {
     fn from(i: ConstantInt) -> Self {
         Self::Int(i)
