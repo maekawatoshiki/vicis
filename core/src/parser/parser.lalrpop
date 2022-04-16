@@ -9,6 +9,7 @@ use crate::{
 
 grammar(ctx: &mut Context);
 
+
 pub Module: () = {
     <x:ModuleSub *> => {
       ()
@@ -142,3 +143,10 @@ StringLiteral: String = {
     <s:r###"".*""###> => unescape(s.trim_matches('"')).unwrap(),
 }
 
+match {
+    // Ignore `; comments`
+    r";[^\n\r]*[\n\r]*" => { },
+} else {
+    r"\s*" => { },
+    _ // Everything else
+}

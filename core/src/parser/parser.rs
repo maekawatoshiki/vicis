@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.19.7"
-// sha3: f149e766af775d7cbebbe955ac1efd03429f2353debede9f1a5e9da2df01119
+// sha3: 765f15571768c6e5220ffa2cc3504eba5d68d621482722b35a42215571
 use crate::{
     parser::Context,
     ir::{
@@ -3559,7 +3559,8 @@ mod __intern_token {
             ("^(\\{)", false),
             ("^(\\})", false),
             ("^(\\}>)", false),
-            (r"^(\s*)", true),
+            ("^([\t-\r \u{85}\u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}-\u{2029}\u{202f}\u{205f}\u{3000}]*)", true),
+            ("^(;[\u{0}-\t\u{b}-\u{c}\u{e}-\u{10ffff}]*[\n\r]*)", true),
         ];
         __lalrpop_util::lexer::MatcherBuilder::new(__strs.iter().copied()).unwrap()
     }

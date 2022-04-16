@@ -29,6 +29,7 @@ fn parsertest() {
             %s2 = type <{ i8, i16 }>
             %f = type i32 (i8, %p)
             @a = 
+            ; comment :)
             "#,
         )
         .unwrap();
