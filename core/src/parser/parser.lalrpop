@@ -1,5 +1,5 @@
 use crate::{
-    parser::{Context, TypedConstant},
+    parser::Context,
     ir::{
         types::{self, Type, ArrayType, FunctionType},
         util::unescape,
@@ -60,8 +60,10 @@ ModuleSub: () = {
 
 // Constant
 
-Constant: TypedConstant = {
-    "undef" => |ty| ConstantValue::Undef(ty),
+Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
+    "undef" => Box::new(|ty| ConstantValue::Undef(ty)),
+    "null" => Box::new(|ty| ConstantValue::Null(ty)),
+    "zeroinitializer" => Box::new(|ty| ConstantValue::AggregateZero(ty)),
 };
 
 // Types

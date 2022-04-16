@@ -1,5 +1,3 @@
-#![feature(type_alias_impl_trait)]
-
 // pub mod codegen;
 // pub mod exec;
 pub mod ir;
