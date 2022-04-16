@@ -3,7 +3,7 @@ use crate::{
     ir::{
         types::{self, Type, ArrayType, FunctionType},
         util::unescape,
-        value::ConstantValue,
+        value::{ConstantValue, ConstantInt},
         module::{
             attributes::Attribute,
             linkage::Linkage,
@@ -64,6 +64,35 @@ Constant: Box<dyn FnOnce(Type) -> ConstantValue> = {
     "undef" => Box::new(|ty| ConstantValue::Undef(ty)),
     "null" => Box::new(|ty| ConstantValue::Null(ty)),
     "zeroinitializer" => Box::new(|ty| ConstantValue::AggregateZero(ty)),
+    "true" => Box::new(|_| ConstantInt::Int1(true).into()),
+    "false" => Box::new(|_| ConstantInt::Int1(false).into()),
+    // TODO: FIXME: Why isn't r"-?[0-9]+" accepted?
+    r"[0-9]+" => {
+        let num = <>.to_owned();
+        Box::new(move |ty| {
+            match ty {
+                types::I1 => ConstantInt::Int1(num == "true"),
+                types::I8 => ConstantInt::Int8(num.parse::<i8>().unwrap()),
+                types::I16 => ConstantInt::Int16(num.parse::<i16>().unwrap()),
+                types::I32 => ConstantInt::Int32(num.parse::<i32>().unwrap()),
+                types::I64 => ConstantInt::Int64(num.parse::<i64>().unwrap()),
+                _ => todo!(),
+            }.into()
+        })
+    },
+    r"-[0-9]+" => {
+        let num = <>.to_owned();
+        Box::new(move |ty| {
+            match ty {
+                types::I1 => ConstantInt::Int1(num == "true"),
+                types::I8 => ConstantInt::Int8(num.parse::<i8>().unwrap()),
+                types::I16 => ConstantInt::Int16(num.parse::<i16>().unwrap()),
+                types::I32 => ConstantInt::Int32(num.parse::<i32>().unwrap()),
+                types::I64 => ConstantInt::Int64(num.parse::<i64>().unwrap()),
+                _ => todo!(),
+            }.into()
+        })
+    }
 };
 
 // Types
