@@ -1,19 +1,78 @@
-use crate::ir::module::Module;
+use crate::ir::{
+    util::unescape,
+    module::{attributes::Attribute, Module}
+};
 
 grammar(module: &mut Module);
 
 pub Module: () = {
-  <x:(<ModuleSub>)*> => {
+  <x:ModuleSub *> => {
     ()
   }
 };
 
 ModuleSub: () = {
   "source_filename" "=" <name:StringLiteral> => module.source_filename = name,
-  "target" "datalayout" "=" <dl:StringLiteral> => module.target.datalayout = dl.into()
+  "target" "datalayout" "=" <dl:StringLiteral> => module.target.datalayout = dl.into(),
+  "target" "triple" "=" <tr:StringLiteral> => module.target.triple = tr.into(),
+  <attr_group:AttributeGroup> => { module.attributes.insert(attr_group.0, attr_group.1); },
+}
+
+AttributeGroup: (u32, Vec<Attribute>) = {
+    "attributes" <id:r"#[0-9]+"> "=" "{" <attrs:Attribute *> "}" =>
+        (id.trim_start_matches('#').parse().unwrap(), attrs)
+}
+
+Attribute: Attribute = {
+  "alwaysinline"                => Attribute::AlwaysInline,
+  "builtin"                     => Attribute::Builtin,
+  "cold"                        => Attribute::Cold,
+  "convergent"                  => Attribute::Convergent,
+  "inaccessiblememonly"         => Attribute::InaccessibleMemOnly,
+  "inaccessiblememorargmemonly" => Attribute::InaccessibleMemOrArgMemOnly,
+  "inlinehint"                  => Attribute::InlineHint,
+  "jumptable"                   => Attribute::JumpTable,
+  "minimizesize"                => Attribute::MinimizeSize,
+  "mustprogress"                => Attribute::MustProgress,
+  "naked"                       => Attribute::Naked,
+  "nobuiltin"                   => Attribute::NoBuiltin,
+  "nocfcheck"                   => Attribute::NoCFCheck,
+  "noduplicate"                 => Attribute::NoDuplicate,
+  "nofree"                      => Attribute::NoFree,
+  "noimplicitfloat"             => Attribute::NoImplicitFloat,
+  "noinline"                    => Attribute::NoInline,
+  "nonlazybind"                 => Attribute::NonLazyBind,
+  "noredzone"                   => Attribute::NoRedZone,
+  "noreturn"                    => Attribute::NoReturn,
+  "norecurse"                   => Attribute::NoRecurse,
+  "willreturn"                  => Attribute::WillReturn,
+  "returnstwice"                => Attribute::ReturnsTwice,
+  "nosync"                      => Attribute::NoSync,
+  "nounwind"                    => Attribute::NoUnwind,
+  "optforfuzzing"               => Attribute::OptForFuzzing,
+  "optnone"                     => Attribute::OptNone,
+  "optsize"                     => Attribute::OptSize,
+  "readnone"                    => Attribute::ReadNone,
+  "readonly"                    => Attribute::ReadOnly,
+  "writeonly"                   => Attribute::WriteOnly,
+  "argmemonly"                  => Attribute::ArgMemOnly,
+  "safestack"                   => Attribute::SafeStack,
+  "sanitizeaddress"             => Attribute::SanitizeAddress,
+  "sanitizememory"              => Attribute::SanitizeMemory,
+  "sanitizethread"              => Attribute::SanitizeThread,
+  "sanitizehwaddress"           => Attribute::SanitizeHWAddress,
+  "sanitizememtag"              => Attribute::SanitizeMemTag,
+  "shadowcallstack"             => Attribute::ShadowCallStack,
+  "speculativeloadhardening"    => Attribute::SpeculativeLoadHardening,
+  "speculatable"                => Attribute::Speculatable,
+  "ssp"                         => Attribute::StackProtect,
+  "sspreq"                      => Attribute::StackProtectReq,
+  "sspstrong"                   => Attribute::StackProtectStrong,
+  "strictfp"                    => Attribute::StrictFP,
+  "uwtable"                     => Attribute::UWTable,
 }
 
 StringLiteral: String = {
-  <s:r###"".*""###> => s.trim_matches('"').to_string()
+  <s:r###"".*""###> => unescape(s.trim_matches('"')).unwrap(),
 }
 
