@@ -1,0 +1,19 @@
+use crate::ir::module::Module;
+
+grammar(module: &mut Module);
+
+pub Module: () = {
+  <x:(<ModuleSub>)*> => {
+    ()
+  }
+};
+
+ModuleSub: () = {
+  "source_filename" "=" <name:StringLiteral> => module.source_filename = name,
+  "target" "datalayout" "=" <dl:StringLiteral> => module.target.datalayout = dl.into()
+}
+
+StringLiteral: String = {
+  <s:r###"".*""###> => s.trim_matches('"').to_string()
+}
+
