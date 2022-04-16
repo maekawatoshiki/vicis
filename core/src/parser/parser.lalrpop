@@ -21,19 +21,31 @@ ModuleSub: () = {
     "target" "triple" "=" <tr:StringLiteral> => ctx.module.target.triple = tr.into(),
     <attr_group:AttributeGroup> => { ctx.module.attributes.insert(attr_group.0, attr_group.1); },
     <name:LocalTypeName> "=" "type" <t:Type> =>
-        ctx.module.types.base_mut().change_to_named_type(t, name),
+        ctx.module.types.base_mut().change_to_named_type(t, name.1),
 }
 
-LocalTypeName: Name = {
+LocalTypeName: (Type, Name) = {
     <name:LocalName> => {
-        ctx.module.types.base_mut().empty_named_type(name.clone());
-        name
+        let ty = ctx.module.types.base_mut().empty_named_type(name.clone());
+        (ty, name)
     }
 }
 
 Type: Type = {
     <t:Type> "*" => ctx.module.types.base_mut().pointer(t),
-    "[" <n:r"[0-9]+"> "x" <t:Type> "]" => ctx.module.types.base_mut().array(ArrayType::new(t, n.parse().unwrap())),
+    "[" <n:r"[0-9]+"> "x" <t:Type> "]" =>
+        ctx.module.types.base_mut().array(ArrayType::new(t, n.parse().unwrap())),
+    "{" <mut t:(<Type> ",") *> <e:Type?> "}" =>
+        ctx.module.types.base_mut().anonymous_struct({
+            if let Some(e) = e { t.push(e); }
+            t
+        }, false),
+    "<{" <mut t:(<Type> ",") *> <e:Type?> "}>" =>
+        ctx.module.types.base_mut().anonymous_struct({
+            if let Some(e) = e { t.push(e); }
+            t
+        }, true),
+    <t:LocalTypeName> => t.0,
     <t:PrimitiveType> => t,
 }
 

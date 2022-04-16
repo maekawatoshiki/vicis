@@ -25,6 +25,8 @@ fn parsertest() {
             %p = type i32*
             %a = type [10 x i32*]
             %"aaa!!ああ" = type void
+            %s1 = type {i32, i32 }
+            %s2 = type <{ i8, i16 }>
             "#,
         )
         .unwrap();
