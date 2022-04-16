@@ -274,10 +274,6 @@ impl TypesBase {
         let named_ty = self.empty_named_type(name.clone());
 
         match self.get_mut(ty) {
-            // primitive types
-            None if ty.is_primitive() => {
-                self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
-            }
             // If `ty` is a struct type, name it.
             Some(CompoundType::Struct(ref mut strukt)) => {
                 let mut strukt = mem::take(strukt);
@@ -287,7 +283,9 @@ impl TypesBase {
                 }
                 self.compound_types[named_ty.1 as usize] = CompoundType::Struct(strukt);
             }
-            _ => todo!(),
+            _ => {
+                self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
+            }
         }
     }
 
@@ -378,7 +376,7 @@ impl TypesBase {
                 self.struct_definition_to_string(ty)
             }
             CompoundType::Metadata => "metadata".to_string(),
-            CompoundType::Alias(t) => t.to_string(),
+            CompoundType::Alias(t) => self.to_string(*t),
         }
     }
 

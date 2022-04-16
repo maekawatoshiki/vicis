@@ -22,6 +22,8 @@ fn parsertest() {
             target triple = "xxxxx"
             attributes #0 = { alwaysinline nounwind }
             %aaa_ = type i32
+            %p = type i32*
+            %a = type [10 x i32*]
             %"aaa!!ああ" = type void
             "#,
         )

@@ -1,7 +1,7 @@
 use crate::{
     parser::Context,
     ir::{
-        types::{self, Type},
+        types::{self, Type, ArrayType},
         util::unescape,
         module::{attributes::Attribute, name::Name}
     }
@@ -32,6 +32,8 @@ LocalTypeName: Name = {
 }
 
 Type: Type = {
+    <t:Type> "*" => ctx.module.types.base_mut().pointer(t),
+    "[" <n:r"[0-9]+"> "x" <t:Type> "]" => ctx.module.types.base_mut().array(ArrayType::new(t, n.parse().unwrap())),
     <t:PrimitiveType> => t,
 }
 
