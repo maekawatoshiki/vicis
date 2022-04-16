@@ -7,6 +7,12 @@ pub enum Visibility {
     Protected,
 }
 
+impl Default for Visibility {
+    fn default() -> Self {
+        Visibility::Default
+    }
+}
+
 impl fmt::Debug for Visibility {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

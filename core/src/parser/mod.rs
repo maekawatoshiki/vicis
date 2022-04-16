@@ -1,13 +1,21 @@
+use crate::ir::{function::Function, module::Module};
+
 pub mod assembly;
 pub mod bitcode;
 mod parser;
 
+#[derive(Default)]
+pub struct Context {
+    module: Module,
+    func: Function,
+}
+
 #[test]
 fn parsertest() {
-    let mut module = crate::ir::module::Module::default();
+    let mut ctx = Context::default();
     parser::ModuleParser::new()
         .parse(
-            &mut module,
+            &mut ctx,
             r#"
             source_filename = "a.c"
             target datalayout = "xxxxx"
@@ -15,5 +23,5 @@ fn parsertest() {
             "#,
         )
         .unwrap();
-    println!("{:?}", module);
+    println!("{:?}", ctx.module);
 }

@@ -1,9 +1,12 @@
-use crate::ir::{
-    util::unescape,
-    module::{attributes::Attribute, Module}
+use crate::{
+    parser::Context,
+    ir::{
+        util::unescape,
+        module::{attributes::Attribute}
+    }
 };
 
-grammar(module: &mut Module);
+grammar(ctx: &mut Context);
 
 pub Module: () = {
     <x:ModuleSub *> => {
@@ -12,10 +15,10 @@ pub Module: () = {
 };
 
 ModuleSub: () = {
-    "source_filename" "=" <name:StringLiteral> => module.source_filename = name,
-    "target" "datalayout" "=" <dl:StringLiteral> => module.target.datalayout = dl.into(),
-    "target" "triple" "=" <tr:StringLiteral> => module.target.triple = tr.into(),
-    <attr_group:AttributeGroup> => { module.attributes.insert(attr_group.0, attr_group.1); },
+    "source_filename" "=" <name:StringLiteral> => ctx.module.source_filename = name,
+    "target" "datalayout" "=" <dl:StringLiteral> => ctx.module.target.datalayout = dl.into(),
+    "target" "triple" "=" <tr:StringLiteral> => ctx.module.target.triple = tr.into(),
+    <attr_group:AttributeGroup> => { ctx.module.attributes.insert(attr_group.0, attr_group.1); },
 }
 
 AttributeGroup: (u32, Vec<Attribute>) = {

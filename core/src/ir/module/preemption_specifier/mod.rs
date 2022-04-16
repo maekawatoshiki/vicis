@@ -6,6 +6,12 @@ pub enum PreemptionSpecifier {
     DsoLocal,
 }
 
+impl Default for PreemptionSpecifier {
+    fn default() -> Self {
+        PreemptionSpecifier::DsoPreemptable
+    }
+}
+
 impl fmt::Debug for PreemptionSpecifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

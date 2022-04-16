@@ -1,8 +1,11 @@
 // auto-generated: "lalrpop 0.19.7"
-// sha3: 12438bec124f0d3afc594cb24d6c2705486ea614a029a5ea6712efc92391
-use crate::ir::{
-    util::unescape,
-    module::{attributes::Attribute, Module}
+// sha3: d8a9bf53e11727bf99a1c5179cf6503b3695cca3ddc4e227d0d1e69f3ce954
+use crate::{
+    parser::Context,
+    ir::{
+        util::unescape,
+        module::{attributes::Attribute}
+    }
 };
 #[allow(unused_extern_crates)]
 extern crate lalrpop_util as __lalrpop_util;
@@ -15,9 +18,12 @@ extern crate alloc;
 mod __parse__Module {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens, clippy::all)]
 
-    use crate::ir::{
-    util::unescape,
-    module::{attributes::Attribute, Module}
+    use crate::{
+    parser::Context,
+    ir::{
+        util::unescape,
+        module::{attributes::Attribute}
+    }
 };
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
@@ -425,7 +431,7 @@ mod __parse__Module {
     pub(crate) struct __StateMachine<'input, '__1>
     where 
     {
-        module: &'__1 mut Module,
+        ctx: &'__1 mut Context,
         input: &'input str,
         __phantom: core::marker::PhantomData<(&'input ())>,
     }
@@ -507,7 +513,7 @@ mod __parse__Module {
             symbols: &mut alloc::vec::Vec<__state_machine::SymbolTriple<Self>>,
         ) -> Option<__state_machine::ParseResult<Self>> {
             __reduce(
-                self.module,
+                self.ctx,
                 self.input,
                 action,
                 start_location,
@@ -623,14 +629,14 @@ mod __parse__Module {
             'input,
         >(
             &self,
-            module: &mut Module,
+            ctx: &mut Context,
             input: &'input str,
         ) -> Result<(), __lalrpop_util::ParseError<usize, Token<'input>, &'static str>>
         {
             let mut __tokens = self.builder.matcher(input);
             __state_machine::Parser::drive(
                 __StateMachine {
-                    module,
+                    ctx,
                     input,
                     __phantom: core::marker::PhantomData::<(&())>,
                 },
@@ -641,7 +647,7 @@ mod __parse__Module {
     pub(crate) fn __reduce<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __action: i8,
         __lookahead_start: Option<&usize>,
@@ -652,200 +658,200 @@ mod __parse__Module {
     {
         let (__pop_states, __nonterminal) = match __action {
             0 => {
-                __reduce0(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce0(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             1 => {
-                __reduce1(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce1(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             2 => {
-                __reduce2(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce2(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             3 => {
-                __reduce3(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce3(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             4 => {
-                __reduce4(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce4(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             5 => {
-                __reduce5(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce5(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             6 => {
-                __reduce6(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce6(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             7 => {
-                __reduce7(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce7(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             8 => {
-                __reduce8(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce8(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             9 => {
-                __reduce9(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce9(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             10 => {
-                __reduce10(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce10(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             11 => {
-                __reduce11(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce11(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             12 => {
-                __reduce12(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce12(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             13 => {
-                __reduce13(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce13(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             14 => {
-                __reduce14(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce14(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             15 => {
-                __reduce15(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce15(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             16 => {
-                __reduce16(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce16(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             17 => {
-                __reduce17(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce17(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             18 => {
-                __reduce18(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce18(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             19 => {
-                __reduce19(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce19(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             20 => {
-                __reduce20(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce20(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             21 => {
-                __reduce21(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce21(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             22 => {
-                __reduce22(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce22(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             23 => {
-                __reduce23(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce23(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             24 => {
-                __reduce24(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce24(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             25 => {
-                __reduce25(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce25(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             26 => {
-                __reduce26(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce26(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             27 => {
-                __reduce27(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce27(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             28 => {
-                __reduce28(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce28(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             29 => {
-                __reduce29(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce29(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             30 => {
-                __reduce30(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce30(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             31 => {
-                __reduce31(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce31(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             32 => {
-                __reduce32(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce32(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             33 => {
-                __reduce33(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce33(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             34 => {
-                __reduce34(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce34(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             35 => {
-                __reduce35(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce35(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             36 => {
-                __reduce36(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce36(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             37 => {
-                __reduce37(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce37(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             38 => {
-                __reduce38(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce38(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             39 => {
-                __reduce39(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce39(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             40 => {
-                __reduce40(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce40(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             41 => {
-                __reduce41(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce41(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             42 => {
-                __reduce42(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce42(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             43 => {
-                __reduce43(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce43(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             44 => {
-                __reduce44(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce44(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             45 => {
-                __reduce45(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce45(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             46 => {
-                __reduce46(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce46(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             47 => {
-                __reduce47(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce47(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             48 => {
-                __reduce48(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce48(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             49 => {
-                __reduce49(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce49(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             50 => {
-                __reduce50(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce50(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             51 => {
-                __reduce51(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce51(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             52 => {
-                __reduce52(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce52(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             53 => {
-                __reduce53(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce53(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             54 => {
-                __reduce54(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce54(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             55 => {
-                __reduce55(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce55(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             56 => {
-                __reduce56(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce56(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             57 => {
-                __reduce57(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce57(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             58 => {
-                __reduce58(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce58(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             59 => {
-                __reduce59(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce59(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             60 => {
-                __reduce60(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce60(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             61 => {
-                __reduce61(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce61(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             62 => {
-                __reduce62(module, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
+                __reduce62(ctx, input, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             63 => {
                 // __Module = Module => ActionFn(0);
                 let __sym0 = __pop_Variant4(__symbols);
                 let __start = __sym0.0.clone();
                 let __end = __sym0.2.clone();
-                let __nt = super::__action0::<>(module, input, __sym0);
+                let __nt = super::__action0::<>(ctx, input, __sym0);
                 return Some(Ok(__nt));
             }
             _ => panic!("invalid action code {}", __action)
@@ -941,7 +947,7 @@ mod __parse__Module {
     pub(crate) fn __reduce0<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -952,14 +958,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action7::<>(module, input, __sym0);
+        let __nt = super::__action7::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce1<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -970,14 +976,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action8::<>(module, input, __sym0);
+        let __nt = super::__action8::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce2<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -988,14 +994,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action9::<>(module, input, __sym0);
+        let __nt = super::__action9::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce3<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1006,14 +1012,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action10::<>(module, input, __sym0);
+        let __nt = super::__action10::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce4<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1024,14 +1030,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action11::<>(module, input, __sym0);
+        let __nt = super::__action11::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce5<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1042,14 +1048,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action12::<>(module, input, __sym0);
+        let __nt = super::__action12::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce6<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1060,14 +1066,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action13::<>(module, input, __sym0);
+        let __nt = super::__action13::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce7<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1078,14 +1084,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action14::<>(module, input, __sym0);
+        let __nt = super::__action14::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce8<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1096,14 +1102,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action15::<>(module, input, __sym0);
+        let __nt = super::__action15::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce9<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1114,14 +1120,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action16::<>(module, input, __sym0);
+        let __nt = super::__action16::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce10<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1132,14 +1138,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action17::<>(module, input, __sym0);
+        let __nt = super::__action17::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce11<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1150,14 +1156,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action18::<>(module, input, __sym0);
+        let __nt = super::__action18::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce12<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1168,14 +1174,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action19::<>(module, input, __sym0);
+        let __nt = super::__action19::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce13<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1186,14 +1192,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action20::<>(module, input, __sym0);
+        let __nt = super::__action20::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce14<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1204,14 +1210,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action21::<>(module, input, __sym0);
+        let __nt = super::__action21::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce15<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1222,14 +1228,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action22::<>(module, input, __sym0);
+        let __nt = super::__action22::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce16<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1240,14 +1246,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action23::<>(module, input, __sym0);
+        let __nt = super::__action23::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce17<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1258,14 +1264,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action24::<>(module, input, __sym0);
+        let __nt = super::__action24::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce18<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1276,14 +1282,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action25::<>(module, input, __sym0);
+        let __nt = super::__action25::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce19<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1294,14 +1300,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action26::<>(module, input, __sym0);
+        let __nt = super::__action26::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce20<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1312,14 +1318,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action27::<>(module, input, __sym0);
+        let __nt = super::__action27::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce21<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1330,14 +1336,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action28::<>(module, input, __sym0);
+        let __nt = super::__action28::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce22<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1348,14 +1354,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action29::<>(module, input, __sym0);
+        let __nt = super::__action29::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce23<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1366,14 +1372,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action30::<>(module, input, __sym0);
+        let __nt = super::__action30::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce24<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1384,14 +1390,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action31::<>(module, input, __sym0);
+        let __nt = super::__action31::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce25<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1402,14 +1408,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action32::<>(module, input, __sym0);
+        let __nt = super::__action32::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce26<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1420,14 +1426,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action33::<>(module, input, __sym0);
+        let __nt = super::__action33::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce27<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1438,14 +1444,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action34::<>(module, input, __sym0);
+        let __nt = super::__action34::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce28<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1456,14 +1462,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action35::<>(module, input, __sym0);
+        let __nt = super::__action35::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce29<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1474,14 +1480,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action36::<>(module, input, __sym0);
+        let __nt = super::__action36::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce30<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1492,14 +1498,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action37::<>(module, input, __sym0);
+        let __nt = super::__action37::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce31<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1510,14 +1516,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action38::<>(module, input, __sym0);
+        let __nt = super::__action38::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce32<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1528,14 +1534,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action39::<>(module, input, __sym0);
+        let __nt = super::__action39::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce33<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1546,14 +1552,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action40::<>(module, input, __sym0);
+        let __nt = super::__action40::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce34<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1564,14 +1570,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action41::<>(module, input, __sym0);
+        let __nt = super::__action41::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce35<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1582,14 +1588,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action42::<>(module, input, __sym0);
+        let __nt = super::__action42::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce36<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1600,14 +1606,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action43::<>(module, input, __sym0);
+        let __nt = super::__action43::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce37<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1618,14 +1624,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action44::<>(module, input, __sym0);
+        let __nt = super::__action44::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce38<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1636,14 +1642,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action45::<>(module, input, __sym0);
+        let __nt = super::__action45::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce39<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1654,14 +1660,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action46::<>(module, input, __sym0);
+        let __nt = super::__action46::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce40<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1672,14 +1678,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action47::<>(module, input, __sym0);
+        let __nt = super::__action47::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce41<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1690,14 +1696,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action48::<>(module, input, __sym0);
+        let __nt = super::__action48::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce42<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1708,14 +1714,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action49::<>(module, input, __sym0);
+        let __nt = super::__action49::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce43<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1726,14 +1732,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action50::<>(module, input, __sym0);
+        let __nt = super::__action50::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce44<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1744,14 +1750,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action51::<>(module, input, __sym0);
+        let __nt = super::__action51::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce45<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1762,14 +1768,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action52::<>(module, input, __sym0);
+        let __nt = super::__action52::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant1(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce46<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1779,14 +1785,14 @@ mod __parse__Module {
         // Attribute* =  => ActionFn(54);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action54::<>(module, input, &__start, &__end);
+        let __nt = super::__action54::<>(ctx, input, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant2(__nt), __end));
         (0, 1)
     }
     pub(crate) fn __reduce47<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1797,14 +1803,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant2(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action55::<>(module, input, __sym0);
+        let __nt = super::__action55::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant2(__nt), __end));
         (1, 1)
     }
     pub(crate) fn __reduce48<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1815,14 +1821,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(module, input, __sym0);
+        let __nt = super::__action60::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant2(__nt), __end));
         (1, 2)
     }
     pub(crate) fn __reduce49<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1835,14 +1841,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant2(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(module, input, __sym0, __sym1);
+        let __nt = super::__action61::<>(ctx, input, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant2(__nt), __end));
         (2, 2)
     }
     pub(crate) fn __reduce50<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1858,14 +1864,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym4.2.clone();
-        let __nt = super::__action62::<>(module, input, __sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action62::<>(ctx, input, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (5, 3)
     }
     pub(crate) fn __reduce51<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1882,14 +1888,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym5.2.clone();
-        let __nt = super::__action63::<>(module, input, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5);
+        let __nt = super::__action63::<>(ctx, input, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (6, 3)
     }
     pub(crate) fn __reduce52<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1899,14 +1905,14 @@ mod __parse__Module {
         // Module =  => ActionFn(64);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action64::<>(module, input, &__start, &__end);
+        let __nt = super::__action64::<>(ctx, input, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (0, 4)
     }
     pub(crate) fn __reduce53<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1917,14 +1923,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action65::<>(module, input, __sym0);
+        let __nt = super::__action65::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 4)
     }
     pub(crate) fn __reduce54<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1938,14 +1944,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym2.2.clone();
-        let __nt = super::__action2::<>(module, input, __sym0, __sym1, __sym2);
+        let __nt = super::__action2::<>(ctx, input, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (3, 5)
     }
     pub(crate) fn __reduce55<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1960,14 +1966,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym3.2.clone();
-        let __nt = super::__action3::<>(module, input, __sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action3::<>(ctx, input, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (4, 5)
     }
     pub(crate) fn __reduce56<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -1982,14 +1988,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym3.2.clone();
-        let __nt = super::__action4::<>(module, input, __sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action4::<>(ctx, input, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (4, 5)
     }
     pub(crate) fn __reduce57<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2000,14 +2006,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant3(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action5::<>(module, input, __sym0);
+        let __nt = super::__action5::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 5)
     }
     pub(crate) fn __reduce58<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2017,14 +2023,14 @@ mod __parse__Module {
         // ModuleSub* =  => ActionFn(56);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(module, input, &__start, &__end);
+        let __nt = super::__action56::<>(ctx, input, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (0, 6)
     }
     pub(crate) fn __reduce59<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2035,14 +2041,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(module, input, __sym0);
+        let __nt = super::__action57::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 6)
     }
     pub(crate) fn __reduce60<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2053,14 +2059,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(module, input, __sym0);
+        let __nt = super::__action58::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 7)
     }
     pub(crate) fn __reduce61<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2073,14 +2079,14 @@ mod __parse__Module {
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(module, input, __sym0, __sym1);
+        let __nt = super::__action59::<>(ctx, input, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 7)
     }
     pub(crate) fn __reduce62<
         'input,
     >(
-        module: &mut Module,
+        ctx: &mut Context,
         input: &'input str,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<'input>,usize)>,
@@ -2091,7 +2097,7 @@ mod __parse__Module {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action53::<>(module, input, __sym0);
+        let __nt = super::__action53::<>(ctx, input, __sym0);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (1, 8)
     }
@@ -2100,9 +2106,12 @@ pub use self::__parse__Module::ModuleParser;
 #[cfg_attr(rustfmt, rustfmt_skip)]
 mod __intern_token {
     #![allow(unused_imports)]
-    use crate::ir::{
-    util::unescape,
-    module::{attributes::Attribute, Module}
+    use crate::{
+    parser::Context,
+    ir::{
+        util::unescape,
+        module::{attributes::Attribute}
+    }
 };
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
@@ -2179,7 +2188,7 @@ pub(crate) use self::__lalrpop_util::lexer::Token;
 fn __action0<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, (), usize),
 ) -> ()
@@ -2191,7 +2200,7 @@ fn __action0<
 fn __action1<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, x, _): (usize, alloc::vec::Vec<()>, usize),
 ) -> ()
@@ -2205,21 +2214,21 @@ fn __action1<
 fn __action2<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, _, _): (usize, &'input str, usize),
     (_, _, _): (usize, &'input str, usize),
     (_, name, _): (usize, String, usize),
 ) -> ()
 {
-    module.source_filename = name
+    ctx.module.source_filename = name
 }
 
 #[allow(unused_variables)]
 fn __action3<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, _, _): (usize, &'input str, usize),
     (_, _, _): (usize, &'input str, usize),
@@ -2227,14 +2236,14 @@ fn __action3<
     (_, dl, _): (usize, String, usize),
 ) -> ()
 {
-    module.target.datalayout = dl.into()
+    ctx.module.target.datalayout = dl.into()
 }
 
 #[allow(unused_variables)]
 fn __action4<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, _, _): (usize, &'input str, usize),
     (_, _, _): (usize, &'input str, usize),
@@ -2242,26 +2251,26 @@ fn __action4<
     (_, tr, _): (usize, String, usize),
 ) -> ()
 {
-    module.target.triple = tr.into()
+    ctx.module.target.triple = tr.into()
 }
 
 #[allow(unused_variables)]
 fn __action5<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, attr_group, _): (usize, (u32, Vec<Attribute>), usize),
 ) -> ()
 {
-    { module.attributes.insert(attr_group.0, attr_group.1); }
+    { ctx.module.attributes.insert(attr_group.0, attr_group.1); }
 }
 
 #[allow(unused_variables)]
 fn __action6<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, _, _): (usize, &'input str, usize),
     (_, id, _): (usize, &'input str, usize),
@@ -2278,7 +2287,7 @@ fn __action6<
 fn __action7<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2290,7 +2299,7 @@ fn __action7<
 fn __action8<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2302,7 +2311,7 @@ fn __action8<
 fn __action9<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2314,7 +2323,7 @@ fn __action9<
 fn __action10<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2326,7 +2335,7 @@ fn __action10<
 fn __action11<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2338,7 +2347,7 @@ fn __action11<
 fn __action12<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2350,7 +2359,7 @@ fn __action12<
 fn __action13<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2362,7 +2371,7 @@ fn __action13<
 fn __action14<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2374,7 +2383,7 @@ fn __action14<
 fn __action15<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2386,7 +2395,7 @@ fn __action15<
 fn __action16<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2398,7 +2407,7 @@ fn __action16<
 fn __action17<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2410,7 +2419,7 @@ fn __action17<
 fn __action18<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2422,7 +2431,7 @@ fn __action18<
 fn __action19<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2434,7 +2443,7 @@ fn __action19<
 fn __action20<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2446,7 +2455,7 @@ fn __action20<
 fn __action21<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2458,7 +2467,7 @@ fn __action21<
 fn __action22<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2470,7 +2479,7 @@ fn __action22<
 fn __action23<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2482,7 +2491,7 @@ fn __action23<
 fn __action24<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2494,7 +2503,7 @@ fn __action24<
 fn __action25<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2506,7 +2515,7 @@ fn __action25<
 fn __action26<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2518,7 +2527,7 @@ fn __action26<
 fn __action27<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2530,7 +2539,7 @@ fn __action27<
 fn __action28<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2542,7 +2551,7 @@ fn __action28<
 fn __action29<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2554,7 +2563,7 @@ fn __action29<
 fn __action30<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2566,7 +2575,7 @@ fn __action30<
 fn __action31<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2578,7 +2587,7 @@ fn __action31<
 fn __action32<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2590,7 +2599,7 @@ fn __action32<
 fn __action33<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2602,7 +2611,7 @@ fn __action33<
 fn __action34<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2614,7 +2623,7 @@ fn __action34<
 fn __action35<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2626,7 +2635,7 @@ fn __action35<
 fn __action36<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2638,7 +2647,7 @@ fn __action36<
 fn __action37<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2650,7 +2659,7 @@ fn __action37<
 fn __action38<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2662,7 +2671,7 @@ fn __action38<
 fn __action39<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2674,7 +2683,7 @@ fn __action39<
 fn __action40<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2686,7 +2695,7 @@ fn __action40<
 fn __action41<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2698,7 +2707,7 @@ fn __action41<
 fn __action42<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2710,7 +2719,7 @@ fn __action42<
 fn __action43<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2722,7 +2731,7 @@ fn __action43<
 fn __action44<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2734,7 +2743,7 @@ fn __action44<
 fn __action45<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2746,7 +2755,7 @@ fn __action45<
 fn __action46<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2758,7 +2767,7 @@ fn __action46<
 fn __action47<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2770,7 +2779,7 @@ fn __action47<
 fn __action48<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2782,7 +2791,7 @@ fn __action48<
 fn __action49<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2794,7 +2803,7 @@ fn __action49<
 fn __action50<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2806,7 +2815,7 @@ fn __action50<
 fn __action51<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2818,7 +2827,7 @@ fn __action51<
 fn __action52<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, &'input str, usize),
 ) -> Attribute
@@ -2830,7 +2839,7 @@ fn __action52<
 fn __action53<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, s, _): (usize, &'input str, usize),
 ) -> String
@@ -2842,7 +2851,7 @@ fn __action53<
 fn __action54<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __lookbehind: &usize,
     __lookahead: &usize,
@@ -2855,7 +2864,7 @@ fn __action54<
 fn __action55<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, v, _): (usize, alloc::vec::Vec<Attribute>, usize),
 ) -> alloc::vec::Vec<Attribute>
@@ -2867,7 +2876,7 @@ fn __action55<
 fn __action56<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __lookbehind: &usize,
     __lookahead: &usize,
@@ -2880,7 +2889,7 @@ fn __action56<
 fn __action57<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, v, _): (usize, alloc::vec::Vec<()>, usize),
 ) -> alloc::vec::Vec<()>
@@ -2892,7 +2901,7 @@ fn __action57<
 fn __action58<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, (), usize),
 ) -> alloc::vec::Vec<()>
@@ -2904,7 +2913,7 @@ fn __action58<
 fn __action59<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, v, _): (usize, alloc::vec::Vec<()>, usize),
     (_, e, _): (usize, (), usize),
@@ -2917,7 +2926,7 @@ fn __action59<
 fn __action60<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, __0, _): (usize, Attribute, usize),
 ) -> alloc::vec::Vec<Attribute>
@@ -2929,7 +2938,7 @@ fn __action60<
 fn __action61<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     (_, v, _): (usize, alloc::vec::Vec<Attribute>, usize),
     (_, e, _): (usize, Attribute, usize),
@@ -2942,7 +2951,7 @@ fn __action61<
 fn __action62<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __0: (usize, &'input str, usize),
     __1: (usize, &'input str, usize),
@@ -2954,14 +2963,14 @@ fn __action62<
     let __start0 = __3.2.clone();
     let __end0 = __4.0.clone();
     let __temp0 = __action54(
-        module,
+        ctx,
         input,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action6(
-        module,
+        ctx,
         input,
         __0,
         __1,
@@ -2976,7 +2985,7 @@ fn __action62<
 fn __action63<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __0: (usize, &'input str, usize),
     __1: (usize, &'input str, usize),
@@ -2989,13 +2998,13 @@ fn __action63<
     let __start0 = __4.0.clone();
     let __end0 = __4.2.clone();
     let __temp0 = __action55(
-        module,
+        ctx,
         input,
         __4,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action6(
-        module,
+        ctx,
         input,
         __0,
         __1,
@@ -3010,7 +3019,7 @@ fn __action63<
 fn __action64<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __lookbehind: &usize,
     __lookahead: &usize,
@@ -3019,14 +3028,14 @@ fn __action64<
     let __start0 = __lookbehind.clone();
     let __end0 = __lookahead.clone();
     let __temp0 = __action56(
-        module,
+        ctx,
         input,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action1(
-        module,
+        ctx,
         input,
         __temp0,
     )
@@ -3036,7 +3045,7 @@ fn __action64<
 fn __action65<
     'input,
 >(
-    module: &mut Module,
+    ctx: &mut Context,
     input: &'input str,
     __0: (usize, alloc::vec::Vec<()>, usize),
 ) -> ()
@@ -3044,13 +3053,13 @@ fn __action65<
     let __start0 = __0.0.clone();
     let __end0 = __0.2.clone();
     let __temp0 = __action57(
-        module,
+        ctx,
         input,
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action1(
-        module,
+        ctx,
         input,
         __temp0,
     )

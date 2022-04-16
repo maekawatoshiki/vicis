@@ -445,6 +445,12 @@ impl Type {
     }
 }
 
+impl Default for Type {
+    fn default() -> Self {
+        VOID
+    }
+}
+
 impl ArrayType {
     pub fn new(inner: Type, num_elements: u32) -> Self {
         Self {

@@ -26,6 +26,7 @@ pub type FunctionId = Id<Function>;
 
 pub type PersonalityFunc = (Type, ConstantValue);
 
+#[derive(Default)]
 pub struct Function {
     pub name: String,
     pub is_var_arg: bool,
