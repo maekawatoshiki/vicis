@@ -13,11 +13,7 @@ keywords = ["llvm", "compiler"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[build-dependencies]
-lalrpop = "0.19.7"
-
 [dependencies]
-lalrpop-util = "0.19.7"
 nom = "^7.1.0"
 rustc-hash = "^1.1.0"
 id-arena = "^2.2.1"

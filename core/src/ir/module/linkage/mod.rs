@@ -27,12 +27,6 @@ impl Linkage {
     }
 }
 
-impl Default for Linkage {
-    fn default() -> Self {
-        Linkage::External
-    }
-}
-
 impl fmt::Debug for Linkage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

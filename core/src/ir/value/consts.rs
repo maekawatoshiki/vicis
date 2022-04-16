@@ -20,7 +20,6 @@ pub enum ConstantValue {
 pub enum ConstantInt {
     Int1(bool),
     Int8(i8),
-    Int16(i16),
     Int32(i32),
     Int64(i64),
 }
@@ -103,7 +102,6 @@ impl ConstantInt {
         match self {
             Self::Int1(i) => i as usize,
             Self::Int8(i) => i as usize,
-            Self::Int16(i) => i as usize,
             Self::Int32(i) => i as usize,
             Self::Int64(i) => i as usize,
         }
@@ -113,7 +111,6 @@ impl ConstantInt {
         match self {
             Self::Int1(i) => i as i64,
             Self::Int8(i) => i as i64,
-            Self::Int16(i) => i as i64,
             Self::Int32(i) => i as i64,
             Self::Int64(i) => i as i64,
         }
@@ -123,7 +120,6 @@ impl ConstantInt {
         match self {
             Self::Int1(i) => !(*i),
             Self::Int8(i) => *i == 0,
-            Self::Int16(i) => *i == 0,
             Self::Int32(i) => *i == 0,
             Self::Int64(i) => *i == 0,
         }
@@ -235,7 +231,6 @@ impl Typed for ConstantInt {
         match self {
             Self::Int1(_) => types::I1,
             Self::Int8(_) => types::I8,
-            Self::Int16(_) => types::I16,
             Self::Int32(_) => types::I32,
             Self::Int64(_) => types::I64,
         }
@@ -263,12 +258,6 @@ impl Typed for ConstantExpr {
     }
 }
 
-impl From<ConstantArray> for ConstantValue {
-    fn from(a: ConstantArray) -> Self {
-        Self::Array(a)
-    }
-}
-
 impl From<ConstantInt> for ConstantValue {
     fn from(i: ConstantInt) -> Self {
         Self::Int(i)
@@ -286,7 +275,6 @@ impl std::fmt::Display for ConstantInt {
         match self {
             Self::Int1(i) => write!(f, "{}", i),
             Self::Int8(i) => write!(f, "{}", i),
-            Self::Int16(i) => write!(f, "{}", i),
             Self::Int32(i) => write!(f, "{}", i),
             Self::Int64(i) => write!(f, "{}", i),
         }
