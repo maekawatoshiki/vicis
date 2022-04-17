@@ -111,6 +111,31 @@ fn lower_alloca(
     _num_elements: &ConstantValue,
     _align: u32,
 ) -> Result<()> {
+    if let Some(slot_id) = ctx.inst_id_to_slot_id.get(&id) {
+        let mem = vec![
+            MO::new(OperandData::MemStart),
+            MO::new(OperandData::Slot(*slot_id)),
+            MO::new(OperandData::None),
+            MO::input(OperandData::None),
+            MO::input(OperandData::None),
+            MO::new(OperandData::None),
+        ];
+
+        let ty = ctx.types.base_mut().pointer(tys[0]);
+        let output = new_empty_inst_output(ctx, ty, id);
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::LEArm64,
+                operands: vec![MO::output(output.into())]
+                    .into_iter()
+                    .chain(mem.into_iter())
+                    .collect(),
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+
+        return Ok(());
+    }
     let sz = ctx.isa.data_layout().get_size_of(ctx.types, tys[0]) as u32;
     let slot_id = ctx.slots.add_slot(tys[0], sz);
     ctx.inst_id_to_slot_id.insert(id, slot_id);

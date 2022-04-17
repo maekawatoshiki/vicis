@@ -23,6 +23,7 @@ pub fn lower_load(
     _align: u32,
 ) -> Result<()> {
     let mut slot = None;
+    let mut vreg = None;
 
     // Very limited situation is supported now. TODO
     let sext = ctx.ir_data.only_one_user_of(id).filter(|&id| {
@@ -39,9 +40,39 @@ pub fn lower_load(
             if opcode == IrOpcode::GetElementPtr {
                 return lower_load_gep(ctx, id, tys, *addr_id, _align, sext);
             }
+            vreg = Some(get_inst_output(ctx, tys[1], *addr_id)?);
         }
     } else {
         panic!()
+    }
+
+    if let Some(vreg) = vreg {
+        let src_ty = tys[0];
+        let mem = vec![
+            MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::None),
+            MOperand::new(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::input(OperandData::VReg(vreg)),
+            MOperand::new(OperandData::None),
+        ];
+
+        let sz = ctx.isa.data_layout().get_size_of(&ctx.types, src_ty);
+
+        if sz == 4 {
+            let output = new_empty_inst_output(ctx, src_ty, id);
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVrm32,
+                    operands: vec![MOperand::output(output.into())]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            return Ok(());
+        }
     }
 
     if let Some(slot) = slot {
@@ -70,11 +101,28 @@ pub fn lower_load(
             return Ok(());
         }
 
-        if src_ty.is_i32() {
+        let sz = ctx.isa.data_layout().get_size_of(&ctx.types, src_ty);
+
+        if sz == 4 {
             let output = new_empty_inst_output(ctx, src_ty, id);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVrm32,
+                    operands: vec![MOperand::output(output.into())]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            return Ok(());
+        }
+
+        if sz == 8 {
+            let output = new_empty_inst_output(ctx, src_ty, id);
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVrm64,
                     operands: vec![MOperand::output(output.into())]
                         .into_iter()
                         .chain(mem.into_iter())

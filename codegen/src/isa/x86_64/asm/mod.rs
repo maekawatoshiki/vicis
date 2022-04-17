@@ -131,7 +131,11 @@ pub fn print_function(
                 }
                 if matches!(operand.data, OperandData::MemStart) {
                     i += 1;
-                    write!(f, "{} ptr ", mem_size(&inst.data.opcode))?;
+                    let sz = mem_size(&inst.data.opcode);
+                    write!(f, "{}", sz)?;
+                    if !sz.is_empty() {
+                        write!(f, " ")?;
+                    }
                     write!(f, "{}", mem_op(&inst.data.operands[i..i + 5]))?;
                     i += 5 - 1;
                 } else {
@@ -169,6 +173,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVrm32
                 | Self::MOVmi32
                 | Self::MOVmr32 => "mov",
+                Self::LEArm64 => "lea",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
                 Self::CMPri32 | Self::CMPrr32 => "cmp",
                 Self::JMP => "jmp",
@@ -202,8 +207,9 @@ fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) ->
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
-        Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 | Opcode::MOVSXDr64m32 => "dword",
-        Opcode::MOVrm64 | Opcode::MOVmr64 => "qword",
+        Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 | Opcode::MOVSXDr64m32 => "dword ptr",
+        Opcode::MOVrm64 | Opcode::MOVmr64 => "qword ptr",
+        Opcode::LEArm64 => "",
         e => todo!("{:?}", e),
     }
 }
@@ -233,6 +239,9 @@ fn mem_op(args: &[Operand]) -> String {
                 reg_to_str(reg2),
                 shift
             )
+        }
+        (OperandData::None, OperandData::None, OperandData::Reg(reg2), OperandData::None) => {
+            format!("[{}]", reg_to_str(reg2),)
         }
         _ => todo!(),
     }

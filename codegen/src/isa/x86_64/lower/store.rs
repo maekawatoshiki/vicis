@@ -45,6 +45,7 @@ pub fn lower_store(
     let mut arg = None;
 
     let src = args[0];
+    let src_ty = tys[0];
     match ctx.ir_data.value_ref(src) {
         Value::Constant(ConstantValue::Int(int)) => imm = Some(*int),
         Value::Instruction(id) => inst = Some(*id),
@@ -52,12 +53,19 @@ pub fn lower_store(
         e => return Err(LoweringError::Todo(format!("Unsupported store source: {:?}", e)).into()),
     }
 
+    let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
+    assert!(sz == 4 || sz == 8);
+
     match (dst_slot, inst, arg, imm) {
         (Some(slot), Some(id), None, None) => {
             let inst = get_inst_output(ctx, tys[0], id)?;
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVmr32,
+                    opcode: match sz {
+                        4 => Opcode::MOVmr32,
+                        8 => Opcode::MOVmr64,
+                        _ => todo!(),
+                    },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
                         MOperand::new(OperandData::Slot(slot)),
@@ -75,7 +83,10 @@ pub fn lower_store(
         (Some(slot), None, None, Some(ConstantInt::Int32(imm))) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVmi32,
+                    opcode: match sz {
+                        4 => Opcode::MOVmi32,
+                        _ => todo!(),
+                    },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
                         MOperand::new(OperandData::Slot(slot)),
@@ -93,7 +104,11 @@ pub fn lower_store(
         (Some(slot), None, Some(arg), None) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVmr32,
+                    opcode: match sz {
+                        4 => Opcode::MOVmr32,
+                        8 => Opcode::MOVmr64,
+                        _ => todo!(),
+                    },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
                         MOperand::new(OperandData::Slot(slot)),
