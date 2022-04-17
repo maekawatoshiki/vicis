@@ -1,4 +1,4 @@
-use super::get_or_generate_inst_output;
+use super::get_inst_output;
 use crate::{
     function::instruction::Instruction as MachInstruction,
     isa::x86_64::{
@@ -54,7 +54,7 @@ pub fn lower_store(
 
     match (dst_slot, inst, arg, imm) {
         (Some(slot), Some(id), None, None) => {
-            let inst = get_or_generate_inst_output(ctx, tys[0], id)?;
+            let inst = get_inst_output(ctx, tys[0], id)?;
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVmr32,
@@ -165,7 +165,7 @@ fn lower_store_gep(
 
             let idx1_ty = gep.operand.types()[3];
             assert!(idx1_ty.is_i64());
-            let idx1 = get_or_generate_inst_output(ctx, idx1_ty, *idx1)?;
+            let idx1 = get_inst_output(ctx, idx1_ty, *idx1)?;
 
             assert!(
                 ctx.isa
@@ -213,7 +213,7 @@ fn lower_store_gep(
             )]);
         }
         Value::Instruction(id) => {
-            let src = get_or_generate_inst_output(ctx, src_ty, *id)?;
+            let src = get_inst_output(ctx, src_ty, *id)?;
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: Opcode::MOVmr32,
