@@ -274,10 +274,6 @@ impl TypesBase {
         let named_ty = self.empty_named_type(name.clone());
 
         match self.get_mut(ty) {
-            // primitive types
-            None if ty.is_primitive() => {
-                self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
-            }
             // If `ty` is a struct type, name it.
             Some(CompoundType::Struct(ref mut strukt)) => {
                 let mut strukt = mem::take(strukt);
@@ -287,7 +283,9 @@ impl TypesBase {
                 }
                 self.compound_types[named_ty.1 as usize] = CompoundType::Struct(strukt);
             }
-            _ => todo!(),
+            _ => {
+                self.compound_types[named_ty.1 as usize] = CompoundType::Alias(ty);
+            }
         }
     }
 
@@ -326,7 +324,15 @@ impl TypesBase {
 
     pub fn to_string(&self, ty: Type) -> String {
         if ty.is_primitive() {
-            return ty.to_string();
+            return match ty {
+                VOID => "void".to_string(),
+                I1 => "i1".to_string(),
+                I8 => "i8".to_string(),
+                I16 => "i16".to_string(),
+                I32 => "i32".to_string(),
+                I64 => "i64".to_string(),
+                _ => todo!(),
+            };
         }
 
         let ty = &self.get(ty).expect("must be compound type");
@@ -378,7 +384,7 @@ impl TypesBase {
                 self.struct_definition_to_string(ty)
             }
             CompoundType::Metadata => "metadata".to_string(),
-            CompoundType::Alias(t) => t.to_string(),
+            CompoundType::Alias(t) => self.to_string(*t),
         }
     }
 
@@ -443,6 +449,10 @@ impl Type {
     pub fn is_function(&self, types: &Types) -> bool {
         types.is_function(*self)
     }
+
+    pub fn to_string(&self, types: &Types) -> String {
+        types.to_string(*self)
+    }
 }
 
 impl ArrayType {
@@ -461,23 +471,6 @@ impl FunctionType {
             params,
             is_var_arg,
         }
-    }
-}
-
-impl ToString for Type {
-    fn to_string(&self) -> String {
-        if self.is_primitive() {
-            return match *self {
-                VOID => "void".to_string(),
-                I1 => "i1".to_string(),
-                I8 => "i8".to_string(),
-                I16 => "i16".to_string(),
-                I32 => "i32".to_string(),
-                I64 => "i64".to_string(),
-                _ => todo!(),
-            };
-        }
-        format!("{:?}", self)
     }
 }
 
