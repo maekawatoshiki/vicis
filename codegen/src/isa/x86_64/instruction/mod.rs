@@ -34,7 +34,9 @@ pub enum Opcode {
     MOVri64,
     MOVrm32,
     MOVrm64,
+    MOVmi8,
     MOVmi32,
+    MOVmr8,
     MOVmr32,
     MOVmr64,
     MOVSXDr64r32,
@@ -68,6 +70,7 @@ pub struct Operand {
 pub enum OperandData {
     Reg(Reg),
     VReg(VReg),
+    Int8(i8),
     Int32(i32),
     MemStart, // followed by: Slot, Imm, Reg(basically rbp), Reg, Shift
     Slot(SlotId),
@@ -369,6 +372,18 @@ impl From<Reg> for OperandData {
     }
 }
 
+impl From<i8> for OperandData {
+    fn from(i: i8) -> Self {
+        OperandData::Int8(i)
+    }
+}
+
+impl From<&i8> for OperandData {
+    fn from(i: &i8) -> Self {
+        OperandData::Int8(*i)
+    }
+}
+
 impl From<i32> for OperandData {
     fn from(i: i32) -> Self {
         OperandData::Int32(i)
@@ -429,6 +444,7 @@ impl fmt::Debug for OperandData {
         match self {
             Self::Reg(r) => write!(f, "{}", reg_to_str(r)),
             Self::VReg(vr) => write!(f, "%{}", vr.0),
+            Self::Int8(i) => write!(f, "{}", i),
             Self::Int32(i) => write!(f, "{}", i),
             Self::MemStart => write!(f, "$MemStart$"),
             Self::Slot(slot) => write!(f, "slot.{}", slot.index()),

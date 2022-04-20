@@ -34,3 +34,4 @@ test!(test_puts, "puts");
 test!(test_sum, "sum");
 test!(test_hello, "hello");
 test!(test_addr, "addr");
+test!(test_i8, "i8");

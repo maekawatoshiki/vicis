@@ -54,7 +54,7 @@ pub fn lower_store(
     }
 
     let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
-    assert!(sz == 4 || sz == 8);
+    assert!(sz == 1 || sz == 4 || sz == 8);
 
     match (dst_slot, inst, arg, imm) {
         (Some(slot), Some(id), None, None) => {
@@ -80,12 +80,13 @@ pub fn lower_store(
             )]);
             Ok(())
         }
-        (Some(slot), None, None, Some(ConstantInt::Int32(imm))) => {
+        (Some(slot), None, None, Some(imm)) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: match sz {
+                        1 => Opcode::MOVmi8,
                         4 => Opcode::MOVmi32,
-                        _ => todo!(),
+                        _ => panic!(),
                     },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
@@ -94,7 +95,11 @@ pub fn lower_store(
                         MOperand::input(OperandData::None),
                         MOperand::input(OperandData::None),
                         MOperand::new(OperandData::None),
-                        MOperand::input(imm.into()),
+                        MOperand::input(match imm {
+                            ConstantInt::Int8(i) => i.into(),
+                            ConstantInt::Int32(i) => i.into(),
+                            _ => panic!(),
+                        }),
                     ],
                 },
                 ctx.block_map[&ctx.cur_block],
