@@ -1,7 +1,7 @@
 ---
 source: codegen/tests/codegen.rs
 assertion_line: 29
-expression: mach_module
+expression: mach_module.display_asm()
 ---
   .text
   .intel_syntax noprefix
@@ -13,8 +13,8 @@ fibo:
   mov rbp, rsp
   sub rsp, 16
   mov eax, edi
-  mov dword ptr [rbp-12], eax
-  mov eax, dword ptr [rbp-12]
+  mov dword ptr [rbp-8], eax
+  mov eax, dword ptr [rbp-8]
   cmp eax, 2
   jle .LBL0_1
   jmp .LBL0_2
@@ -22,14 +22,14 @@ fibo:
   mov dword ptr [rbp-4], 1
   jmp .LBL0_3
 .LBL0_2:
-  mov edi, dword ptr [rbp-12]
+  mov edi, dword ptr [rbp-8]
   sub edi, 1
   call fibo
-  mov dword ptr [rbp-8], eax
-  mov edi, dword ptr [rbp-12]
+  mov dword ptr [rbp-12], eax
+  mov edi, dword ptr [rbp-8]
   sub edi, 2
   call fibo
-  mov ecx, dword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
   add ecx, eax
   mov dword ptr [rbp-4], ecx
   jmp .LBL0_3

@@ -22,12 +22,10 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
     pub fn spill(&mut self, vreg: VReg, new_vregs: &mut Vec<VReg>) {
         let ty = self.function.data.vregs.type_for(vreg);
-        let sz = self
-            .function
-            .isa
-            .data_layout()
-            .get_size_of(&self.function.types, ty) as u32;
-        let slot = self.function.slots.add_slot(ty, sz);
+        let dl = self.function.isa.data_layout();
+        let sz = dl.get_size_of(&self.function.types, ty) as u32;
+        let align = dl.get_align_of(&self.function.types, ty) as u32;
+        let slot = self.function.slots.add_slot(ty, sz, align);
 
         self.insert_spill(vreg, slot, new_vregs);
         self.insert_reload(vreg, slot, new_vregs);

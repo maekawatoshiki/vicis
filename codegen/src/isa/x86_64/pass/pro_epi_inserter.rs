@@ -17,11 +17,11 @@ pub fn run_on_module(module: &mut Module<X86_64>) -> Result<()> {
 }
 
 pub fn run_on_function(function: &mut Function<X86_64>) {
-    let unaligned_slot_size = function.slots.unaligned_size();
+    let slot_size = function.slots.ensure_computed_offsets();
     let num_saved_64bit_regs = 1; // rbp TODO
 
     let adj = roundup(
-        (unaligned_slot_size + num_saved_64bit_regs * 8 + 8/*=call*/) as i32,
+        (slot_size + num_saved_64bit_regs * 8 + 8/*=call*/) as i32,
         16,
     ) - (num_saved_64bit_regs * 8 + 8) as i32;
 
