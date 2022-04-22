@@ -57,7 +57,7 @@ pub fn lower_load(
             MOperand::new(OperandData::None),
         ];
 
-        let sz = ctx.isa.data_layout().get_size_of(&ctx.types, src_ty);
+        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
 
         if sz == 4 {
             let output = new_empty_inst_output(ctx, src_ty, id);
@@ -101,37 +101,27 @@ pub fn lower_load(
             return Ok(());
         }
 
-        let sz = ctx.isa.data_layout().get_size_of(&ctx.types, src_ty);
+        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
+        let output = new_empty_inst_output(ctx, src_ty, id);
+        let opcode = match sz {
+            1 => Opcode::MOVrm8,
+            4 => Opcode::MOVrm32,
+            8 => Opcode::MOVrm64,
+            _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
+        };
 
-        if sz == 4 {
-            let output = new_empty_inst_output(ctx, src_ty, id);
-            ctx.inst_seq.push(MachInstruction::new(
-                InstructionData {
-                    opcode: Opcode::MOVrm32,
-                    operands: vec![MOperand::output(output.into())]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            ));
-            return Ok(());
-        }
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode,
+                operands: vec![MOperand::output(output.into())]
+                    .into_iter()
+                    .chain(mem.into_iter())
+                    .collect(),
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
 
-        if sz == 8 {
-            let output = new_empty_inst_output(ctx, src_ty, id);
-            ctx.inst_seq.push(MachInstruction::new(
-                InstructionData {
-                    opcode: Opcode::MOVrm64,
-                    operands: vec![MOperand::output(output.into())]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            ));
-            return Ok(());
-        }
+        return Ok(());
     }
 
     Err(LoweringError::Todo("Unsupported load pattern".into()).into())

@@ -258,7 +258,7 @@ fn lower_sext(
         }
         _ => {
             return Err(
-                LoweringError::Todo(format!("Sext argument must be an instruction result")).into(),
+                LoweringError::Todo("Sext argument must be an instruction result".into()).into(),
             )
         }
     };

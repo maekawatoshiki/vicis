@@ -1,0 +1,23 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 38
+expression: mach_module.display_asm()
+---
+  .text
+  .intel_syntax noprefix
+  .text
+  .globl main
+main:
+.LBL0_0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 16
+  mov dword ptr [rbp-4], 0
+  mov byte ptr [rbp-5], 1
+  mov al, byte ptr [rbp-5]
+  mov byte ptr [rbp-6], al
+  mov eax, 0
+  add rsp, 16
+  pop rbp
+  ret 
+

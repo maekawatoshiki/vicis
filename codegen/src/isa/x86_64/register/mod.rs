@@ -7,6 +7,26 @@ use vicis_core::ir::types::{self, Type, Types};
 
 pub struct RegInfo;
 
+pub enum GR8 {
+    // TODO: AH, CH, DH, BH
+    AL,
+    CL,
+    DL,
+    BL,
+    SIL,
+    DIL,
+    BPL,
+    SPL,
+    R8B,
+    R9B,
+    R10B,
+    R11B,
+    R12B,
+    R13B,
+    R14B,
+    R15B,
+}
+
 pub enum GR32 {
     EAX,
     ECX,
@@ -46,8 +66,15 @@ pub enum GR64 {
 }
 
 pub enum RegClass {
+    GR8,
     GR32,
     GR64,
+}
+
+impl From<GR8> for Reg {
+    fn from(r: GR8) -> Self {
+        Reg(RegClass::GR8 as u16, r as u16)
+    }
 }
 
 impl From<GR32> for Reg {
@@ -59,6 +86,12 @@ impl From<GR32> for Reg {
 impl From<GR64> for Reg {
     fn from(r: GR64) -> Self {
         Reg(RegClass::GR64 as u16, r as u16)
+    }
+}
+
+impl From<GR8> for RegUnit {
+    fn from(r: GR8) -> Self {
+        RegUnit(RegClass::GR64 as u16, r as u16)
     }
 }
 
@@ -93,8 +126,9 @@ impl RegisterInfo for RegInfo {
 
     fn to_reg_unit(r: Reg) -> RegUnit {
         match r {
-            Reg(/*GR32*/ 0, x) => RegUnit(RegClass::GR64 as u16, x),
-            Reg(/*GR64*/ 1, x) => RegUnit(RegClass::GR64 as u16, x),
+            Reg(/*GR8*/ 0, x) => RegUnit(RegClass::GR64 as u16, x),
+            Reg(/*GR32*/ 1, x) => RegUnit(RegClass::GR64 as u16, x),
+            Reg(/*GR64*/ 2, x) => RegUnit(RegClass::GR64 as u16, x),
             _ => panic!(),
         }
     }
@@ -103,6 +137,7 @@ impl RegisterInfo for RegInfo {
 impl RegisterClass for RegClass {
     fn for_type(types: &Types, ty: Type) -> Self {
         match ty {
+            types::I8 => RegClass::GR8,
             types::I32 => RegClass::GR32,
             types::I64 => RegClass::GR64,
             _ if ty.is_pointer(types) => RegClass::GR64,
@@ -113,6 +148,10 @@ impl RegisterClass for RegClass {
     fn gpr_list(&self) -> Vec<Reg> {
         match self {
             // TODO: Add more general-purpose registers
+            RegClass::GR8 => vec![GR8::AL, GR8::CL, GR8::DL]
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             RegClass::GR32 => vec![GR32::EAX, GR32::ECX, GR32::EDX]
                 .into_iter()
                 .map(|r| r.into())
@@ -127,6 +166,7 @@ impl RegisterClass for RegClass {
 
     fn apply_for(&self, ru: RegUnit) -> Reg {
         match self {
+            Self::GR8 => Reg(RegClass::GR8 as u16, ru.1),
             Self::GR32 => Reg(RegClass::GR32 as u16, ru.1),
             Self::GR64 => Reg(RegClass::GR64 as u16, ru.1),
         }
@@ -135,8 +175,9 @@ impl RegisterClass for RegClass {
 
 pub fn to_reg_unit(r: Reg) -> RegUnit {
     match r {
-        Reg(/*GR32*/ 0, x) => RegUnit(1, x),
-        Reg(/*GR64*/ 1, x) => RegUnit(1, x),
+        Reg(/*GR8*/ 0, x) => RegUnit(2, x),
+        Reg(/*GR32*/ 1, x) => RegUnit(2, x),
+        Reg(/*GR64*/ 2, x) => RegUnit(2, x),
         _ => panic!(),
     }
 }
@@ -208,6 +249,10 @@ impl fmt::Display for GR32 {
 }
 
 pub fn reg_to_str(r: &Reg) -> &'static str {
+    let gr8 = [
+        "al", "cl", "dl", "ah", "ch", "dh", "bl", "bh", "sil", "dil", "bpl", "spl", "r8b", "r9b",
+        "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
+    ];
     let gr32 = [
         "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8", "r9d", "r10d", "r11d",
         "r12d", "r13d", "r14d", "r15d",
@@ -217,8 +262,9 @@ pub fn reg_to_str(r: &Reg) -> &'static str {
         "r13", "r14", "r15",
     ];
     match r {
-        Reg(0, i) => gr32[*i as usize],
-        Reg(1, i) => gr64[*i as usize],
+        Reg(0, i) => gr8[*i as usize],
+        Reg(1, i) => gr32[*i as usize],
+        Reg(2, i) => gr64[*i as usize],
         e => todo!("{:?}", e),
     }
 }

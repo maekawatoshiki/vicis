@@ -164,7 +164,8 @@ impl fmt::Display for Opcode {
                 Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 => "add",
                 Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
                 Self::IMULrr32 => "imul",
-                Self::MOVmr8
+                Self::MOVrm8
+                | Self::MOVmr8
                 | Self::MOVmi8
                 | Self::MOVrr32
                 | Self::MOVrr64
@@ -210,7 +211,7 @@ fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) ->
 
 fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
-        Opcode::MOVmr8 | Opcode::MOVmi8 => "byte ptr",
+        Opcode::MOVrm8 | Opcode::MOVmr8 | Opcode::MOVmi8 => "byte ptr",
         Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 | Opcode::MOVSXDr64m32 => "dword ptr",
         Opcode::MOVrm64 | Opcode::MOVmr64 => "qword ptr",
         Opcode::LEArm64 => "",

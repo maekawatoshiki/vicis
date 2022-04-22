@@ -35,3 +35,4 @@ test!(test_sum, "sum");
 test!(test_hello, "hello");
 test!(test_addr, "addr");
 test!(test_i8, "i8");
+test!(test_i8_load_store, "i8_load_store");
