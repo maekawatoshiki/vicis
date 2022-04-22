@@ -1,10 +1,11 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 37
-expression: mach_module
+assertion_line: 35
+expression: mach_module.display_asm()
 ---
   .text
   .intel_syntax noprefix
+  .text
   .globl main
 main:
 .LBL0_0:

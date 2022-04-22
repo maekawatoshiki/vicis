@@ -1,6 +1,6 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 23
+assertion_line: 26
 expression: mach_module.display_asm()
 ---
   .text
@@ -13,11 +13,13 @@ main:
   mov rbp, rsp
   sub rsp, 16
   mov dword ptr [rbp-4], 0
-  mov dword ptr [rbp-12], 1
-  mov dword ptr [rbp-8], 2
-  mov eax, dword ptr [rbp-12]
-  mov ecx, dword ptr [rbp-8]
-  add eax, ecx
+  mov dword ptr [rbp-16], 0
+  movsxd rax, dword ptr [rbp-16]
+  mov dword ptr [rbp-12+rax*4], 1
+  mov dword ptr [rbp-16], 1
+  movsxd rax, dword ptr [rbp-16]
+  mov dword ptr [rbp-12+rax*4], 2
+  mov eax, 0
   add rsp, 16
   pop rbp
   ret 

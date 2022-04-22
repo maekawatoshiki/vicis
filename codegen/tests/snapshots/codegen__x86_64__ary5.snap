@@ -1,6 +1,6 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 24
+assertion_line: 28
 expression: mach_module.display_asm()
 ---
   .text

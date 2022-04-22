@@ -1,7 +1,7 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 30
-expression: mach_module
+assertion_line: 41
+expression: mach_module.display_asm()
 ---
   .text
   .intel_syntax noprefix
@@ -12,13 +12,9 @@ main:
   push rbp
   mov rbp, rsp
   sub rsp, 16
-  mov dword ptr [rbp-4], 2
-  mov eax, dword ptr [rbp-4]
-  mov ecx, eax
-  add ecx, 1
-  add eax, 2
-  add ecx, eax
-  mov eax, ecx
+  mov dword ptr [rbp-4], 0
+  mov byte ptr [rbp-5], 1
+  mov eax, 0
   add rsp, 16
   pop rbp
   ret 

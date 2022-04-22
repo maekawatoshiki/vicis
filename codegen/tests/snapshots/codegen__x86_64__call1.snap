@@ -1,5 +1,11 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 30
+expression: mach_module.display_asm()
+---
   .text
   .intel_syntax noprefix
+  .text
   .globl f
 f:
 .LBL0_0:
@@ -8,6 +14,7 @@ f:
   mov eax, 1
   pop rbp
   ret 
+  .text
   .globl main
 main:
 .LBL1_0:
@@ -19,3 +26,4 @@ main:
   add rsp, 16
   pop rbp
   ret 
+

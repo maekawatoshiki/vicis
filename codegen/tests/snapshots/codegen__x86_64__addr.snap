@@ -1,12 +1,11 @@
 ---
 source: codegen/tests/codegen.rs
-assertion_line: 37
-expression: mach_module
+assertion_line: 40
+expression: mach_module.display_asm()
 ---
   .text
   .intel_syntax noprefix
-.str:
-  .string "hello world"
+  .text
   .globl main
 main:
 .LBL0_0:
@@ -14,9 +13,11 @@ main:
   mov rbp, rsp
   sub rsp, 16
   mov dword ptr [rbp-4], 0
-  mov rdi, offset .str
-  call puts
-  mov eax, 0
+  mov dword ptr [rbp-8], 42
+  lea rax, [rbp-8]
+  mov qword ptr [rbp-16], rax
+  mov rax, qword ptr [rbp-16]
+  mov eax, dword ptr [rax]
   add rsp, 16
   pop rbp
   ret 
