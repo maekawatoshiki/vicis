@@ -33,10 +33,10 @@ pub trait Lower<T: TargetIsa> {
 }
 
 // TODO: So confusing. Need refactoring.
-pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
+pub struct LoweringContext<'a, 'isa: 'a, T: TargetIsa> {
     pub ir_data: &'a IrData,
     pub mach_data: &'a mut Data<T::Inst>,
-    pub slots: &'a mut Slots<'b, T>,
+    pub slots: &'a mut Slots<'isa, T>,
     pub inst_id_to_slot_id: &'a mut FxHashMap<IrInstructionId, SlotId>,
     pub arg_idx_to_vreg: &'a mut FxHashMap<usize, VReg>,
     pub inst_seq: &'a mut Vec<MachInstruction<T::Inst>>,
@@ -46,7 +46,7 @@ pub struct LoweringContext<'a, 'b: 'a, T: TargetIsa> {
     pub block_map: &'a FxHashMap<IrBasicBlockId, MachBasicBlockId>,
     pub call_conv: CallConvKind,
     pub cur_block: IrBasicBlockId,
-    pub isa: &'a T,
+    pub isa: &'isa T,
 }
 
 #[derive(Debug)]
