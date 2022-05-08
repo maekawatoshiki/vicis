@@ -50,11 +50,17 @@ impl LowerTrait<X86_64> for Lower {
             let reg = args[gpr_used].apply(&RegClass::for_type(ctx.types, *ty));
             debug!(reg);
             // Copy reg to new vreg
-            assert!(ty.is_i32());
+            assert!(ty.is_integer() || ty.is_pointer(ctx.types));
+            let sz = ctx.isa.data_layout().get_size_of(ctx.types, *ty);
+            let opcode = match sz {
+                4 => Opcode::MOVrr32,
+                8 => Opcode::MOVrr64,
+                _ => todo!(),
+            };
             let output = ctx.mach_data.vregs.add_vreg_data(*ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVrr32,
+                    opcode,
                     operands: vec![MO::output(output.into()), MO::input(reg.into())],
                 },
                 ctx.block_map[&ctx.cur_block],
@@ -576,6 +582,18 @@ fn get_operand_for_const(
                 InstructionData {
                     opcode: Opcode::MOVri64,
                     operands: vec![MO::output(addr.into()), MO::new(src)],
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            Ok(addr.into())
+        }
+        ConstantValue::Null(ty) => {
+            assert!(ty.is_pointer(ctx.types));
+            let addr = ctx.mach_data.vregs.add_vreg_data(*ty);
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVri64,
+                    operands: vec![MO::output(addr.into()), MO::new(0.into())],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
