@@ -466,14 +466,17 @@ fn lower_call(
 fn lower_return(ctx: &mut LoweringContext<X86_64>, arg: Option<(Type, ValueId)>) -> Result<()> {
     if let Some((ty, value)) = arg {
         let vreg = get_vreg_for_val(ctx, ty, value)?;
-        assert!(ty.is_i32());
+        let sz = ctx.isa.data_layout().get_size_of(ctx.types, ty);
+        assert!(ty.is_integer() || ty.is_pointer(ctx.types));
+        let (reg, opcode) = match sz {
+            4 => (GR32::EAX.into(), Opcode::MOVrr32),
+            8 => (GR64::RAX.into(), Opcode::MOVrr64),
+            _ => todo!(),
+        };
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
-                opcode: Opcode::MOVrr32,
-                operands: vec![
-                    MO::output(OperandData::Reg(GR32::EAX.into())),
-                    MO::input(vreg.into()),
-                ],
+                opcode,
+                operands: vec![MO::output(OperandData::Reg(reg)), MO::input(vreg.into())],
             },
             ctx.block_map[&ctx.cur_block],
         ));

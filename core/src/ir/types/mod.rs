@@ -434,6 +434,10 @@ impl Type {
         self == &I64
     }
 
+    pub fn is_integer(&self) -> bool {
+        self.is_i1() || self.is_i8() || self.is_i16() || self.is_i32() || self.is_i64()
+    }
+
     pub fn is_pointer(&self, types: &Types) -> bool {
         types.is_pointer(*self)
     }
