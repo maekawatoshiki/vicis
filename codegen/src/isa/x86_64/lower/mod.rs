@@ -26,7 +26,7 @@ use vicis_core::ir::{
         Parameter,
     },
     module::name::Name,
-    types::{CompoundType, FunctionType, Type},
+    types::{self, CompoundType, FunctionType, Type},
     value::{ConstantExpr, ConstantInt, ConstantValue, Value, ValueId},
 };
 
@@ -314,6 +314,23 @@ fn lower_condbr(
             _ => None,
         }
     }
+    fn is_trunc_from_i8(data: &IrData, val: &Value) -> Option<(InstructionId, ValueId)> {
+        match val {
+            Value::Instruction(id) => {
+                let inst = data.inst_ref(*id);
+                match &inst.operand {
+                    Operand::Cast(Cast {
+                        arg,
+                        tys: [from, to],
+                    }) if inst.opcode == IrOpcode::Trunc && from.is_i8() && to.is_i1() => {
+                        Some((*id, *arg))
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
 
     let arg = ctx.ir_data.value_ref(arg);
 
@@ -362,6 +379,33 @@ fn lower_condbr(
                         .into())
                     }
                 },
+                operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::JMP,
+                operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[1]]))],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+        return Ok(());
+    }
+
+    if let Some((trunc, src)) = is_trunc_from_i8(ctx.ir_data, arg) {
+        ctx.mark_as_merged(trunc);
+        let lhs = get_vreg_for_val(ctx, types::I8, src)?;
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::CMPri8,
+                operands: vec![MO::input(lhs.into()), MO::new(0i8.into())],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::JNE,
                 operands: vec![MO::new(OperandData::Block(ctx.block_map[&blocks[0]]))],
             },
             ctx.block_map[&ctx.cur_block],

@@ -1,5 +1,6 @@
 use vicis_core::ir::{
     module::{linkage::Linkage, name::Name},
+    types::Typed,
     value::{ConstantInt, ConstantStruct, ConstantValue},
 };
 
@@ -85,14 +86,23 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
                 let align = module.isa.data_layout().get_align_of(&module.types, *ty);
                 writeln!(f, "  .comm {},{},{}", gv.name.as_string(), size, align)?;
             }
-            // TODO: Support ints other than i32.
-            ConstantValue::Int(ConstantInt::Int32(i)) => {
+            ConstantValue::Int(i) => {
                 if !gv.linkage.map_or(false, |l| l.is_internal()) {
                     writeln!(f, "  .globl {}", gv.name.as_string())?;
                 }
+                let size = module.isa.data_layout().get_size_of(&module.types, i.ty());
                 writeln!(f, "{}:", gv.name.as_string())?;
-                writeln!(f, "  .long {}", i)?;
-                writeln!(f, "  .size {}, {}", gv.name.as_string(), 4)?;
+                writeln!(
+                    f,
+                    "  .{sz} {i}",
+                    sz = match i {
+                        ConstantInt::Int1(_) => "byte",
+                        ConstantInt::Int8(_) => "byte",
+                        ConstantInt::Int32(_) => "long",
+                        ConstantInt::Int64(_) => "quad",
+                    }
+                )?;
+                writeln!(f, "  .size {}, {}", gv.name.as_string(), size)?;
             }
             e => todo!("Unsupported initializer: {:?}", e),
         }
@@ -187,7 +197,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVmr32 => "mov",
                 Self::LEArm64 => "lea",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
-                Self::CMPri32 | Self::CMPrr32 => "cmp",
+                Self::CMPri8 | Self::CMPri32 | Self::CMPrr32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
                 Self::JNE => "jne",
