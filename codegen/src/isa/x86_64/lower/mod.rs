@@ -20,8 +20,9 @@ use vicis_core::ir::{
         basic_block::BasicBlockId,
         data::Data as IrData,
         instruction::{
-            Alloca, Br, Call, Cast, CondBr, ICmp, ICmpCond, Instruction as IrInstruction,
-            InstructionId, IntBinary, Load, Opcode as IrOpcode, Operand, Phi, Ret, Store,
+            Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond,
+            Instruction as IrInstruction, InstructionId, IntBinary, Load, Opcode as IrOpcode,
+            Operand, Phi, Ret, Store,
         },
         Parameter,
     },
@@ -53,6 +54,7 @@ impl LowerTrait<X86_64> for Lower {
             assert!(ty.is_integer() || ty.is_pointer(ctx.types));
             let sz = ctx.isa.data_layout().get_size_of(ctx.types, *ty);
             let opcode = match sz {
+                1 => Opcode::MOVrr32,
                 4 => Opcode::MOVrr32,
                 8 => Opcode::MOVrr64,
                 _ => todo!(),
@@ -98,6 +100,12 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         }
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Sext => {
             lower_sext(ctx, inst.id.unwrap(), tys, arg)
+        }
+        Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Bitcast => {
+            lower_bitcast(ctx, inst.id.unwrap(), tys, arg)
+        }
+        Operand::GetElementPtr(GetElementPtr { .. }) => {
+            todo!()
         }
         Operand::Br(Br { block }) => lower_br(ctx, block),
         Operand::CondBr(CondBr { arg, blocks }) => lower_condbr(ctx, arg, blocks),
@@ -283,6 +291,31 @@ fn lower_sext(
     Ok(())
 }
 
+fn lower_bitcast(
+    ctx: &mut LoweringContext<X86_64>,
+    self_id: InstructionId,
+    tys: &[Type; 2],
+    arg: ValueId,
+) -> Result<()> {
+    let from = tys[0];
+    let to = tys[1];
+    assert!({
+        let from_sz = ctx.isa.data_layout().get_size_of(ctx.types, from);
+        let to_sz = ctx.isa.data_layout().get_size_of(ctx.types, to);
+        from_sz == to_sz && from_sz == 8
+    });
+    let arg = get_vreg_for_val(ctx, from, arg)?;
+    let output = new_empty_inst_output(ctx, to, self_id);
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::MOVrr64,
+            operands: vec![MO::output(output.into()), MO::input(arg.into())],
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+    Ok(())
+}
+
 fn lower_br(ctx: &mut LoweringContext<X86_64>, block: BasicBlockId) -> Result<()> {
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
@@ -344,6 +377,15 @@ fn lower_condbr(
                     InstructionData {
                         opcode: Opcode::CMPri32,
                         operands: vec![MO::input(lhs.into()), MO::new(rhs.into())],
+                    },
+                    ctx.block_map[&ctx.cur_block],
+                ));
+            }
+            Value::Constant(ConstantValue::Null(_)) => {
+                ctx.inst_seq.push(MachInstruction::new(
+                    InstructionData {
+                        opcode: Opcode::CMPri32,
+                        operands: vec![MO::input(lhs.into()), MO::new(0.into())],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));

@@ -113,6 +113,7 @@ pub fn lower_store(
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: match sz {
+                        1 => Opcode::MOVmr8,
                         4 => Opcode::MOVmr32,
                         8 => Opcode::MOVmr64,
                         _ => todo!(),
