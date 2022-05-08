@@ -69,6 +69,7 @@ pub fn lower_store(
                     },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::None),
                         MOperand::new(OperandData::Slot(slot)),
                         MOperand::new(OperandData::None),
                         MOperand::input(OperandData::None),
@@ -91,6 +92,7 @@ pub fn lower_store(
                     },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::None),
                         MOperand::new(OperandData::Slot(slot)),
                         MOperand::new(OperandData::None),
                         MOperand::input(OperandData::None),
@@ -117,6 +119,7 @@ pub fn lower_store(
                     },
                     operands: vec![
                         MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::None),
                         MOperand::new(OperandData::Slot(slot)),
                         MOperand::new(OperandData::None),
                         MOperand::input(OperandData::None),
@@ -170,6 +173,7 @@ fn lower_store_gep(
 
             vec![
                 MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::None),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),
@@ -197,6 +201,7 @@ fn lower_store_gep(
 
             vec![
                 MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::None),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),

@@ -46,25 +46,25 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
 
             i += 1;
 
-            let mem = &mut inst.data.operands[i..i + 5];
+            let mem = &mut inst.data.operands[i..i + 6];
 
-            match (&mem[0].data, &mem[1].data) {
+            match (&mem[1].data, &mem[2].data) {
                 (OperandData::Slot(slot), OperandData::None) => {
                     let off = function.slots.get(*slot).offset;
-                    mem[0].data = OperandData::None;
-                    mem[1].data = OperandData::Int32(-(off as i32));
-                    mem[2].data = OperandData::Reg(GR64::RBP.into());
+                    mem[1].data = OperandData::None;
+                    mem[2].data = OperandData::Int32(-(off as i32));
+                    mem[3].data = OperandData::Reg(GR64::RBP.into());
                 }
                 (OperandData::Slot(slot), OperandData::Int32(imm)) => {
                     let off = function.slots.get(*slot).offset;
-                    mem[1].data = OperandData::Int32(*imm - off as i32);
-                    mem[0].data = OperandData::None;
-                    mem[2].data = OperandData::Reg(GR64::RBP.into());
+                    mem[2].data = OperandData::Int32(*imm - off as i32);
+                    mem[1].data = OperandData::None;
+                    mem[3].data = OperandData::Reg(GR64::RBP.into());
                 }
                 _ => todo!(),
             }
 
-            i += 5;
+            i += 6;
         }
 
         function.data.instructions[inst_id] = inst;

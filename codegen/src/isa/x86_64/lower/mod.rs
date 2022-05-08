@@ -114,6 +114,7 @@ fn lower_alloca(
     if let Some(slot_id) = ctx.inst_id_to_slot_id.get(&id) {
         let mem = vec![
             MO::new(OperandData::MemStart),
+            MO::new(OperandData::None),
             MO::new(OperandData::Slot(*slot_id)),
             MO::new(OperandData::None),
             MO::input(OperandData::None),

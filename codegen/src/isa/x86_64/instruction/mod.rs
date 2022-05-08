@@ -73,7 +73,7 @@ pub enum OperandData {
     VReg(VReg),
     Int8(i8),
     Int32(i32),
-    MemStart, // followed by: Slot, Imm, Reg(basically rbp), Reg, Shift
+    MemStart, // followed by: Label, Slot, Imm, Reg(basically rbp), Reg, Shift
     Slot(SlotId),
     Block(BasicBlockId),
     Label(String),
@@ -248,6 +248,7 @@ impl TargetInst for InstructionData {
                 },
                 operands: vec![
                     Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::None),
                     Operand::new(OperandData::Slot(slot)),
                     Operand::new(OperandData::None),
                     Operand::input(OperandData::None),
@@ -279,6 +280,7 @@ impl TargetInst for InstructionData {
                 operands: vec![
                     Operand::output(vreg.into()),
                     Operand::new(OperandData::MemStart),
+                    Operand::new(OperandData::None),
                     Operand::new(OperandData::Slot(slot)),
                     Operand::new(OperandData::None),
                     Operand::input(OperandData::None),

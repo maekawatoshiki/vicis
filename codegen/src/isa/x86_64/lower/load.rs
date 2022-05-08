@@ -24,6 +24,7 @@ pub fn lower_load(
 ) -> Result<()> {
     let mut slot = None;
     let mut vreg = None;
+    let mut gbl = None;
 
     // Very limited situation is supported now. TODO
     let sext = ctx.ir_data.only_one_user_of(id).filter(|&id| {
@@ -32,24 +33,58 @@ pub fn lower_load(
         inst.opcode == IrOpcode::Sext && types[0].is_i32() && types[1].is_i64()
     });
 
-    if let Value::Instruction(addr_id) = &ctx.ir_data.values[addr] {
-        if let Some(slot_id) = ctx.inst_id_to_slot_id.get(addr_id) {
-            slot = Some(*slot_id);
-        } else {
-            let opcode = ctx.ir_data.instructions[*addr_id].opcode;
-            if opcode == IrOpcode::GetElementPtr {
-                return lower_load_gep(ctx, id, tys, *addr_id, _align, sext);
+    match &ctx.ir_data.values[addr] {
+        Value::Instruction(addr_id) => {
+            if let Some(slot_id) = ctx.inst_id_to_slot_id.get(addr_id) {
+                slot = Some(*slot_id);
+            } else {
+                let opcode = ctx.ir_data.instructions[*addr_id].opcode;
+                if opcode == IrOpcode::GetElementPtr {
+                    return lower_load_gep(ctx, id, tys, *addr_id, _align, sext);
+                }
+                vreg = Some(get_inst_output(ctx, tys[1], *addr_id)?);
             }
-            vreg = Some(get_inst_output(ctx, tys[1], *addr_id)?);
         }
-    } else {
-        panic!()
+        Value::Constant(ConstantValue::GlobalRef(name, _ty)) => {
+            gbl = Some(name);
+        }
+        _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
+    }
+
+    if let Some(gbl) = gbl {
+        let src_ty = tys[0];
+        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
+        let mem = vec![
+            MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::Label(gbl.as_string().to_owned())),
+            MOperand::new(OperandData::None),
+            MOperand::new(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::new(OperandData::None),
+        ];
+        if sz == 4 {
+            let output = new_empty_inst_output(ctx, src_ty, id);
+            ctx.inst_seq.push(MachInstruction::new(
+                InstructionData {
+                    opcode: Opcode::MOVrm32,
+                    operands: vec![MOperand::output(output.into())]
+                        .into_iter()
+                        .chain(mem.into_iter())
+                        .collect(),
+                },
+                ctx.block_map[&ctx.cur_block],
+            ));
+            return Ok(());
+        }
+        return Err(LoweringError::Todo("Unsupported load pattern".into()).into());
     }
 
     if let Some(vreg) = vreg {
         let src_ty = tys[0];
         let mem = vec![
             MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::None),
             MOperand::new(OperandData::None),
             MOperand::new(OperandData::None),
             MOperand::input(OperandData::None),
@@ -79,6 +114,7 @@ pub fn lower_load(
         let src_ty = tys[0];
         let mem = vec![
             MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::None),
             MOperand::new(OperandData::Slot(slot)),
             MOperand::new(OperandData::None),
             MOperand::input(OperandData::None),
@@ -161,6 +197,7 @@ fn lower_load_gep(
 
             vec![
                 MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::None),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),
@@ -188,6 +225,7 @@ fn lower_load_gep(
 
             vec![
                 MOperand::new(OperandData::MemStart),
+                MOperand::new(OperandData::None),
                 MOperand::new(OperandData::Slot(base_ptr)),
                 MOperand::new(OperandData::Int32(offset as i32)),
                 MOperand::input(OperandData::None),

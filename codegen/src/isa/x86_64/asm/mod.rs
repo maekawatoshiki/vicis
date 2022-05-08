@@ -145,8 +145,8 @@ pub fn print_function(
                     if !sz.is_empty() {
                         write!(f, " ")?;
                     }
-                    write!(f, "{}", mem_op(&inst.data.operands[i..i + 5]))?;
-                    i += 5 - 1;
+                    write!(f, "{}", mem_op(&inst.data.operands[i..i + 6]))?;
+                    i += 6 - 1;
                 } else {
                     write_operand(f, &operand.data, fn_idx)?;
                 }
@@ -229,9 +229,30 @@ fn mem_size(opcode: &Opcode) -> &'static str {
 }
 
 fn mem_op(args: &[Operand]) -> String {
-    assert!(matches!(&args[0].data, &OperandData::None)); // assure slot is eliminated
-    match (&args[1].data, &args[2].data, &args[3].data, &args[4].data) {
-        (OperandData::Int32(imm), OperandData::Reg(reg), OperandData::None, OperandData::None) => {
+    assert!(matches!(&args[1].data, &OperandData::None)); // assure slot is eliminated
+    match (
+        &args[0].data,
+        &args[2].data,
+        &args[3].data,
+        &args[4].data,
+        &args[5].data,
+    ) {
+        (
+            OperandData::Label(name),
+            OperandData::None,
+            OperandData::None,
+            OperandData::None,
+            OperandData::None,
+        ) => {
+            format!("[{}]", name)
+        }
+        (
+            OperandData::None,
+            OperandData::Int32(imm),
+            OperandData::Reg(reg),
+            OperandData::None,
+            OperandData::None,
+        ) => {
             format!(
                 "[{}{}{}]",
                 reg_to_str(reg),
@@ -240,6 +261,7 @@ fn mem_op(args: &[Operand]) -> String {
             )
         }
         (
+            OperandData::None,
             OperandData::Int32(imm),
             OperandData::Reg(reg1),
             OperandData::Reg(reg2),
@@ -254,7 +276,13 @@ fn mem_op(args: &[Operand]) -> String {
                 shift
             )
         }
-        (OperandData::None, OperandData::None, OperandData::Reg(reg2), OperandData::None) => {
+        (
+            OperandData::None,
+            OperandData::None,
+            OperandData::None,
+            OperandData::Reg(reg2),
+            OperandData::None,
+        ) => {
             format!("[{}]", reg_to_str(reg2),)
         }
         _ => todo!(),

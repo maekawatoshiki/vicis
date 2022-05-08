@@ -1,0 +1,21 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 43
+expression: mach_module.display_asm()
+---
+  .text
+  .intel_syntax noprefix
+  .text
+  .globl load
+load:
+.LBL0_0:
+  push rbp
+  mov rbp, rsp
+  mov eax, dword ptr [global]
+  pop rbp
+  ret 
+  .globl global
+global:
+  .long 42
+  .size global, 4
+
