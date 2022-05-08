@@ -1,6 +1,6 @@
 use vicis_core::ir::{
     module::{linkage::Linkage, name::Name},
-    value::{ConstantStruct, ConstantValue},
+    value::{ConstantInt, ConstantStruct, ConstantValue},
 };
 
 use crate::{
@@ -84,6 +84,15 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
                 let size = module.isa.data_layout().get_size_of(&module.types, *ty);
                 let align = module.isa.data_layout().get_align_of(&module.types, *ty);
                 writeln!(f, "  .comm {},{},{}", gv.name.as_string(), size, align)?;
+            }
+            // TODO: Support ints other than i32.
+            ConstantValue::Int(ConstantInt::Int32(i)) => {
+                if !gv.linkage.map_or(false, |l| l.is_internal()) {
+                    writeln!(f, "  .globl {}", gv.name.as_string())?;
+                }
+                writeln!(f, "{}:", gv.name.as_string())?;
+                writeln!(f, "  .long {}", i)?;
+                writeln!(f, "  .size {}, {}", gv.name.as_string(), 4)?;
             }
             e => todo!("Unsupported initializer: {:?}", e),
         }
