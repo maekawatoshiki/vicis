@@ -51,68 +51,11 @@ pub fn lower_load(
         _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
     }
 
-    if let Some(gbl) = gbl {
-        let src_ty = tys[0];
-        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
-        let mem = vec![
-            MOperand::new(OperandData::MemStart),
-            MOperand::new(OperandData::Label(gbl.as_string().to_owned())),
-            MOperand::new(OperandData::None),
-            MOperand::new(OperandData::None),
-            MOperand::input(OperandData::None),
-            MOperand::input(OperandData::None),
-            MOperand::new(OperandData::None),
-        ];
-        if sz == 4 {
-            let output = new_empty_inst_output(ctx, src_ty, id);
-            ctx.inst_seq.push(MachInstruction::new(
-                InstructionData {
-                    opcode: Opcode::MOVrm32,
-                    operands: vec![MOperand::output(output.into())]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            ));
-            return Ok(());
-        }
-        return Err(LoweringError::Todo("Unsupported load pattern".into()).into());
-    }
-
-    if let Some(vreg) = vreg {
-        let src_ty = tys[0];
-        let mem = vec![
-            MOperand::new(OperandData::MemStart),
-            MOperand::new(OperandData::None),
-            MOperand::new(OperandData::None),
-            MOperand::new(OperandData::None),
-            MOperand::input(OperandData::None),
-            MOperand::input(OperandData::VReg(vreg)),
-            MOperand::new(OperandData::None),
-        ];
-
-        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
-
-        if sz == 4 {
-            let output = new_empty_inst_output(ctx, src_ty, id);
-            ctx.inst_seq.push(MachInstruction::new(
-                InstructionData {
-                    opcode: Opcode::MOVrm32,
-                    operands: vec![MOperand::output(output.into())]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            ));
-            return Ok(());
-        }
-    }
+    let mem;
+    let src_ty = tys[0];
 
     if let Some(slot) = slot {
-        let src_ty = tys[0];
-        let mem = vec![
+        mem = vec![
             MOperand::new(OperandData::MemStart),
             MOperand::new(OperandData::None),
             MOperand::new(OperandData::Slot(slot)),
@@ -121,34 +64,35 @@ pub fn lower_load(
             MOperand::input(OperandData::None),
             MOperand::new(OperandData::None),
         ];
+    } else if let Some(gbl) = gbl {
+        mem = vec![
+            MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::Label(gbl.as_string().to_owned())),
+            MOperand::new(OperandData::None),
+            MOperand::new(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::new(OperandData::None),
+        ]
+    } else if let Some(vreg) = vreg {
+        mem = vec![
+            MOperand::new(OperandData::MemStart),
+            MOperand::new(OperandData::None),
+            MOperand::new(OperandData::None),
+            MOperand::new(OperandData::None),
+            MOperand::input(OperandData::None),
+            MOperand::input(OperandData::VReg(vreg)),
+            MOperand::new(OperandData::None),
+        ]
+    } else {
+        return Err(LoweringError::Todo("Unsupported load pattern".into()).into());
+    }
 
-        if let Some(sext) = sext {
-            let output = new_empty_inst_output(ctx, types::I64, sext);
-            ctx.inst_seq.push(MachInstruction::new(
-                InstructionData {
-                    opcode: Opcode::MOVSXDr64m32,
-                    operands: vec![MOperand::output(output.into())]
-                        .into_iter()
-                        .chain(mem.into_iter())
-                        .collect(),
-                },
-                ctx.block_map[&ctx.cur_block],
-            ));
-            return Ok(());
-        }
-
-        let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
-        let output = new_empty_inst_output(ctx, src_ty, id);
-        let opcode = match sz {
-            1 => Opcode::MOVrm8,
-            4 => Opcode::MOVrm32,
-            8 => Opcode::MOVrm64,
-            _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
-        };
-
+    if let Some(sext) = sext {
+        let output = new_empty_inst_output(ctx, types::I64, sext);
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
-                opcode,
+                opcode: Opcode::MOVSXDr64m32,
                 operands: vec![MOperand::output(output.into())]
                     .into_iter()
                     .chain(mem.into_iter())
@@ -156,11 +100,30 @@ pub fn lower_load(
             },
             ctx.block_map[&ctx.cur_block],
         ));
-
         return Ok(());
     }
 
-    Err(LoweringError::Todo("Unsupported load pattern".into()).into())
+    let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
+    let output = new_empty_inst_output(ctx, src_ty, id);
+    let opcode = match sz {
+        1 => Opcode::MOVrm8,
+        4 => Opcode::MOVrm32,
+        8 => Opcode::MOVrm64,
+        _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
+    };
+
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode,
+            operands: vec![MOperand::output(output.into())]
+                .into_iter()
+                .chain(mem.into_iter())
+                .collect(),
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+
+    Ok(())
 }
 
 fn lower_load_gep(
