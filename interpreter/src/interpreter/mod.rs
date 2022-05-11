@@ -261,6 +261,8 @@ fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Ty
         Opcode::Trunc => {
             let arg = arg.sext_to_i64().unwrap();
             match to {
+                types::I1 => GenericValue::Int1(arg != 0),
+                types::I8 => GenericValue::Int8(arg as i8),
                 types::I32 => GenericValue::Int32(arg as i32),
                 types::I64 => GenericValue::Int64(arg),
                 _ => todo!(),
@@ -336,6 +338,7 @@ fn run_call(frame: &mut StackFrame, id: InstructionId, _tys: &[Type], args: &[Va
 
 fn add(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
+        (GenericValue::Int8(x), GenericValue::Int8(y)) => Some(GenericValue::Int8(x + y)),
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x + y)),
         (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x + y)),
         _ => None,
@@ -562,6 +565,9 @@ impl<'a> ContextBuilder<'a> {
                     }
                     ConstantValue::Int(ConstantInt::Int32(i)) => unsafe {
                         *(ptr as *mut i32) = *i;
+                    },
+                    ConstantValue::Int(ConstantInt::Int8(i)) => unsafe {
+                        *(ptr as *mut i8) = *i;
                     },
                     e => todo!("Unsupported global initializer: {:?}", e),
                 }
