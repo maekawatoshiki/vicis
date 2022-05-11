@@ -43,6 +43,16 @@ impl GenericValue {
         }
     }
 
+    pub fn zext_to_u64(&self) -> Option<u64> {
+        match self {
+            Self::Int1(i) => Some(*i as u64),
+            Self::Int8(i) => Some(*i as u64),
+            Self::Int32(i) => Some(*i as u64),
+            Self::Int64(i) => Some(*i as u64),
+            _ => None,
+        }
+    }
+
     pub fn to_id<T>(&self) -> Option<&T> {
         match self {
             Self::Id(id) => Some(unsafe { &*(id.as_ptr() as *const T) }),

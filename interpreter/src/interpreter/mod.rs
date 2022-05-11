@@ -271,6 +271,14 @@ fn run_cast(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, tys: &[Ty
             assert!(to.is_pointer(&frame.func.types));
             arg
         }
+        Opcode::Zext => {
+            let arg = arg.zext_to_u64().unwrap();
+            match to {
+                types::I32 => GenericValue::Int32(arg as i32),
+                types::I64 => GenericValue::Int64(arg as i64),
+                _ => todo!(),
+            }
+        }
         t => todo!("cast {:?}", t),
     };
     frame.set_inst_val(id, val)
