@@ -104,9 +104,7 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Bitcast => {
             lower_bitcast(ctx, inst.id.unwrap(), tys, arg)
         }
-        Operand::GetElementPtr(GetElementPtr { .. }) => {
-            todo!()
-        }
+        Operand::GetElementPtr(ref gep) => lower_gep(ctx, inst.id.unwrap(), gep),
         Operand::Br(Br { block }) => lower_br(ctx, block),
         Operand::CondBr(CondBr { arg, blocks }) => lower_condbr(ctx, arg, blocks),
         Operand::Call(Call {
@@ -313,6 +311,97 @@ fn lower_bitcast(
         },
         ctx.block_map[&ctx.cur_block],
     ));
+    Ok(())
+}
+
+// TODO: Refactoring.
+fn lower_gep(
+    ctx: &mut LoweringContext<X86_64>,
+    self_id: InstructionId,
+    gep: &GetElementPtr,
+) -> Result<()> {
+    use {Constant as Const, ConstantInt::Int64, ConstantValue::Int, Value::Constant};
+
+    let gep_args: Vec<&Value> = gep
+        .args
+        .iter()
+        .map(|&arg| &ctx.ir_data.values[arg])
+        .collect();
+
+    let mem = match &gep_args[..] {
+        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Const(Int(Int64(idx1)))] => {
+            let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
+            let base_ty = gep.tys[0];
+            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64
+                + idx1
+                    * ctx
+                        .isa
+                        .data_layout()
+                        .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                        as i64;
+
+            vec![
+                MO::new(OperandData::MemStart),
+                MO::new(OperandData::None),
+                MO::new(OperandData::Slot(base_ptr)),
+                MO::new(OperandData::Int32(offset as i32)),
+                MO::input(OperandData::None),
+                MO::input(OperandData::None),
+                MO::new(OperandData::None),
+            ]
+        }
+        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
+            let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
+
+            let base_ty = gep.tys[0];
+            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64;
+
+            let idx1_ty = gep.tys[3];
+            assert!(idx1_ty.is_i64());
+            let idx1 = get_inst_output(ctx, idx1_ty, *idx1)?;
+
+            assert!(
+                ctx.isa
+                    .data_layout()
+                    .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                    == 4
+            );
+
+            vec![
+                MO::new(OperandData::MemStart),
+                MO::new(OperandData::None),
+                MO::new(OperandData::Slot(base_ptr)),
+                MO::new(OperandData::Int32(offset as i32)),
+                MO::input(OperandData::None),
+                MO::input(OperandData::VReg(idx1)),
+                MO::new(OperandData::Int32(
+                    ctx.isa
+                        .data_layout()
+                        .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
+                        as i32,
+                )),
+            ]
+        }
+        e => {
+            return Err(
+                LoweringError::Todo(format!("Unsupported GEP pattern for store: {:?}", e)).into(),
+            )
+        }
+    };
+
+    let ty = ctx.types.base_mut().pointer(types::I8);
+    let output = new_empty_inst_output(ctx, ty, self_id);
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::LEArm64,
+            operands: vec![MO::output(output.into())]
+                .into_iter()
+                .chain(mem.into_iter())
+                .collect(),
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+
     Ok(())
 }
 
