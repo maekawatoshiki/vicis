@@ -397,6 +397,7 @@ fn eq(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int1(x), GenericValue::Int1(y)) => Some(GenericValue::Int1(x == y)),
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int1(x == y)),
+        (GenericValue::Ptr(x), GenericValue::Ptr(y)) => Some(GenericValue::Int1(x == y)),
         _ => None,
     }
 }
