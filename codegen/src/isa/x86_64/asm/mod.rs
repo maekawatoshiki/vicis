@@ -194,6 +194,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVmr64
                 | Self::MOVrm32
                 | Self::MOVmi32
+                | Self::MOVmi64
                 | Self::MOVmr32 => "mov",
                 Self::LEArm64 => "lea",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
@@ -220,6 +221,7 @@ fn write_operand(f: &mut fmt::Formatter<'_>, op: &OperandData, fn_idx: usize) ->
         OperandData::Slot(slot) => write!(f, "{:?}", slot),
         OperandData::Int8(i) => write!(f, "{}", i),
         OperandData::Int32(i) => write!(f, "{}", i),
+        OperandData::Int64(i) => write!(f, "{}", i),
         OperandData::Block(block) => write!(f, ".LBL{}_{}", fn_idx, block.index()),
         OperandData::Label(name) => write!(f, "{}", name),
         OperandData::MemStart => Ok(()),
@@ -232,7 +234,7 @@ fn mem_size(opcode: &Opcode) -> &'static str {
     match opcode {
         Opcode::MOVrm8 | Opcode::MOVmr8 | Opcode::MOVmi8 => "byte ptr",
         Opcode::MOVrm32 | Opcode::MOVmi32 | Opcode::MOVmr32 | Opcode::MOVSXDr64m32 => "dword ptr",
-        Opcode::MOVrm64 | Opcode::MOVmr64 => "qword ptr",
+        Opcode::MOVmi64 | Opcode::MOVrm64 | Opcode::MOVmr64 => "qword ptr",
         Opcode::LEArm64 => "",
         e => todo!("{:?}", e),
     }

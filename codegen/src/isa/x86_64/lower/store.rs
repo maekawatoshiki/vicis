@@ -40,14 +40,14 @@ pub fn lower_store(
         }
     }
 
-    let mut imm = None;
+    let mut konst = None;
     let mut inst = None;
     let mut arg = None;
 
     let src = args[0];
     let src_ty = tys[0];
     match ctx.ir_data.value_ref(src) {
-        Value::Constant(ConstantValue::Int(int)) => imm = Some(*int),
+        Value::Constant(c) => konst = Some(c),
         Value::Instruction(id) => inst = Some(*id),
         Value::Argument(a) => arg = ctx.arg_idx_to_vreg.get(&a.nth).copied(),
         e => return Err(LoweringError::Todo(format!("Unsupported store source: {:?}", e)).into()),
@@ -56,7 +56,7 @@ pub fn lower_store(
     let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
     assert!(sz == 1 || sz == 4 || sz == 8);
 
-    match (dst_slot, inst, arg, imm) {
+    match (dst_slot, inst, arg, konst) {
         (Some(slot), Some(id), None, None) => {
             let inst = get_inst_output(ctx, tys[0], id)?;
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
@@ -82,12 +82,13 @@ pub fn lower_store(
             )]);
             Ok(())
         }
-        (Some(slot), None, None, Some(imm)) => {
+        (Some(slot), None, None, Some(konst)) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: match sz {
                         1 => Opcode::MOVmi8,
                         4 => Opcode::MOVmi32,
+                        8 => Opcode::MOVmi64,
                         _ => panic!(),
                     },
                     operands: vec![
@@ -98,9 +99,10 @@ pub fn lower_store(
                         MOperand::input(OperandData::None),
                         MOperand::input(OperandData::None),
                         MOperand::new(OperandData::None),
-                        MOperand::input(match imm {
-                            ConstantInt::Int8(i) => i.into(),
-                            ConstantInt::Int32(i) => i.into(),
+                        MOperand::input(match konst {
+                            ConstantValue::Int(ConstantInt::Int8(i)) => i.into(),
+                            ConstantValue::Int(ConstantInt::Int32(i)) => i.into(),
+                            ConstantValue::Null(_) => 0i64.into(),
                             _ => panic!(),
                         }),
                     ],
