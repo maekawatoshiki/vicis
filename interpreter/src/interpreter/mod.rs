@@ -157,7 +157,7 @@ fn run_alloca(
         .target()
         .datalayout
         .get_size_of(&frame.func.types, alloc_ty)
-        * num_elements.as_int().cast_to_usize();
+        * num_elements.as_int().unwrap().cast_to_usize();
     let alloc_align = if align > 0 { align } else { 8 } as usize;
     let ptr = unsafe {
         alloc::alloc_zeroed(
@@ -524,7 +524,10 @@ impl<'a> ContextBuilder<'a> {
                         elems,
                         ..
                     }) => {
-                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
+                        let s: Vec<u8> = elems
+                            .iter()
+                            .map(|e| *e.as_int().unwrap().as_i8() as u8)
+                            .collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
                     // Handle 'llvm.global_ctors'
@@ -557,10 +560,26 @@ impl<'a> ContextBuilder<'a> {
                         elems,
                         elem_ty,
                         ..
-                    }) if elem_ty.is_i8() => {
-                        let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
-                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
-                    }
+                    }) => match elem_ty {
+                        // TODO: Refactoring.
+                        &types::I8 => {
+                            let s: Vec<u8> = elems
+                                .iter()
+                                .map(|e| *e.as_int().unwrap().as_i8() as u8)
+                                .collect();
+                            unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
+                        }
+                        &types::I32 => {
+                            let s: Vec<i32> = elems
+                                .iter()
+                                .map(|e| *e.as_int().unwrap().as_i32().unwrap() as i32)
+                                .collect();
+                            unsafe {
+                                ptr::copy_nonoverlapping(s.as_ptr(), ptr as *mut i32, s.len())
+                            };
+                        }
+                        _ => panic!(),
+                    },
                     ConstantValue::AggregateZero(_) => {
                         // Already zeroed.
                         // unsafe { ptr::write_bytes(ptr, 0, sz) };

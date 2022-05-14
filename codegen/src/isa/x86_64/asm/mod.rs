@@ -66,7 +66,7 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
 
                 let mut s = vec![];
                 for elem in &arr.elems {
-                    s.push(*elem.as_int().as_i8() as u8)
+                    s.push(*elem.as_int().unwrap().as_i8() as u8)
                 }
                 let s = str::from_utf8(
                     s.into_iter()

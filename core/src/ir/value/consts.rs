@@ -67,10 +67,10 @@ impl ConstantValue {
         }
     }
 
-    pub fn as_int(&self) -> &ConstantInt {
+    pub fn as_int(&self) -> Option<&ConstantInt> {
         match self {
-            Self::Int(i) => i,
-            _ => panic!(),
+            Self::Int(i) => Some(i),
+            _ => None,
         }
     }
 
@@ -94,6 +94,13 @@ impl ConstantInt {
         match self {
             Self::Int8(i) => i,
             _ => panic!(),
+        }
+    }
+
+    pub fn as_i32(&self) -> Option<&i32> {
+        match self {
+            Self::Int32(i) => Some(i),
+            _ => None,
         }
     }
 
@@ -135,7 +142,7 @@ impl ConstantArray {
                     std::str::from_utf8(
                         self.elems
                             .iter()
-                            .map(|i| *i.as_int().as_i8() as u8)
+                            .map(|i| *i.as_int().unwrap().as_i8() as u8)
                             .collect::<Vec<u8>>()
                             .as_slice(),
                     )
