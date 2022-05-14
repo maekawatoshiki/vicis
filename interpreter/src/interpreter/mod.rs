@@ -555,8 +555,9 @@ impl<'a> ContextBuilder<'a> {
                     ConstantValue::Array(ConstantArray {
                         is_string: false,
                         elems,
+                        elem_ty,
                         ..
-                    }) => {
+                    }) if elem_ty.is_i8() => {
                         let s: Vec<u8> = elems.iter().map(|e| *e.as_int().as_i8() as u8).collect();
                         unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
                     }
