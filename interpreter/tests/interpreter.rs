@@ -589,6 +589,40 @@ fn exec_test_phi() {
     assert_eq!(rc, GenericValue::Int32(40320));
 }
 
+#[test]
+fn exec_test_memcpy() {
+    let asm = r#"
+@__const.main.a = private unnamed_addr constant [5 x i32] [i32 1, i32 2, i32 3, i32 4, i32 5], align 16
+
+define dso_local i32 @main() {
+  %1 = alloca i32, align 4
+  %2 = alloca [5 x i32], align 16
+  store i32 0, i32* %1, align 4
+  %3 = bitcast [5 x i32]* %2 to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 16 %3, i8* align 16 bitcast ([5 x i32]* @__const.main.a to i8*), i64 20, i1 false)
+  %4 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 0
+  %5 = load i32, i32* %4, align 16
+  %6 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 1
+  %7 = load i32, i32* %6, align 4
+  %8 = add nsw i32 %5, %7
+  %9 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 2
+  %10 = load i32, i32* %9, align 8
+  %11 = add nsw i32 %8, %10
+  %12 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 3
+  %13 = load i32, i32* %12, align 4
+  %14 = add nsw i32 %11, %13
+  %15 = getelementptr inbounds [5 x i32], [5 x i32]* %2, i64 0, i64 4
+  %16 = load i32, i32* %15, align 16
+  %17 = add nsw i32 %14, %16
+  ret i32 %17
+}
+
+declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg)
+"#;
+    let rc = run(asm, vec![]);
+    assert_eq!(rc, GenericValue::Int32(15));
+}
+
 #[cfg(test)]
 fn run(asm: &str, args: Vec<GenericValue>) -> GenericValue {
     let module = Module::try_from(asm).unwrap();
