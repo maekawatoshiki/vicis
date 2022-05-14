@@ -623,6 +623,10 @@ fn ffitype(ty: Type, types: &Types) -> libffi::low::ffi_type {
 }
 
 fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> GenericValue {
+    if let Some(ret) = call_intrinsic_func(ctx, func, args) {
+        return ret;
+    }
+
     #[cfg(debug_assertions)]
     log::debug!("external enter: {}", func.name);
 
@@ -633,6 +637,10 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
 
     for arg in &mut args {
         match arg {
+            GenericValue::Int1(ref mut i) => {
+                args_ty.push(unsafe { &mut libffi::low::types::uint8 as *mut _ });
+                new_args.push(i as *mut _ as *mut c_void)
+            }
             GenericValue::Int32(ref mut i) => {
                 args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
                 new_args.push(i as *mut _ as *mut c_void)
@@ -707,6 +715,22 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
     log::debug!("external exit: {}", func.name);
 
     ret
+}
+
+fn call_intrinsic_func(
+    _ctx: &Context,
+    func: &Function,
+    args: &[GenericValue],
+) -> Option<GenericValue> {
+    if func.name() == "llvm.memcpy.p0i8.p0i8.i64" {
+        let dst = args[0].to_ptr().unwrap();
+        let src = args[1].to_ptr().unwrap();
+        let len = args[2].to_i64().unwrap();
+        let _is_volatile = args[3].to_i1().unwrap();
+        unsafe { ptr::copy_nonoverlapping(src, dst, len as usize) }
+        return Some(GenericValue::Void);
+    }
+    None
 }
 
 extern "C" fn dummy_func() {
