@@ -18,3 +18,4 @@ log = "0.4.14"
 vicis-interpreter = { path = "../interpreter" }
 structopt = "0.3.18"
 env_logger = "0.9.0"
+color-backtrace = "0.5.1"
