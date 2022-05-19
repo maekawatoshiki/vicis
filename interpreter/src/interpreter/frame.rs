@@ -72,8 +72,15 @@ impl<'a> StackFrame<'a> {
                         GenericValue::Ptr(v) => {
                             let types = &self.ctx.module.types;
                             if tys[0].is_struct(&self.ctx.module.types) {
-                                assert!(n == 0); // TODO
-                                Some(GenericValue::Ptr(v))
+                                let layout = self
+                                    .ctx
+                                    .module
+                                    .target()
+                                    .datalayout
+                                    .new_struct_layout_for(&self.ctx.module.types, tys[0])
+                                    .unwrap();
+                                let offset = layout.get_elem_offset(n as usize).unwrap();
+                                Some(GenericValue::Ptr(unsafe { v.add(offset) }))
                             } else {
                                 // Array
                                 let ty = types.get_element(tys[0]).unwrap();
