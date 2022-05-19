@@ -223,6 +223,7 @@ fn run_int_binary(frame: &mut StackFrame, id: InstructionId, opcode: Opcode, arg
         Opcode::SRem => frame.set_inst_val(id, srem(x, y).unwrap()),
         Opcode::Shl => frame.set_inst_val(id, shl(x, y).unwrap()),
         Opcode::AShr => frame.set_inst_val(id, ashr(x, y).unwrap()),
+        Opcode::And => frame.set_inst_val(id, and(x, y).unwrap()),
         op => todo!("{:?}", op),
     };
 }
@@ -389,6 +390,14 @@ fn ashr(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x >> y)),
         (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x >> y)),
+        _ => None,
+    }
+}
+
+fn and(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
+    match (x, y) {
+        (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x & y)),
+        (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x & y)),
         _ => None,
     }
 }
