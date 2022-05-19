@@ -104,6 +104,15 @@ impl ConstantInt {
         }
     }
 
+    pub fn as_ptr(&self) -> *const i8 {
+        match self {
+            Self::Int1(i) => i as *const bool as *const i8,
+            Self::Int8(i) => i,
+            Self::Int32(i) => i as *const i32 as *const i8,
+            Self::Int64(i) => i as *const i64 as *const i8,
+        }
+    }
+
     // TODO: Generics?
     pub fn cast_to_usize(self) -> usize {
         match self {

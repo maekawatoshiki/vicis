@@ -519,17 +519,6 @@ impl<'a> ContextBuilder<'a> {
             };
             if let Some(init) = &gv.init {
                 match init {
-                    ConstantValue::Array(ConstantArray {
-                        is_string: true,
-                        elems,
-                        ..
-                    }) => {
-                        let s: Vec<u8> = elems
-                            .iter()
-                            .map(|e| *e.as_int().unwrap().as_i8() as u8)
-                            .collect();
-                        unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
-                    }
                     // Handle 'llvm.global_ctors'
                     ConstantValue::Array(ConstantArray {
                         is_string: false,
@@ -555,42 +544,7 @@ impl<'a> ContextBuilder<'a> {
                             todo!()
                         }
                     }
-                    ConstantValue::Array(ConstantArray {
-                        is_string: false,
-                        elems,
-                        elem_ty,
-                        ..
-                    }) => match elem_ty {
-                        // TODO: Refactoring.
-                        &types::I8 => {
-                            let s: Vec<u8> = elems
-                                .iter()
-                                .map(|e| *e.as_int().unwrap().as_i8() as u8)
-                                .collect();
-                            unsafe { ptr::copy_nonoverlapping(s.as_ptr(), ptr, s.len()) };
-                        }
-                        &types::I32 => {
-                            let s: Vec<i32> = elems
-                                .iter()
-                                .map(|e| *e.as_int().unwrap().as_i32().unwrap() as i32)
-                                .collect();
-                            unsafe {
-                                ptr::copy_nonoverlapping(s.as_ptr(), ptr as *mut i32, s.len())
-                            };
-                        }
-                        _ => panic!(),
-                    },
-                    ConstantValue::AggregateZero(_) => {
-                        // Already zeroed.
-                        // unsafe { ptr::write_bytes(ptr, 0, sz) };
-                    }
-                    ConstantValue::Int(ConstantInt::Int32(i)) => unsafe {
-                        *(ptr as *mut i32) = *i;
-                    },
-                    ConstantValue::Int(ConstantInt::Int8(i)) => unsafe {
-                        *(ptr as *mut i8) = *i;
-                    },
-                    e => todo!("Unsupported global initializer: {:?}", e),
+                    _ => init_memory(&ctx, init, ptr as *mut i8),
                 }
             }
             ctx.globals.insert(name.clone(), GenericValue::Ptr(ptr));
@@ -601,6 +555,29 @@ impl<'a> ContextBuilder<'a> {
         }
 
         Ok(ctx)
+    }
+}
+
+fn init_memory(ctx: &Context, val: &ConstantValue, ptr: *mut i8) {
+    let dl = &ctx.module.target().datalayout;
+    match val {
+        ConstantValue::Array(ConstantArray { elems, elem_ty, .. }) => {
+            let sz = dl.get_size_of(&ctx.module.types, *elem_ty);
+            for (i, e) in elems.iter().enumerate() {
+                init_memory(ctx, e, unsafe { ptr.add(sz * i) as *mut i8 });
+            }
+        }
+        ConstantValue::AggregateZero(_) => {
+            // Already zeroed.
+            // unsafe { ptr::write_bytes(ptr, 0, sz) };
+        }
+        ConstantValue::Int(ConstantInt::Int32(i)) => unsafe {
+            *(ptr as *mut i32) = *i;
+        },
+        ConstantValue::Int(ConstantInt::Int8(i)) => unsafe {
+            *(ptr as *mut i8) = *i;
+        },
+        e => todo!("Unsupported global initializer: {:?}", e),
     }
 }
 
