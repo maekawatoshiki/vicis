@@ -12,7 +12,7 @@ pub fn unescape(s: &str) -> Option<String> {
 
         match queue.pop_front() {
             Some('\\') => s.push('\\'),
-            Some(c) if c.is_digit(16) => {
+            Some(c) if c.is_ascii_hexdigit() => {
                 let cc = queue.pop_front().unwrap();
                 s.push(
                     char::from_u32(
