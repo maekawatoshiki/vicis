@@ -631,6 +631,10 @@ fn call_external_func(ctx: &Context, func: &Function, args: &[GenericValue]) -> 
                 args_ty.push(unsafe { &mut libffi::low::types::uint8 as *mut _ });
                 new_args.push(i as *mut _ as *mut c_void)
             }
+            GenericValue::Int8(ref mut i) => {
+                args_ty.push(unsafe { &mut libffi::low::types::sint8 as *mut _ });
+                new_args.push(i as *mut _ as *mut c_void)
+            }
             GenericValue::Int32(ref mut i) => {
                 args_ty.push(unsafe { &mut libffi::low::types::sint32 as *mut _ });
                 new_args.push(i as *mut _ as *mut c_void)
