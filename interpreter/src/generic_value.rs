@@ -27,6 +27,13 @@ impl GenericValue {
         }
     }
 
+    pub fn to_i8(self) -> Option<i8> {
+        match self {
+            Self::Int8(i) => Some(i),
+            _ => None,
+        }
+    }
+
     pub fn to_i32(self) -> Option<i32> {
         match self {
             Self::Int32(i) => Some(i),

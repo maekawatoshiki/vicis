@@ -717,14 +717,38 @@ fn call_intrinsic_func(
     func: &Function,
     args: &[GenericValue],
 ) -> Option<GenericValue> {
-    if func.name() == "llvm.memcpy.p0i8.p0i8.i64" {
+    fn llvm_memcpy_p0i8_p0i8_i64(args: &[GenericValue]) -> GenericValue {
         let dst = args[0].to_ptr().unwrap();
         let src = args[1].to_ptr().unwrap();
         let len = args[2].to_i64().unwrap();
         let _is_volatile = args[3].to_i1().unwrap();
         unsafe { ptr::copy_nonoverlapping(src, dst, len as usize) }
-        return Some(GenericValue::Void);
+        GenericValue::Void
     }
+
+    fn llvm_memset_p0i8_i64(args: &[GenericValue]) -> GenericValue {
+        let dst = args[0].to_ptr().unwrap();
+        let val = args[1].to_i8().unwrap();
+        let len = args[2].to_i64().unwrap();
+        let _is_volatile = args[3].to_i1().unwrap();
+        unsafe { ptr::write_bytes(dst, val as u8, len as usize) }
+        GenericValue::Void
+    }
+
+    let funcs: FxHashMap<&'static str, fn(&[GenericValue]) -> GenericValue> = vec![
+        (
+            "llvm.memcpy.p0i8.p0i8.i64",
+            llvm_memcpy_p0i8_p0i8_i64 as fn(&[GenericValue]) -> GenericValue,
+        ),
+        ("llvm.memset.p0i8.i64", llvm_memset_p0i8_i64),
+    ]
+    .into_iter()
+    .collect();
+
+    if let Some(func) = funcs.get(func.name().as_str()) {
+        return Some(func(args));
+    }
+
     None
 }
 
