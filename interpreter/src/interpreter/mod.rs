@@ -207,7 +207,7 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
         _ if ty.is_pointer(&frame.func.types) => {
             GenericValue::Ptr(unsafe { *(addr as *const *mut u8) })
         }
-        _ => todo!(),
+        ty => todo!("Unsupported load type: {}", frame.func.types.to_string(ty)),
     };
     frame.set_inst_val(id, val);
 }
