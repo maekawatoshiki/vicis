@@ -202,6 +202,7 @@ fn run_load(frame: &mut StackFrame, id: InstructionId, tys: &[Type], addr: Value
     let addr = frame.get_val(addr).unwrap().to_ptr().unwrap();
     let val = match ty {
         types::I8 => GenericValue::Int8(unsafe { *(addr as *const i8) }),
+        types::I16 => GenericValue::Int16(unsafe { *(addr as *const i16) }),
         types::I32 => GenericValue::Int32(unsafe { *(addr as *const i32) }),
         types::I64 => GenericValue::Int64(unsafe { *(addr as *const i64) }),
         _ if ty.is_pointer(&frame.func.types) => {

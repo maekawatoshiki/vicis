@@ -45,6 +45,7 @@ impl GenericValue {
         match self {
             Self::Int1(i) => Some(*i as i64),
             Self::Int8(i) => Some(*i as i64),
+            Self::Int16(i) => Some(*i as i64),
             Self::Int32(i) => Some(*i as i64),
             Self::Int64(i) => Some(*i),
             _ => None,
@@ -55,6 +56,7 @@ impl GenericValue {
         match self {
             Self::Int1(i) => Some(*i as u64),
             Self::Int8(i) => Some(*i as u64),
+            Self::Int16(i) => Some(*i as u64),
             Self::Int32(i) => Some(*i as u64),
             Self::Int64(i) => Some(*i as u64),
             _ => None,
