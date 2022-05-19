@@ -17,8 +17,8 @@ use vicis_core::ir::{
         Function, FunctionId,
     },
     module::{linkage::Linkage, name::Name, Module},
-    types::{self, Type, Types},
-    value::{ConstantArray, ConstantInt, ConstantStruct, ConstantValue, ValueId},
+    types::{self, Type, Typed, Types},
+    value::{ConstantArray, ConstantStruct, ConstantValue, ValueId},
 };
 
 /// An execution context for interpreters.
@@ -567,17 +567,21 @@ fn init_memory(ctx: &Context, val: &ConstantValue, ptr: *mut i8) {
                 init_memory(ctx, e, unsafe { ptr.add(sz * i) as *mut i8 });
             }
         }
-        ConstantValue::AggregateZero(_) => {
+        ConstantValue::Struct(ConstantStruct { ty, elems, .. }) => {
+            let layout = dl.new_struct_layout_for(&ctx.module.types, *ty).unwrap();
+            for (i, e) in elems.iter().enumerate() {
+                let offset = layout.get_elem_offset(i).unwrap();
+                init_memory(ctx, e, unsafe { ptr.add(offset) as *mut i8 });
+            }
+        }
+        ConstantValue::Undef(_) | ConstantValue::Null(_) | ConstantValue::AggregateZero(_) => {
             // Already zeroed.
             // unsafe { ptr::write_bytes(ptr, 0, sz) };
         }
-        ConstantValue::Int(ConstantInt::Int32(i)) => unsafe {
-            *(ptr as *mut i32) = *i;
+        ConstantValue::Int(i) => unsafe {
+            ptr::copy_nonoverlapping(i.as_ptr(), ptr, dl.get_size_of(&ctx.module.types, i.ty()))
         },
-        ConstantValue::Int(ConstantInt::Int8(i)) => unsafe {
-            *(ptr as *mut i8) = *i;
-        },
-        e => todo!("Unsupported global initializer: {:?}", e),
+        ConstantValue::GlobalRef(_, _) | ConstantValue::Expr(_) => todo!(),
     }
 }
 
