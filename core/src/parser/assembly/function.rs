@@ -178,6 +178,7 @@ pub fn parse(source: &str, types: Types) -> Result<(&str, Function), Error> {
         tuple((spaces, tag("section"), spaces, string_literal)),
         |(_, _, _, section)| section,
     ))(source)?;
+    let (source, _comdat) = opt(preceded(spaces, tag("comdat")))(source)?;
     let (source, _) = opt(tuple((spaces, tag("align"), spaces, digit1)))(source)?; // TODO: do not ignore 'align N'
     let (mut source, personality) = parse_personality(source, &types)?;
 
