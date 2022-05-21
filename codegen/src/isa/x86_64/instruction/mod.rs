@@ -366,6 +366,15 @@ impl OperandData {
             _ => todo!(),
         }
     }
+
+    pub fn sext_as_i64(&self) -> Option<i64> {
+        match self {
+            Self::Int64(i) => Some(*i),
+            Self::Int32(i) => Some(*i as i64),
+            Self::Int8(i) => Some(*i as i64),
+            _ => None,
+        }
+    }
 }
 
 impl From<VReg> for OperandData {

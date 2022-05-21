@@ -291,11 +291,11 @@ fn mem_op(args: &[Operand]) -> String {
         (
             OperandData::None,
             OperandData::None,
+            OperandData::Reg(reg1),
             OperandData::None,
-            OperandData::Reg(reg2),
             OperandData::None,
         ) => {
-            format!("[{}]", reg_to_str(reg2),)
+            format!("[{}]", reg_to_str(reg1),)
         }
         (
             OperandData::None,

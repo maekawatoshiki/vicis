@@ -81,8 +81,8 @@ pub fn lower_load(
             MOperand::new(OperandData::None),
             MOperand::new(OperandData::None),
             MOperand::new(OperandData::None),
-            MOperand::input(OperandData::None),
             MOperand::input(OperandData::VReg(vreg)),
+            MOperand::input(OperandData::None),
             MOperand::new(OperandData::None),
         ]
     } else {

@@ -320,196 +320,132 @@ fn lower_gep(
     self_id: InstructionId,
     gep: &GetElementPtr,
 ) -> Result<()> {
-    use {Constant as Const, ConstantInt::Int64, ConstantValue::Int, Value::Constant};
-
-    let gep_args: Vec<&Value> = gep
-        .args
-        .iter()
-        .map(|&arg| &ctx.ir_data.values[arg])
-        .collect();
-
-    let mem = match &gep_args[..] {
-        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Const(Int(Int64(idx1)))] => {
-            let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
-            let base_ty = gep.tys[0];
-            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64
-                + idx1
-                    * ctx
-                        .isa
-                        .data_layout()
-                        .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
-                        as i64;
-
-            vec![
-                MO::new(OperandData::MemStart),
-                MO::new(OperandData::None),
-                MO::new(OperandData::Slot(base_ptr)),
-                MO::new(OperandData::Int32(offset as i32)),
-                MO::input(OperandData::None),
-                MO::input(OperandData::None),
-                MO::new(OperandData::None),
-            ]
-        }
-        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
-            let mut slot = None;
-            let mut base = None;
-            if let Some(p) = ctx.inst_id_to_slot_id.get(base_ptr) {
-                slot = Some(*p);
-            } else {
-                base = Some(get_operand_for_val(ctx, gep.tys[1], gep.args[0])?);
-            }
-
-            let base_ty = gep.tys[0];
-            let offset = idx0 * ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i64;
-
-            let idx1_ty = gep.tys[3];
-            assert!(idx1_ty.is_i64());
-            let idx1 = get_inst_output(ctx, idx1_ty, *idx1)?;
-
-            let mul = ctx
-                .isa
-                .data_layout()
-                .get_size_of(ctx.types, ctx.types.get_element(base_ty).unwrap())
-                as i32;
-
-            if mul == 1 || mul == 2 || mul == 4 || mul == 8 {
-                vec![
-                    MO::new(OperandData::MemStart),
-                    MO::new(OperandData::None),
-                    MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                    MO::new(OperandData::Int32(offset as i32)),
-                    MO::input(base.map_or(OperandData::None, |x| x)),
-                    MO::input(OperandData::VReg(idx1)),
-                    MO::new(OperandData::Int32(mul)),
-                ]
-            } else {
-                let ty = ctx.types.base_mut().pointer(types::I8);
-                let output = new_empty_inst_output(ctx, ty, self_id);
-
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::LEArm64,
-                        operands: vec![
-                            MO::output(output.into()),
-                            MO::new(OperandData::MemStart),
-                            MO::new(OperandData::None),
-                            MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                            MO::new(OperandData::Int32(offset as i32)),
-                            MO::input(base.map_or(OperandData::None, |x| x)),
-                            MO::new(OperandData::None),
-                            MO::new(OperandData::None),
-                        ],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-                let mul_output = ctx.mach_data.vregs.add_vreg_data(types::I64);
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::IMULrr64i32,
-                        operands: vec![
-                            MO::output(mul_output.into()),
-                            MO::input(idx1.into()),
-                            MO::new(OperandData::Int32(mul)),
-                        ],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::ADDrr32,
-                        operands: vec![MO::output(output.into()), MO::input(mul_output.into())],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-                return Ok(());
-            }
-        }
-        [Value::Instruction(base_ptr), Value::Instruction(idx0)] => {
-            // let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
-            let mut slot = None;
-            let mut base = None;
-            if let Some(p) = ctx.inst_id_to_slot_id.get(base_ptr) {
-                slot = Some(*p);
-            } else {
-                base = Some(get_operand_for_val(ctx, gep.tys[1], gep.args[0])?);
-            }
-
-            let base_ty = gep.tys[0];
-            let idx0_ty = gep.tys[2];
-            assert!(idx0_ty.is_i64());
-            let idx0 = get_inst_output(ctx, idx0_ty, *idx0)?;
-
-            let mul = ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i32;
-
-            if mul == 1 || mul == 2 || mul == 4 || mul == 8 {
-                vec![
-                    MO::new(OperandData::MemStart),
-                    MO::new(OperandData::None),
-                    MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                    MO::new(OperandData::None),
-                    MO::input(base.map_or(OperandData::None, |x| x)),
-                    MO::input(OperandData::VReg(idx0)),
-                    MO::new(OperandData::Int32(mul)),
-                ]
-            } else {
-                let ty = ctx.types.base_mut().pointer(types::I8);
-                let output = new_empty_inst_output(ctx, ty, self_id);
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::LEArm64,
-                        operands: vec![
-                            MO::output(output.into()),
-                            MO::new(OperandData::MemStart),
-                            MO::new(OperandData::None),
-                            MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                            MO::new(OperandData::None),
-                            MO::new(OperandData::None),
-                            MO::input(base.map_or(OperandData::None, |x| x)),
-                            MO::new(OperandData::None),
-                        ],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-                let mul_output = ctx.mach_data.vregs.add_vreg_data(types::I64);
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::IMULrr64i32,
-                        operands: vec![
-                            MO::output(mul_output.into()),
-                            MO::input(idx0.into()),
-                            MO::new(OperandData::Int32(
-                                ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i32,
-                            )),
-                        ],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-                ctx.inst_seq.push(MachInstruction::new(
-                    InstructionData {
-                        opcode: Opcode::ADDrr32,
-                        operands: vec![MO::output(output.into()), MO::input(mul_output.into())],
-                    },
-                    ctx.block_map[&ctx.cur_block],
-                ));
-
-                return Ok(());
-            }
-        }
-        e => return Err(LoweringError::Todo(format!("Unsupported GEP pattern: {:?}", e)).into()),
+    let base = if let Value::Instruction(id) = &ctx.ir_data.values[gep.args[0]]
+               && let Some(slot) = ctx.inst_id_to_slot_id.get(id).copied() {
+        OperandData::Slot(slot)
+    } else {
+        get_operand_for_val(ctx, gep.tys[1], gep.args[0])?
     };
 
-    let ty = ctx.types.base_mut().pointer(types::I8);
+    // NOTE: addr = base + mul.0*idx.0 + mul.1*idx.1 + ...
+    let mut indices = vec![]; // (mul, idx)
+    let mut cur_ty = gep.tys[1];
+    for (&arg, &arg_ty) in gep.args[1..].iter().zip(gep.tys[2..].iter()) {
+        let idx = get_operand_for_val(ctx, arg_ty, arg)?;
+        if cur_ty.is_struct(ctx.types) {
+            let layout = ctx
+                .isa
+                .data_layout
+                .new_struct_layout_for(ctx.types, cur_ty)
+                .unwrap();
+            let idx = idx.sext_as_i64().unwrap() as usize;
+            let offset = layout.get_elem_offset(idx).unwrap();
+            if offset != 0 {
+                indices.push((1 as i64, OperandData::Int64(offset as i64)));
+            }
+            cur_ty = ctx.types.base().element_at(cur_ty, idx).unwrap();
+        } else {
+            cur_ty = ctx.types.get_element(cur_ty).unwrap();
+            let sz = ctx.isa.data_layout.get_size_of(ctx.types, cur_ty) as i64;
+            if let Some(idx) = idx.sext_as_i64() {
+                if idx != 0 {
+                    indices.push((1, OperandData::Int64(sz * idx)));
+                }
+            } else {
+                indices.push((sz, idx));
+            }
+        }
+    }
+
+    let mut mem_slot = OperandData::None;
+    let mut mem_imm = OperandData::None;
+    let mut mem_rbase = OperandData::None;
+    let mut mem_ridx = OperandData::None;
+    let mut mem_mul = OperandData::None;
+
+    if matches!(base, OperandData::Slot(_)) {
+        mem_slot = base
+    } else {
+        mem_rbase = base
+    }
+
+    let mut simple_case = true;
+    match &indices[..] {
+        [] => {}
+        [(1, x)] if x.sext_as_i64().is_some() => {
+            mem_imm = x.to_owned();
+        }
+        [(_, x)] if x.sext_as_i64().is_some() => {
+            unreachable!()
+        }
+        [(m, x)] if matches!(m, 1 | 2 | 4 | 8) => {
+            mem_ridx = x.to_owned();
+            mem_mul = (*m as i64).into();
+        }
+        _ => simple_case = false,
+    }
+
+    let ty = ctx.types.base_mut().pointer(cur_ty);
     let output = new_empty_inst_output(ctx, ty, self_id);
+
+    if simple_case {
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::LEArm64,
+                operands: vec![
+                    MO::output(output.into()),
+                    MO::new(OperandData::MemStart),
+                    MO::new(OperandData::None),
+                    MO::new(mem_slot),
+                    MO::new(mem_imm),
+                    MO::input(mem_rbase),
+                    MO::input(mem_ridx),
+                    MO::new(mem_mul),
+                ],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+        return Ok(());
+    }
+
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::LEArm64,
-            operands: vec![MO::output(output.into())]
-                .into_iter()
-                .chain(mem.into_iter())
-                .collect(),
+            operands: vec![
+                MO::output(output.into()),
+                MO::new(OperandData::MemStart),
+                MO::new(OperandData::None),
+                MO::new(mem_slot),
+                MO::new(OperandData::None),
+                MO::input(mem_rbase),
+                MO::input(OperandData::None),
+                MO::new(OperandData::None),
+            ],
         },
         ctx.block_map[&ctx.cur_block],
     ));
+
+    for (mul, idx) in indices {
+        let mul_output = ctx.mach_data.vregs.add_vreg_data(cur_ty);
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::IMULrr64i32,
+                operands: vec![
+                    MO::output(mul_output.into()),
+                    MO::input(idx.into()),
+                    MO::new(OperandData::Int64(mul)),
+                ],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::ADDrr64,
+                operands: vec![MO::output(output.into()), MO::input(mul_output.into())],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+    }
 
     Ok(())
 }
