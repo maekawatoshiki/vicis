@@ -724,6 +724,7 @@ fn get_operand_for_const(
 ) -> Result<OperandData> {
     match konst {
         ConstantValue::Int(ConstantInt::Int32(i)) => Ok(OperandData::Int32(*i)),
+        ConstantValue::Int(ConstantInt::Int64(i)) => Ok(OperandData::Int64(*i)),
         ConstantValue::Expr(ConstantExpr::GetElementPtr {
             inbounds: _,
             tys: _,
