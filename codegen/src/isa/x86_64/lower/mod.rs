@@ -560,6 +560,15 @@ fn lower_call(
     tys: &[Type],
     args: &[ValueId],
 ) -> Result<()> {
+    let callee = args[0];
+    let name = match &ctx.ir_data.values[callee] {
+        Value::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => name.clone(),
+        callee => {
+            return Err(LoweringError::Todo(format!("Unsupported callee: {:?}", callee)).into())
+        }
+    };
+    log::debug!("call name: {}", name);
+
     let result_ty = if let Some(ty) = ctx.types.get(tys[0])
                     && let CompoundType::Function(FunctionType { ret, .. }) = &*ty {
         *ret
@@ -569,6 +578,7 @@ fn lower_call(
     let result_sz = ctx.isa.data_layout().get_size_of(ctx.types, result_ty);
     let output = new_empty_inst_output(ctx, result_ty, id);
 
+    // TODO: Refactoring.
     let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
     for (gpr_used, (&arg, &ty)) in args[1..].iter().zip(tys[1..].iter()).enumerate() {
         let arg = get_operand_for_val(ctx, ty, arg)?;
@@ -576,6 +586,7 @@ fn lower_call(
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: match &arg {
+                    OperandData::Int64(_) => Opcode::MOVri64,
                     OperandData::Int32(_) => Opcode::MOVri32,
                     OperandData::Reg(_) => Opcode::MOVrr32, // TODO: FIXME
                     OperandData::VReg(vreg) => {
@@ -605,11 +616,6 @@ fn lower_call(
         ));
     }
 
-    let callee = args[0];
-    let name = match &ctx.ir_data.values[callee] {
-        Value::Constant(ConstantValue::GlobalRef(Name::Name(name), _)) => name.clone(),
-        e => return Err(LoweringError::Todo(format!("Unsupported callee: {:?}", e)).into()),
-    };
     let result_reg: Reg = match result_sz {
         4 => GR32::EAX.into(),
         8 => GR64::RAX.into(),
