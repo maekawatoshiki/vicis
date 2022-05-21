@@ -767,6 +767,7 @@ name = "vicis-codegen"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "color-backtrace",
  "env_logger",
  "id-arena",
  "insta",
