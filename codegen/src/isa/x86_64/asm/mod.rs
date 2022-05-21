@@ -180,9 +180,9 @@ impl fmt::Display for Opcode {
             match self {
                 Self::PUSH64 => "push",
                 Self::POP64 => "pop",
-                Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 => "add",
+                Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 | Self::ADDrr64 => "add",
                 Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
-                Self::IMULrr32 => "imul",
+                Self::IMULrr32 | Self::IMULrr64i32 => "imul",
                 Self::MOVrm8
                 | Self::MOVmr8
                 | Self::MOVmi8

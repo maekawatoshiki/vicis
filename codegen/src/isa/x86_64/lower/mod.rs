@@ -351,7 +351,6 @@ fn lower_gep(
             ]
         }
         [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
-            // let base_ptr = ctx.inst_id_to_slot_id[base_ptr];
             let mut slot = None;
             let mut base = None;
             if let Some(p) = ctx.inst_id_to_slot_id.get(base_ptr) {
@@ -384,38 +383,41 @@ fn lower_gep(
                     MO::new(OperandData::Int32(mul)),
                 ]
             } else {
-                let mem = vec![
-                    MO::new(OperandData::MemStart),
-                    MO::new(OperandData::None),
-                    MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                    MO::new(OperandData::Int32(offset as i32)),
-                    MO::input(base.map_or(OperandData::None, |x| x)),
-                    MO::new(OperandData::None),
-                    MO::new(OperandData::None),
-                ];
                 let ty = ctx.types.base_mut().pointer(types::I8);
                 let output = new_empty_inst_output(ctx, ty, self_id);
+
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::LEArm64,
-                        operands: vec![MO::output(output.into())]
-                            .into_iter()
-                            .chain(mem.into_iter())
-                            .collect(),
+                        operands: vec![
+                            MO::output(output.into()),
+                            MO::new(OperandData::MemStart),
+                            MO::new(OperandData::None),
+                            MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
+                            MO::new(OperandData::Int32(offset as i32)),
+                            MO::input(base.map_or(OperandData::None, |x| x)),
+                            MO::new(OperandData::None),
+                            MO::new(OperandData::None),
+                        ],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
+                let mul_output = ctx.mach_data.vregs.add_vreg_data(types::I64);
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
-                        opcode: Opcode::IMULrr32,
-                        operands: vec![MO::output(idx1.into()), MO::new(OperandData::Int32(mul))],
+                        opcode: Opcode::IMULrr64i32,
+                        operands: vec![
+                            MO::output(mul_output.into()),
+                            MO::input(idx1.into()),
+                            MO::new(OperandData::Int32(mul)),
+                        ],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::ADDrr32,
-                        operands: vec![MO::output(output.into()), MO::input(idx1.into())],
+                        operands: vec![MO::output(output.into()), MO::input(mul_output.into())],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
@@ -450,32 +452,31 @@ fn lower_gep(
                     MO::new(OperandData::Int32(mul)),
                 ]
             } else {
-                let mem = vec![
-                    MO::new(OperandData::MemStart),
-                    MO::new(OperandData::None),
-                    MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
-                    MO::new(OperandData::None),
-                    MO::new(OperandData::None),
-                    MO::input(base.map_or(OperandData::None, |x| x)),
-                    MO::new(OperandData::None),
-                ];
                 let ty = ctx.types.base_mut().pointer(types::I8);
                 let output = new_empty_inst_output(ctx, ty, self_id);
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::LEArm64,
-                        operands: vec![MO::output(output.into())]
-                            .into_iter()
-                            .chain(mem.into_iter())
-                            .collect(),
+                        operands: vec![
+                            MO::output(output.into()),
+                            MO::new(OperandData::MemStart),
+                            MO::new(OperandData::None),
+                            MO::new(slot.map_or(OperandData::None, |s| OperandData::Slot(s))),
+                            MO::new(OperandData::None),
+                            MO::new(OperandData::None),
+                            MO::input(base.map_or(OperandData::None, |x| x)),
+                            MO::new(OperandData::None),
+                        ],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
+                let mul_output = ctx.mach_data.vregs.add_vreg_data(types::I64);
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
-                        opcode: Opcode::IMULrr32,
+                        opcode: Opcode::IMULrr64i32,
                         operands: vec![
-                            MO::output(idx0.into()),
+                            MO::output(mul_output.into()),
+                            MO::input(idx0.into()),
                             MO::new(OperandData::Int32(
                                 ctx.isa.data_layout().get_size_of(ctx.types, base_ty) as i32,
                             )),
@@ -486,7 +487,7 @@ fn lower_gep(
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
                         opcode: Opcode::ADDrr32,
-                        operands: vec![MO::output(output.into()), MO::input(idx0.into())],
+                        operands: vec![MO::output(output.into()), MO::input(mul_output.into())],
                     },
                     ctx.block_map[&ctx.cur_block],
                 ));
