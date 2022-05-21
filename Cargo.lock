@@ -771,6 +771,7 @@ dependencies = [
  "env_logger",
  "id-arena",
  "insta",
+ "log",
  "rustc-hash",
  "structopt",
  "vicis-core",
