@@ -148,16 +148,16 @@ impl RegisterClass for RegClass {
     fn gpr_list(&self) -> Vec<Reg> {
         match self {
             // TODO: Add more general-purpose registers
-            RegClass::GR8 => vec![GR8::AL, GR8::CL, GR8::DL]
+            RegClass::GR8 => vec![GR8::AL, GR8::CL, GR8::DL, GR8::DIL, GR8::SIL]
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            RegClass::GR32 => vec![GR32::EAX, GR32::ECX, GR32::EDX]
+            RegClass::GR32 => vec![GR32::EAX, GR32::ECX, GR32::EDX, GR32::EDI, GR32::ESI]
                 .into_iter()
                 .map(|r| r.into())
                 .collect(),
             // TODO: Add more general-purpose registers
-            RegClass::GR64 => vec![GR64::RAX, GR64::RCX, GR64::RDX]
+            RegClass::GR64 => vec![GR64::RAX, GR64::RCX, GR64::RDX, GR64::RDI, GR64::RSI]
                 .into_iter()
                 .map(|r| r.into())
                 .collect(),
