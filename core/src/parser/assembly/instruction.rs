@@ -3,6 +3,7 @@ use super::function::ParserContext;
 use super::name::identifier;
 use super::param_attrs::parse_param_attrs;
 use super::util::{spaces, string_literal};
+use super::value::parse_constant;
 use crate::ir::function::instruction::{
     Alloca, Br, Call, Cast, CondBr, GetElementPtr, ICmp, ICmpCond, Instruction, InstructionId,
     IntBinary, Invoke, LandingPad, Load, Opcode, Operand, Phi, Resume, Ret, Store, Switch,
@@ -36,21 +37,45 @@ pub fn parse_alloca<'a, 'b>(
 ) -> IResult<&'a str, Instruction, VerboseError<&'a str>> {
     let (source, _) = preceded(spaces, tag("alloca"))(source)?;
     let (source, ty) = super::types::parse(ctx.types)(source)?;
-    let (source, align) = opt(preceded(
-        spaces,
-        preceded(
-            char(','),
-            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
-        ),
-    ))(source)?;
+
+    let mut align = "0";
+    let mut num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
+    let source = if let Ok((source, _)) = preceded(spaces, char(','))(source) {
+        if let Ok((source, align_)) =
+            preceded(spaces, preceded(tag("align"), preceded(spaces, digit1)))(source)
+        {
+            align = align_;
+            source
+        } else {
+            let (source, ty) = super::types::parse(ctx.types)(source)?;
+            let (source, num_elements_) = parse_constant(source, ctx.types, ty)?;
+            num_elements = num_elements_;
+            if let Ok((source, align_)) = preceded(
+                spaces,
+                preceded(
+                    char(','),
+                    preceded(spaces, preceded(tag("align"), preceded(spaces, digit1))),
+                ),
+            )(source)
+            {
+                align = align_;
+                source
+            } else {
+                source
+            }
+        }
+    } else {
+        source
+    };
+
     // TODO: Implement parser for num_elements
-    let num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
+    // let num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
     let inst = Opcode::Alloca
         .with_block(ctx.cur_block)
         .with_operand(Operand::Alloca(Alloca {
             tys: [ty, I32],
             num_elements,
-            align: align.map_or(0, |align| align.parse::<u32>().unwrap_or(0)),
+            align: align.parse::<u32>().unwrap_or(0),
         }))
         .with_ty(ctx.types.base_mut().pointer(ty));
     Ok((source, inst))
