@@ -357,6 +357,7 @@ fn sub(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
 fn mul(x: GenericValue, y: GenericValue) -> Option<GenericValue> {
     match (x, y) {
         (GenericValue::Int32(x), GenericValue::Int32(y)) => Some(GenericValue::Int32(x * y)),
+        (GenericValue::Int64(x), GenericValue::Int64(y)) => Some(GenericValue::Int64(x * y)),
         _ => None,
     }
 }
