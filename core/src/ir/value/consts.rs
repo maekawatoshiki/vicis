@@ -286,6 +286,18 @@ impl From<ConstantInt> for super::Value {
     }
 }
 
+impl From<i32> for ConstantValue {
+    fn from(i: i32) -> Self {
+        Self::Int(i.into())
+    }
+}
+
+impl From<i32> for ConstantInt {
+    fn from(i: i32) -> Self {
+        Self::Int32(i)
+    }
+}
+
 impl std::fmt::Display for ConstantInt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

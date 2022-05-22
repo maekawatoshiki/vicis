@@ -38,18 +38,17 @@ pub fn parse_alloca<'a, 'b>(
     let (source, _) = preceded(spaces, tag("alloca"))(source)?;
     let (source, ty) = super::types::parse(ctx.types)(source)?;
 
-    let mut align = "0";
-    let mut num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
+    let mut align = 0;
+    let mut num_elements = 1.into();
     let source = if let Ok((source, _)) = preceded(spaces, char(','))(source) {
         if let Ok((source, align_)) =
             preceded(spaces, preceded(tag("align"), preceded(spaces, digit1)))(source)
         {
-            align = align_;
+            align = align_.parse::<u32>().unwrap_or(0);
             source
         } else {
-            let (source, ty) = super::types::parse(ctx.types)(source)?;
-            let (source, num_elements_) = parse_constant(source, ctx.types, ty)?;
-            num_elements = num_elements_;
+            let (mut source, ty) = super::types::parse(ctx.types)(source)?;
+            (source, num_elements) = parse_constant(source, ctx.types, ty)?;
             if let Ok((source, align_)) = preceded(
                 spaces,
                 preceded(
@@ -58,7 +57,7 @@ pub fn parse_alloca<'a, 'b>(
                 ),
             )(source)
             {
-                align = align_;
+                align = align_.parse::<u32>().unwrap_or(0);
                 source
             } else {
                 source
@@ -68,14 +67,12 @@ pub fn parse_alloca<'a, 'b>(
         source
     };
 
-    // TODO: Implement parser for num_elements
-    // let num_elements = value::ConstantValue::Int(value::ConstantInt::Int32(1));
     let inst = Opcode::Alloca
         .with_block(ctx.cur_block)
         .with_operand(Operand::Alloca(Alloca {
             tys: [ty, I32],
             num_elements,
-            align: align.parse::<u32>().unwrap_or(0),
+            align,
         }))
         .with_ty(ctx.types.base_mut().pointer(ty));
     Ok((source, inst))
