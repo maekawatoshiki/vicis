@@ -5,7 +5,7 @@ use crate::{
     function::instruction::Instruction as MachInstruction,
     isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand as MO, OperandData},
-        register::{RegClass, RegInfo, GR32, GR64},
+        register::{RegClass, RegInfo, GR32, GR64, GR8},
         X86_64,
     },
     isa::TargetIsa,
@@ -54,7 +54,7 @@ impl LowerTrait<X86_64> for Lower {
             assert!(ty.is_integer() || ty.is_pointer(ctx.types));
             let sz = ctx.isa.data_layout().get_size_of(ctx.types, *ty);
             let opcode = match sz {
-                1 => Opcode::MOVrr32,
+                1 => Opcode::MOVrr8,
                 4 => Opcode::MOVrr32,
                 8 => Opcode::MOVrr64,
                 _ => todo!(),
@@ -638,6 +638,7 @@ fn lower_call(
                         let ty = ctx.mach_data.vregs.type_for(*vreg);
                         let sz = ctx.isa.data_layout().get_size_of(ctx.types, ty);
                         match sz {
+                            1 => Opcode::MOVrr8,
                             4 => Opcode::MOVrr32,
                             8 => Opcode::MOVrr64,
                             e => {
@@ -662,6 +663,7 @@ fn lower_call(
     }
 
     let result_reg: Reg = match result_sz {
+        1 => GR8::AL.into(),
         4 => GR32::EAX.into(),
         8 => GR64::RAX.into(),
         _ => GR32::EAX.into(),
@@ -678,14 +680,15 @@ fn lower_call(
     ));
 
     if !ctx.ir_data.users_of(id).is_empty() {
-        match result_sz {
+        let opcode = match result_sz {
+            1 => Opcode::MOVrr8,
             4 => Opcode::MOVrr32,
             8 => Opcode::MOVrr64,
-            _ => todo!("Function results less than 32 bit are not supported yet"),
+            n => todo!("Function result in {n} bytes is not supported yet"),
         };
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
-                opcode: Opcode::MOVrr32,
+                opcode,
                 operands: vec![MO::output(output.into()), MO::input(result_reg.into())],
             },
             ctx.block_map[&ctx.cur_block],
