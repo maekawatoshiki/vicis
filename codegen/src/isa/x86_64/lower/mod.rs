@@ -553,12 +553,12 @@ fn lower_condbr(
                     ctx.block_map[&ctx.cur_block],
                 ));
             }
-            Value::Instruction(id) => {
-                assert!(ty.is_i32());
-                let rhs = get_inst_output(ctx, *ty, *id)?;
+            Value::Argument(_) | Value::Instruction(_) => {
+                assert!(ty.is_i32() || ty.is_i64());
+                let rhs = get_operand_for_val(ctx, *ty, args[1])?;
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
-                        opcode: Opcode::CMPrr32,
+                        opcode: Opcode::CMPrr32, // TODO: CMPrr64
                         operands: vec![MO::input(lhs.into()), MO::input(rhs.into())],
                     },
                     ctx.block_map[&ctx.cur_block],
@@ -576,6 +576,10 @@ fn lower_condbr(
                     ICmpCond::Slt => Opcode::JL,
                     ICmpCond::Sge => Opcode::JGE,
                     ICmpCond::Sgt => Opcode::JG,
+                    // ICmpCond::Ule => Opcode::JLE,
+                    // ICmpCond::Ult => Opcode::JL,
+                    // ICmpCond::Uge => Opcode::JGE,
+                    // ICmpCond::Ugt => Opcode::JG,
                     e => {
                         return Err(LoweringError::Todo(format!(
                             "Unsupported icmp condition: {:?}",
