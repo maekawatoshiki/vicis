@@ -46,6 +46,7 @@ pub enum Opcode {
     MOVmr64,
     MOVSXDr64r32,
     MOVSXDr64m32,
+    MOVZXr32r8,
     LEArm64,
     CMPri8,
     CMPri32,

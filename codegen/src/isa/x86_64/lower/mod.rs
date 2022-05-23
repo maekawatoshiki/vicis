@@ -104,6 +104,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Bitcast => {
             lower_bitcast(ctx, inst.id.unwrap(), tys, arg)
         }
+        Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Zext => {
+            lower_zext(ctx, inst.id.unwrap(), tys, arg)
+        }
         Operand::GetElementPtr(ref gep) => lower_gep(ctx, inst.id.unwrap(), gep),
         Operand::Br(Br { block }) => lower_br(ctx, block),
         Operand::CondBr(CondBr { arg, blocks }) => lower_condbr(ctx, arg, blocks),
@@ -281,6 +284,32 @@ fn lower_sext(
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
             opcode: Opcode::MOVSXDr64r32,
+            operands: vec![MO::output(output.into()), MO::input(val.into())],
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+
+    Ok(())
+}
+
+fn lower_zext(
+    ctx: &mut LoweringContext<X86_64>,
+    self_id: InstructionId,
+    tys: &[Type; 2],
+    arg: ValueId,
+) -> Result<()> {
+    let from = tys[0];
+    let to = tys[1];
+
+    assert!(from.is_i8());
+    assert!(to.is_i32());
+
+    let val = get_operand_for_val(ctx, from, arg)?;
+    let output = new_empty_inst_output(ctx, to, self_id);
+
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::MOVZXr32r8,
             operands: vec![MO::output(output.into()), MO::input(val.into())],
         },
         ctx.block_map[&ctx.cur_block],
