@@ -426,7 +426,7 @@ fn lower_gep(
     ));
 
     for (mul, idx) in indices {
-        let mul_output = ctx.mach_data.vregs.add_vreg_data(cur_ty);
+        let mul_output = ctx.mach_data.vregs.add_vreg_data(ty);
         ctx.inst_seq.push(MachInstruction::new(
             InstructionData {
                 opcode: Opcode::IMULrr64i32,

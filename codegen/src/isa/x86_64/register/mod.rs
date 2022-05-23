@@ -141,7 +141,7 @@ impl RegisterClass for RegClass {
             types::I32 => RegClass::GR32,
             types::I64 => RegClass::GR64,
             _ if ty.is_pointer(types) => RegClass::GR64,
-            _ => todo!(),
+            e => todo!("{}", types.to_string(e)),
         }
     }
 
