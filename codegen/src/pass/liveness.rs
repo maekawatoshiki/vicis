@@ -123,8 +123,6 @@ impl<T: TargetIsa> Liveness<T> {
         self.set_def(func);
         self.visit(func);
 
-        debug!(&self.block_data);
-
         // Compute program points
         self.compute_program_points(func);
     }
@@ -208,6 +206,8 @@ impl<T: TargetIsa> Liveness<T> {
         self.vreg_lrs_map.remove(&vreg);
     }
 
+    /// Recomputes the instruction indices for each program point that belongs to
+    /// the same basic block of `from`.
     pub fn recompute_program_points_after(&mut self, from: ProgramPoint) {
         for pp in self
             .inst_to_pp

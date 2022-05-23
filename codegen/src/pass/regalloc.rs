@@ -45,8 +45,7 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
 
     let preferred = collect_preferred_registers(function, &all_vregs);
 
-    debug!(&all_vregs);
-    debug!(&function);
+    log::debug!("regalloc target: {:?}", function);
 
     let mut worklist: Vec<VReg> = all_vregs.into_iter().collect();
     // sort by segment start
@@ -117,10 +116,6 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
             }
         }
     }
-
-    debug!(liveness.block_data);
-    debug!(liveness.vreg_lrs_map);
-    debug!(liveness.reg_lrs_map);
 }
 
 pub fn collect_vregs_alive_around_call<T: TargetIsa>(
