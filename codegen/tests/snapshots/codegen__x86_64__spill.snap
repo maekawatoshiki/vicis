@@ -1,0 +1,59 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 44
+expression: mach_module.display_asm()
+---
+  .text
+  .intel_syntax noprefix
+  .text
+  .globl main
+main:
+.LBL0_0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 64
+  mov dword ptr [rbp-4], 1
+  mov dword ptr [rbp-8], 2
+  mov dword ptr [rbp-12], 3
+  mov dword ptr [rbp-16], 4
+  mov dword ptr [rbp-20], 5
+  mov dword ptr [rbp-24], 6
+  mov dword ptr [rbp-28], 7
+  mov dword ptr [rbp-32], 8
+  mov dword ptr [rbp-36], 9
+  mov dword ptr [rbp-40], 10
+  mov eax, dword ptr [rbp-4]
+  mov ecx, dword ptr [rbp-8]
+  mov edx, dword ptr [rbp-12]
+  mov edi, dword ptr [rbp-16]
+  mov esi, dword ptr [rbp-20]
+  mov dword ptr [rbp-44], esi
+  mov esi, dword ptr [rbp-24]
+  mov dword ptr [rbp-48], esi
+  mov esi, dword ptr [rbp-28]
+  mov dword ptr [rbp-52], esi
+  mov esi, dword ptr [rbp-32]
+  mov dword ptr [rbp-56], esi
+  mov esi, dword ptr [rbp-36]
+  mov dword ptr [rbp-60], esi
+  mov esi, dword ptr [rbp-40]
+  mov dword ptr [rbp-64], esi
+  add eax, ecx
+  add eax, edx
+  add eax, edi
+  mov esi, dword ptr [rbp-44]
+  add eax, esi
+  mov esi, dword ptr [rbp-48]
+  add eax, esi
+  mov esi, dword ptr [rbp-52]
+  add eax, esi
+  mov esi, dword ptr [rbp-56]
+  add eax, esi
+  mov esi, dword ptr [rbp-60]
+  add eax, esi
+  mov esi, dword ptr [rbp-64]
+  add eax, esi
+  add rsp, 64
+  pop rbp
+  ret 
+

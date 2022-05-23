@@ -41,4 +41,5 @@ mod x86_64 {
     test!(X86_64, test_i8, "i8");
     test!(X86_64, test_i8_load_store, "i8_load_store");
     test!(X86_64, test_global, "global");
+    test!(X86_64, test_spill, "spill");
 }
