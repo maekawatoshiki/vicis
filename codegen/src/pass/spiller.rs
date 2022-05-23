@@ -128,9 +128,13 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
         let after_pp = self.liveness.inst_to_pp[&after];
         let next_after = self.function.layout.next_inst_of(after).unwrap();
         let next_after_pp = self.liveness.inst_to_pp[&next_after];
-        let inst_pp = ProgramPoint::between(after_pp, next_after_pp).unwrap();
-        self.liveness.inst_to_pp.insert(inst, inst_pp);
-        self.function.layout.insert_inst_after(after, inst, block);
+        if let Some(inst_pp) = ProgramPoint::between(after_pp, next_after_pp) {
+            self.liveness.inst_to_pp.insert(inst, inst_pp);
+            self.function.layout.insert_inst_after(after, inst, block);
+        } else {
+            self.liveness.recompute_program_points_after(after_pp);
+            self.insert_inst_after(after, inst, block);
+        }
     }
 
     fn insert_inst_before(
@@ -142,8 +146,12 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
         let before_pp = self.liveness.inst_to_pp[&before];
         let prev_before = self.function.layout.prev_inst_of(before).unwrap();
         let prev_before_pp = self.liveness.inst_to_pp[&prev_before];
-        let inst_pp = ProgramPoint::between(prev_before_pp, before_pp).unwrap();
-        self.liveness.inst_to_pp.insert(inst, inst_pp);
-        self.function.layout.insert_inst_before(before, inst, block);
+        if let Some(inst_pp) = ProgramPoint::between(prev_before_pp, before_pp) {
+            self.liveness.inst_to_pp.insert(inst, inst_pp);
+            self.function.layout.insert_inst_before(before, inst, block);
+        } else {
+            self.liveness.recompute_program_points_after(before_pp);
+            self.insert_inst_before(before, inst, block)
+        }
     }
 }

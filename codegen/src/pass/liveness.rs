@@ -208,6 +208,31 @@ impl<T: TargetIsa> Liveness<T> {
         self.vreg_lrs_map.remove(&vreg);
     }
 
+    pub fn recompute_program_points_after(&mut self, from: ProgramPoint) {
+        for pp in self
+            .inst_to_pp
+            .iter_mut()
+            .map(|(_, pp)| pp)
+            .filter(|pp| pp.0 == from.0 && pp.1 >= from.1)
+        {
+            pp.1 = from.1 + (pp.1 - from.1) * STEP;
+        }
+        for seg in self
+            .reg_lrs_map
+            .iter_mut()
+            .map(|(_, lr)| lr.0.iter_mut())
+            .chain(self.vreg_lrs_map.iter_mut().map(|(_, lr)| lr.0.iter_mut()))
+            .flatten()
+        {
+            if seg.start.0 == from.0 && seg.start.1 >= from.1 {
+                seg.start.1 = from.1 + (seg.start.1 - from.1) * STEP;
+            }
+            if seg.end.0 == from.0 && seg.end.1 >= from.1 {
+                seg.end.1 = from.1 + (seg.end.1 - from.1) * STEP;
+            }
+        }
+    }
+
     ////////
 
     pub fn compute_program_points(&mut self, func: &Function<T>) {
