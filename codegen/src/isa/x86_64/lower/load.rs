@@ -49,6 +49,9 @@ pub fn lower_load(
         Value::Constant(ConstantValue::GlobalRef(name, _ty)) => {
             gbl = Some(name);
         }
+        Value::Argument(a) => {
+            vreg = ctx.arg_idx_to_vreg.get(&a.nth).copied();
+        }
         _ => return Err(LoweringError::Todo("Unsupported load pattern".into()).into()),
     }
 
