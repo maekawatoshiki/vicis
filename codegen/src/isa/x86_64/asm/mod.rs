@@ -187,6 +187,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVmr8
                 | Self::MOVmi8
                 | Self::MOVrr32
+                | Self::MOVrr8
                 | Self::MOVrr64
                 | Self::MOVri32
                 | Self::MOVri64

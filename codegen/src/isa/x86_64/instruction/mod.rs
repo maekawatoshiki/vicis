@@ -30,6 +30,7 @@ pub enum Opcode {
     // MULri32,
     IMULrr32,
     IMULrr64i32,
+    MOVrr8,
     MOVrr32,
     MOVrr64,
     MOVri32,
@@ -224,7 +225,10 @@ impl TargetInst for InstructionData {
     }
 
     fn is_copy(&self) -> bool {
-        matches!(self.opcode, Opcode::MOVrr32 | Opcode::MOVrr64)
+        matches!(
+            self.opcode,
+            Opcode::MOVrr8 | Opcode::MOVrr32 | Opcode::MOVrr64
+        )
     }
 
     fn is_call(&self) -> bool {
