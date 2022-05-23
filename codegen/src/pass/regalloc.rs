@@ -63,22 +63,45 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
 
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
+    // TODO: Refactoring.
+    // TODO: Implement a brand new regalloc.
+    let mut new_vregs = vec![];
     while let Some(vreg) = worklist.pop_front() {
         let mut availables =
             T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
+        let _ = availables.pop(); // reserved for spill.
 
         if let Some(preferred) = preferred.get(&vreg) {
             availables.splice(0..0, preferred.clone());
         }
 
+        let mut allocated = false;
         for reg in availables {
             let reg_unit = T::RegInfo::to_reg_unit(reg);
             if !liveness.interfere(reg_unit, vreg) {
                 assigned_regs.insert(vreg, reg);
                 liveness.assign(reg_unit, vreg);
+                allocated = true;
                 break;
             }
         }
+        if !allocated {
+            log::debug!("spill: {:?}", vreg);
+            spiller::Spiller::new(function, &mut liveness).spill(vreg, &mut new_vregs);
+        }
+    }
+
+    // Allocate spill register.
+    let mut worklist: VecDeque<VReg> = new_vregs.into_iter().collect();
+    while let Some(vreg) = worklist.pop_front() {
+        let reg = T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg))
+            .gpr_list()
+            .pop()
+            .unwrap();
+        let reg_unit = T::RegInfo::to_reg_unit(reg);
+        assert!(!liveness.interfere(reg_unit, vreg));
+        assigned_regs.insert(vreg, reg);
+        liveness.assign(reg_unit, vreg);
     }
 
     // Rewrite vreg for reg
