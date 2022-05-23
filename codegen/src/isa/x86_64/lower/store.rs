@@ -23,6 +23,7 @@ pub fn lower_store(
     _align: u32,
 ) -> Result<()> {
     let mut dst_slot = None;
+    let mut dst_vreg = None;
 
     let dst = args[1];
     match ctx.ir_data.value_ref(dst) {
@@ -32,6 +33,8 @@ pub fn lower_store(
                 dst_slot = Some(*slot_id);
             } else if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
                 return lower_store_gep(ctx, tys, args, _align, *id);
+            } else {
+                dst_vreg = Some(get_inst_output(ctx, tys[1], *id)?);
             }
         }
         _ => {
@@ -42,24 +45,22 @@ pub fn lower_store(
     }
 
     let mut konst = None;
-    let mut inst = None;
-    let mut arg = None;
+    let mut vreg = None;
 
     let src = args[0];
     let src_ty = tys[0];
     match ctx.ir_data.value_ref(src) {
         Value::Constant(c) => konst = Some(c),
-        Value::Instruction(id) => inst = Some(*id),
-        Value::Argument(a) => arg = ctx.arg_idx_to_vreg.get(&a.nth).copied(),
+        Value::Instruction(id) => vreg = Some(get_inst_output(ctx, tys[0], *id)?),
+        Value::Argument(a) => vreg = ctx.arg_idx_to_vreg.get(&a.nth).copied(),
         e => return Err(LoweringError::Todo(format!("Unsupported store source: {:?}", e)).into()),
     }
 
     let sz = ctx.isa.data_layout().get_size_of(ctx.types, src_ty);
     assert!(sz == 1 || sz == 4 || sz == 8);
 
-    match (dst_slot, inst, arg, konst) {
-        (Some(slot), Some(id), None, None) => {
-            let inst = get_inst_output(ctx, tys[0], id)?;
+    match (dst_vreg, dst_slot, vreg, konst) {
+        (None, Some(slot), Some(vreg), None) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: match sz {
@@ -76,14 +77,38 @@ pub fn lower_store(
                         MOperand::input(OperandData::None),
                         MOperand::input(OperandData::None),
                         MOperand::new(OperandData::None),
-                        MOperand::input(inst.into()),
+                        MOperand::input(vreg.into()),
                     ],
                 },
                 ctx.block_map[&ctx.cur_block],
             )]);
             Ok(())
         }
-        (Some(slot), None, None, Some(konst)) => {
+        (Some(dst), None, Some(vreg), None) => {
+            ctx.inst_seq.append(&mut vec![MachInstruction::new(
+                InstructionData {
+                    opcode: match sz {
+                        1 => Opcode::MOVmr8,
+                        4 => Opcode::MOVmr32,
+                        8 => Opcode::MOVmr64,
+                        _ => todo!(),
+                    },
+                    operands: vec![
+                        MOperand::new(OperandData::MemStart),
+                        MOperand::new(OperandData::None),
+                        MOperand::new(OperandData::None),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(dst.into()),
+                        MOperand::input(OperandData::None),
+                        MOperand::new(OperandData::None),
+                        MOperand::input(vreg.into()),
+                    ],
+                },
+                ctx.block_map[&ctx.cur_block],
+            )]);
+            Ok(())
+        }
+        (None, Some(slot), None, Some(konst)) => {
             ctx.inst_seq.append(&mut vec![MachInstruction::new(
                 InstructionData {
                     opcode: match sz {
@@ -106,30 +131,6 @@ pub fn lower_store(
                             ConstantValue::Null(_) => 0i64.into(),
                             _ => panic!(),
                         }),
-                    ],
-                },
-                ctx.block_map[&ctx.cur_block],
-            )]);
-            Ok(())
-        }
-        (Some(slot), None, Some(arg), None) => {
-            ctx.inst_seq.append(&mut vec![MachInstruction::new(
-                InstructionData {
-                    opcode: match sz {
-                        1 => Opcode::MOVmr8,
-                        4 => Opcode::MOVmr32,
-                        8 => Opcode::MOVmr64,
-                        _ => todo!(),
-                    },
-                    operands: vec![
-                        MOperand::new(OperandData::MemStart),
-                        MOperand::new(OperandData::None),
-                        MOperand::new(OperandData::Slot(slot)),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::input(OperandData::None),
-                        MOperand::new(OperandData::None),
-                        MOperand::input(arg.into()),
                     ],
                 },
                 ctx.block_map[&ctx.cur_block],
