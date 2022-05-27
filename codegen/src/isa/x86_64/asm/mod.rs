@@ -1,7 +1,7 @@
 use vicis_core::ir::{
-    module::{linkage::Linkage, name::Name},
+    module::{global_variable::GlobalVariable, linkage::Linkage, name::Name},
     types::Typed,
-    value::{ConstantInt, ConstantStruct, ConstantValue},
+    value::{ConstantArray, ConstantInt, ConstantStruct, ConstantValue},
 };
 
 use crate::{
@@ -81,30 +81,7 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
                 writeln!(f, "{}:", gv.name.as_string())?;
                 writeln!(f, "  .string \"{}\"", s)?;
             }
-            ConstantValue::AggregateZero(ty) => {
-                let size = module.isa.data_layout().get_size_of(&module.types, *ty);
-                let align = module.isa.data_layout().get_align_of(&module.types, *ty);
-                writeln!(f, "  .comm {},{},{}", gv.name.as_string(), size, align)?;
-            }
-            ConstantValue::Int(i) => {
-                if !gv.linkage.map_or(false, |l| l.is_internal()) {
-                    writeln!(f, "  .globl {}", gv.name.as_string())?;
-                }
-                let size = module.isa.data_layout().get_size_of(&module.types, i.ty());
-                writeln!(f, "{}:", gv.name.as_string())?;
-                writeln!(
-                    f,
-                    "  .{sz} {i}",
-                    sz = match i {
-                        ConstantInt::Int1(_) => "byte",
-                        ConstantInt::Int8(_) => "byte",
-                        ConstantInt::Int32(_) => "long",
-                        ConstantInt::Int64(_) => "quad",
-                    }
-                )?;
-                writeln!(f, "  .size {}, {}", gv.name.as_string(), size)?;
-            }
-            e => todo!("Unsupported initializer: {:?}", e),
+            _ => print_data_init(f, module, gv)?,
         }
     }
 
@@ -115,6 +92,96 @@ pub fn print(f: &mut fmt::Formatter<'_>, module: &Module<X86_64>) -> fmt::Result
     }
 
     Ok(())
+}
+
+fn print_data_init(
+    f: &mut fmt::Formatter<'_>,
+    module: &Module<X86_64>,
+    gvar: &GlobalVariable,
+) -> fmt::Result {
+    match gvar.init.as_ref().unwrap() {
+        ConstantValue::AggregateZero(ty) => {
+            let size = module.isa.data_layout().get_size_of(&module.types, *ty);
+            let align = module.isa.data_layout().get_align_of(&module.types, *ty);
+            writeln!(f, "  .comm {},{},{}", gvar.name.as_string(), size, align)
+        }
+        ConstantValue::Int(i) => {
+            if !gvar.linkage.map_or(false, |l| l.is_internal()) {
+                writeln!(f, "  .globl {}", gvar.name.as_string())?;
+            }
+            let size = module.isa.data_layout().get_size_of(&module.types, i.ty());
+            writeln!(f, "{}:", gvar.name.as_string())?;
+            writeln!(
+                f,
+                "  .{sz} {i}",
+                sz = match i {
+                    ConstantInt::Int1(_) => "byte",
+                    ConstantInt::Int8(_) => "byte",
+                    ConstantInt::Int32(_) => "long",
+                    ConstantInt::Int64(_) => "quad",
+                }
+            )?;
+            writeln!(f, "  .size {}, {}", gvar.name.as_string(), size)
+        }
+        ConstantValue::Struct(ConstantStruct {
+            elems,
+            is_packed: true,
+            ..
+        }) => {
+            writeln!(f, "L{}:", gvar.name.as_string())?;
+            for elem in elems {
+                print_data_init_sub(f, module, elem)?
+            }
+            Ok(())
+        }
+        e => todo!("Unsupported initializer: {:?}", e),
+    }
+}
+
+fn print_data_init_sub(
+    f: &mut fmt::Formatter<'_>,
+    module: &Module<X86_64>,
+    init: &ConstantValue,
+) -> fmt::Result {
+    match init {
+        ConstantValue::AggregateZero(ty) => {
+            let size = module.isa.data_layout().get_size_of(&module.types, *ty);
+            writeln!(f, "  .zero {}", size)
+        }
+        ConstantValue::Int(i) => {
+            writeln!(
+                f,
+                "  .{sz} {i}",
+                sz = match i {
+                    ConstantInt::Int1(_) => "byte",
+                    ConstantInt::Int8(_) => "byte",
+                    ConstantInt::Int32(_) => "long",
+                    ConstantInt::Int64(_) => "quad",
+                }
+            )
+        }
+        ConstantValue::Struct(ConstantStruct {
+            elems,
+            is_packed: true,
+            ..
+        }) => {
+            for elem in elems {
+                print_data_init_sub(f, module, elem)?
+            }
+            Ok(())
+        }
+        ConstantValue::Array(ConstantArray {
+            elems,
+            is_string: false,
+            ..
+        }) => {
+            for elem in elems {
+                print_data_init_sub(f, module, elem)?
+            }
+            Ok(())
+        }
+        e => todo!("Unsupported initializer: {:?}", e),
+    }
 }
 
 pub fn print_function(
