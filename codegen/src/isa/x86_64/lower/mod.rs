@@ -648,7 +648,7 @@ fn lower_call(
     log::debug!("call name: {}", name);
 
     if name == "llvm.memcpy.p0i8.p0i8.i64" {
-        return lower_call_intrinsic(ctx, id, tys, args, name);
+        return lower_call_intrinsic(ctx, tys, args, name);
     }
 
     let result_ty = if let Some(ty) = ctx.types.get(tys[0])
@@ -700,7 +700,6 @@ fn lower_call(
 
 fn lower_call_intrinsic(
     ctx: &mut LoweringContext<X86_64>,
-    id: InstructionId,
     tys: &[Type],
     args: &[ValueId],
     name: String,
