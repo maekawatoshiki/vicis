@@ -128,7 +128,7 @@ fn print_data_init(
             is_packed: true,
             ..
         }) => {
-            writeln!(f, "L{}:", gvar.name.as_string())?;
+            writeln!(f, "{}:", gvar.name.as_string())?;
             for elem in elems {
                 print_data_init_sub(f, module, elem)?
             }

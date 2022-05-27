@@ -647,6 +647,10 @@ fn lower_call(
     };
     log::debug!("call name: {}", name);
 
+    if name == "llvm.memcpy.p0i8.p0i8.i64" {
+        return lower_call_intrinsic(ctx, id, tys, args, name);
+    }
+
     let result_ty = if let Some(ty) = ctx.types.get(tys[0])
                     && let CompoundType::Function(FunctionType { ret, .. }) = &*ty {
         *ret
@@ -656,44 +660,7 @@ fn lower_call(
     let result_sz = ctx.isa.data_layout().get_size_of(ctx.types, result_ty);
     let output = new_empty_inst_output(ctx, result_ty, id);
 
-    // TODO: Refactoring.
-    let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
-    for (gpr_used, (&arg, &ty)) in args[1..].iter().zip(tys[1..].iter()).enumerate() {
-        let arg = get_operand_for_val(ctx, ty, arg)?;
-        let r = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
-        ctx.inst_seq.push(MachInstruction::new(
-            InstructionData {
-                opcode: match &arg {
-                    OperandData::Int64(_) => Opcode::MOVri64,
-                    OperandData::Int32(_) => Opcode::MOVri32,
-                    OperandData::Reg(_) => Opcode::MOVrr32, // TODO: FIXME
-                    OperandData::VReg(vreg) => {
-                        let ty = ctx.mach_data.vregs.type_for(*vreg);
-                        let sz = ctx.isa.data_layout().get_size_of(ctx.types, ty);
-                        match sz {
-                            1 => Opcode::MOVrr8,
-                            4 => Opcode::MOVrr32,
-                            8 => Opcode::MOVrr64,
-                            e => {
-                                return Err(LoweringError::Todo(format!(
-                                    "Unsupported argument size: {:?}",
-                                    e
-                                ))
-                                .into())
-                            }
-                        }
-                    }
-                    e => {
-                        return Err(
-                            LoweringError::Todo(format!("Unsupported argument: {:?}", e)).into(),
-                        )
-                    }
-                },
-                operands: vec![MO::output(r.into()), MO::input(arg)],
-            },
-            ctx.block_map[&ctx.cur_block],
-        ));
-    }
+    pass_args_to_regs(ctx, &tys[1..], &args[1..])?;
 
     let result_reg: Reg = match result_sz {
         1 => GR8::AL.into(),
@@ -723,6 +690,80 @@ fn lower_call(
             InstructionData {
                 opcode,
                 operands: vec![MO::output(output.into()), MO::input(result_reg.into())],
+            },
+            ctx.block_map[&ctx.cur_block],
+        ));
+    }
+
+    Ok(())
+}
+
+fn lower_call_intrinsic(
+    ctx: &mut LoweringContext<X86_64>,
+    id: InstructionId,
+    tys: &[Type],
+    args: &[ValueId],
+    name: String,
+) -> Result<()> {
+    if name != "llvm.memcpy.p0i8.p0i8.i64" {
+        return Err(LoweringError::Todo(format!("Unsupported intrinsic: {}", name)).into());
+    }
+
+    // let callee = args[0];
+    // let dst    = args[1];
+    // let src    = args[2];
+    // let len    = args[3];
+    // let is_volatile = args[4]; // TODO
+
+    pass_args_to_regs(ctx, &tys[1..4], &args[1..4])?;
+
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::CALL,
+            operands: vec![MO::new(OperandData::Label("memcpy".to_owned()))],
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
+
+    Ok(())
+}
+
+fn pass_args_to_regs(
+    ctx: &mut LoweringContext<X86_64>,
+    tys: &[Type],
+    args: &[ValueId],
+) -> Result<()> {
+    let gpru = RegInfo::arg_reg_list(&ctx.call_conv);
+
+    for (gpr_used, (&ty, &arg)) in tys.iter().zip(args.iter()).enumerate() {
+        let arg = get_operand_for_val(ctx, ty, arg)?;
+        let out = gpru[gpr_used].apply(&RegClass::for_type(ctx.types, ty));
+        let opcode = match &arg {
+            OperandData::Int64(_) => Opcode::MOVri64,
+            OperandData::Int32(_) => Opcode::MOVri32,
+            OperandData::Reg(_) => Opcode::MOVrr32, // TODO: FIXME
+            OperandData::VReg(vreg) => {
+                let ty = ctx.mach_data.vregs.type_for(*vreg);
+                let sz = ctx.isa.data_layout().get_size_of(ctx.types, ty);
+                match sz {
+                    1 => Opcode::MOVrr8,
+                    4 => Opcode::MOVrr32,
+                    8 => Opcode::MOVrr64,
+                    e => {
+                        return Err(LoweringError::Todo(format!(
+                            "Unsupported argument size: {:?}",
+                            e
+                        ))
+                        .into())
+                    }
+                }
+            }
+            e => return Err(LoweringError::Todo(format!("Unsupported argument: {:?}", e)).into()),
+        };
+        ctx.inst_seq.push(MachInstruction::new(
+            InstructionData {
+                opcode,
+                operands: vec![MO::output(out.into()), MO::input(arg)],
             },
             ctx.block_map[&ctx.cur_block],
         ));
