@@ -48,6 +48,7 @@ pub fn parse_param_attr<'a>(
         map(tag("nest"), |_| ParameterAttribute::Nest),
         map(tag("returned"), |_| ParameterAttribute::Returned),
         map(tag("nonnull"), |_| ParameterAttribute::NonNull),
+        map(tag("noundef"), |_| ParameterAttribute::NoUndef),
         // map(tag("dereferenceableornull"), |_| ParameterAttribute::SRet),
         map(
             tuple((
@@ -64,8 +65,8 @@ pub fn parse_param_attr<'a>(
         map(tag("swiftself"), |_| ParameterAttribute::SwiftSelf),
         map(tag("swifterror"), |_| ParameterAttribute::SwiftError),
         map(tag("writeonly"), |_| ParameterAttribute::WriteOnly),
-        map(tag("immarg"), |_| ParameterAttribute::ImmArg),
         alt((
+            map(tag("immarg"), |_| ParameterAttribute::ImmArg),
             map(
                 tuple((string_literal, spaces, char('='), spaces, string_literal)),
                 |(kind, _, _, _, value)| ParameterAttribute::StringAttribute { kind, value },
