@@ -375,7 +375,15 @@ fn mem_op(args: &[Operand]) -> String {
         ) => {
             format!("[{}+{}*{}]", reg_to_str(reg1), reg_to_str(reg2), mul)
         }
-
+        (
+            OperandData::Label(lbl),
+            OperandData::None,
+            OperandData::Reg(reg1),
+            OperandData::None,
+            OperandData::None,
+        ) => {
+            format!("[{} + {lbl}]", reg_to_str(reg1))
+        }
         e => todo!("{:?}", e),
     }
 }

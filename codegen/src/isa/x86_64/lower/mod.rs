@@ -851,19 +851,28 @@ fn get_operand_for_const(
             tys: _,
             ref args,
         }) => {
-            // TODO: Just refactor this.
+            // TODO: Refactoring.
             assert!(ty.is_pointer(ctx.types));
             assert!(matches!(args[0], ConstantValue::GlobalRef(_, _)));
             let all_indices_0 = args[1..]
                 .iter()
                 .all(|arg| matches!(arg, ConstantValue::Int(i) if i.is_zero()));
             assert!(all_indices_0);
-            let src = OperandData::GlobalAddress(args[0].as_global_ref().as_string().clone());
+            let src = OperandData::Label(args[0].as_global_ref().as_string().clone());
             let dst = ctx.mach_data.vregs.add_vreg_data(ty);
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVri64,
-                    operands: vec![MO::output(dst.into()), MO::new(src)],
+                    opcode: Opcode::LEArm64,
+                    operands: vec![
+                        MO::output(dst.into()),
+                        MO::new(OperandData::MemStart),
+                        MO::new(src),
+                        MO::new(OperandData::None),
+                        MO::new(OperandData::None),
+                        MO::input(OperandData::Reg(GR64::RIP.into())),
+                        MO::input(OperandData::None),
+                        MO::new(OperandData::None),
+                    ],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));
@@ -880,11 +889,20 @@ fn get_operand_for_const(
         ConstantValue::GlobalRef(ref name, ty) => {
             assert!(ty.is_pointer(ctx.types));
             let addr = ctx.mach_data.vregs.add_vreg_data(*ty);
-            let src = OperandData::GlobalAddress(name.to_string().unwrap().to_owned());
+            let src = OperandData::Label(name.to_string().unwrap().to_owned());
             ctx.inst_seq.push(MachInstruction::new(
                 InstructionData {
-                    opcode: Opcode::MOVri64,
-                    operands: vec![MO::output(addr.into()), MO::new(src)],
+                    opcode: Opcode::LEArm64,
+                    operands: vec![
+                        MO::output(addr.into()),
+                        MO::new(OperandData::MemStart),
+                        MO::new(src),
+                        MO::new(OperandData::None),
+                        MO::new(OperandData::None),
+                        MO::input(OperandData::Reg(GR64::RIP.into())),
+                        MO::input(OperandData::None),
+                        MO::new(OperandData::None),
+                    ],
                 },
                 ctx.block_map[&ctx.cur_block],
             ));

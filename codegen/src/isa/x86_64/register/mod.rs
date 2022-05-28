@@ -25,6 +25,7 @@ pub enum GR8 {
     R13B,
     R14B,
     R15B,
+    IP,
 }
 
 pub enum GR32 {
@@ -44,6 +45,7 @@ pub enum GR32 {
     R13D,
     R14D,
     R15D,
+    EIP,
 }
 
 pub enum GR64 {
@@ -63,6 +65,7 @@ pub enum GR64 {
     R13,
     R14,
     R15,
+    RIP,
 }
 
 pub enum RegClass {
@@ -204,6 +207,7 @@ impl fmt::Debug for GR64 {
                 Self::R13 => "r13",
                 Self::R14 => "r14",
                 Self::R15 => "r15",
+                Self::RIP => "rip",
             }
         )
     }
@@ -237,6 +241,7 @@ impl fmt::Debug for GR32 {
                 Self::R13D => "r13d",
                 Self::R14D => "r14d",
                 Self::R15D => "r15d",
+                Self::EIP => "eip",
             }
         )
     }
@@ -251,15 +256,15 @@ impl fmt::Display for GR32 {
 pub fn reg_to_str(r: &Reg) -> &'static str {
     let gr8 = [
         "al", "cl", "dl", "ah", "ch", "dh", "bl", "bh", "sil", "dil", "bpl", "spl", "r8b", "r9b",
-        "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
+        "r10b", "r11b", "r12b", "r13b", "r14b", "r15b", "ip",
     ];
     let gr32 = [
         "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8", "r9d", "r10d", "r11d",
-        "r12d", "r13d", "r14d", "r15d",
+        "r12d", "r13d", "r14d", "r15d", "eip",
     ];
     let gr64 = [
         "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12",
-        "r13", "r14", "r15",
+        "r13", "r14", "r15", "rip",
     ];
     match r {
         Reg(0, i) => gr8[*i as usize],
