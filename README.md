@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/maekawatoshiki/vicis/workflows/Rust/badge.svg)](https://github.com/maekawatoshiki/vicis/actions/workflows/rust.yml)
 [![codecov](https://codecov.io/gh/maekawatoshiki/vicis/branch/master/graph/badge.svg)](https://codecov.io/gh/maekawatoshiki/vicis)
+[![discussions](https://img.shields.io/static/v1?logo=github&style=flat&color=blueviolet&message=Discussions&label=GitHub)](https://github.com/maekawatoshiki/vicis/discussions)
 [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Manipulate LLVM IR in pure Rust (without LLVM).
