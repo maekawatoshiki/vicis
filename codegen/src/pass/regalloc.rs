@@ -63,12 +63,16 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     // TODO: Refactoring.
-    // TODO: Implement a brand new regalloc.
     let mut new_vregs = vec![];
     while let Some(vreg) = worklist.pop_front() {
         let mut availables =
             T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
-        let _ = availables.pop(); // reserved for spill.
+        let _ = availables.pop(); // TODO: Reserved for spill. Spilling may require more than one reserved registers.
+        availables.append(
+            &mut T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg))
+                .csr_list(),
+        );
+        let _ = availables.pop(); // TODO: Don't used RBP.
 
         if let Some(preferred) = preferred.get(&vreg) {
             availables.splice(0..0, preferred.clone());
@@ -104,18 +108,32 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     }
 
     // Rewrite vreg for reg
+    let mut used_regs = FxHashSet::default();
     for block_id in function.layout.block_iter() {
         for inst_id in function.layout.inst_iter(block_id) {
             let inst = function.data.inst_ref_mut(inst_id);
             // println!("{:?}", inst.data);
             for vreg in inst.data.all_vregs() {
-                if let Some(reg) = assigned_regs.get(&vreg) {
+                if let Some(reg) = assigned_regs.get(&vreg).copied() {
+                    used_regs.insert(reg);
                     // println!("{:?} => {:?}", vreg, reg);
-                    inst.data.rewrite(vreg, *reg);
+                    inst.data.rewrite(vreg, reg);
                 }
             }
         }
     }
+
+    function.data.used_csr = used_regs
+        .into_iter()
+        .filter_map(|r| {
+            let r = T::RegInfo::to_reg_unit(r);
+            if r.is_csr::<T::RegInfo>() {
+                Some(r)
+            } else {
+                None
+            }
+        })
+        .collect();
 }
 
 pub fn collect_vregs_alive_around_call<T: TargetIsa>(

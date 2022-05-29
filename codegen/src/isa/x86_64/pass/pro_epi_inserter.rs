@@ -2,7 +2,7 @@ use crate::{
     function::{instruction::Instruction, Function},
     isa::x86_64::{
         instruction::{InstructionData, Opcode, Operand},
-        register::GR64,
+        register::{RegClass, GR64},
         X86_64,
     },
     module::Module,
@@ -22,7 +22,16 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     }
 
     let slot_size = function.slots.ensure_computed_offsets();
-    let num_saved_64bit_regs = 1; // rbp TODO
+
+    let mut used_csr = function
+        .data
+        .used_csr
+        .clone()
+        .into_iter()
+        .map(|r| r.apply(&RegClass::GR64))
+        .collect::<Vec<_>>();
+    used_csr.sort();
+    let num_saved_64bit_regs = 1/*8=rbp*/ + used_csr.len() as u32;
 
     let adj = roundup(
         (slot_size + num_saved_64bit_regs * 8 + 8/*=call*/) as i32,
@@ -54,6 +63,17 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         },
         entry,
     ));
+    function.layout.insert_inst_at_start(mov, entry);
+    for r in &used_csr {
+        let push64 = function.data.create_inst(Instruction::new(
+            InstructionData {
+                opcode: Opcode::PUSH64,
+                operands: vec![Operand::input(r.into())],
+            },
+            entry,
+        ));
+        function.layout.insert_inst_at_start(push64, entry);
+    }
     let push64 = function.data.create_inst(Instruction::new(
         InstructionData {
             opcode: Opcode::PUSH64,
@@ -61,7 +81,6 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         },
         entry,
     ));
-    function.layout.insert_inst_at_start(mov, entry);
     function.layout.insert_inst_at_start(push64, entry);
 
     // insert epilogue
@@ -88,6 +107,16 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
                 block,
             ));
             function.layout.insert_inst_before(ret_id, add, block);
+        }
+        for r in &used_csr {
+            let pop64 = function.data.create_inst(Instruction::new(
+                InstructionData {
+                    opcode: Opcode::POP64,
+                    operands: vec![Operand::input(r.into())],
+                },
+                entry,
+            ));
+            function.layout.insert_inst_before(ret_id, pop64, block);
         }
         let pop64 = function.data.create_inst(Instruction::new(
             InstructionData {

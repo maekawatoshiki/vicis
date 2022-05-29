@@ -37,4 +37,8 @@ impl RegisterInfo for RegInfo {
     fn to_reg_unit(_r: Reg) -> RegUnit {
         todo!()
     }
+
+    fn is_csr(_: RegUnit) -> bool {
+        todo!()
+    }
 }

@@ -5,13 +5,13 @@ use crate::{
 use rustc_hash::FxHashMap;
 use vicis_core::ir::types::{Type, Types};
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, Ord, PartialOrd)]
 pub struct Reg(pub u16, pub u16);
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, Ord, PartialOrd)]
 pub struct RegUnit(pub u16, pub u16); // Same as top-level register
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct VReg(pub u32);
 
 #[derive(Default)]
@@ -40,6 +40,7 @@ pub struct VRegUser<Data: TargetInst> {
 pub trait RegisterInfo {
     fn arg_reg_list(cc: &CallConvKind) -> &'static [RegUnit];
     fn to_reg_unit(reg: Reg) -> RegUnit;
+    fn is_csr(r: RegUnit) -> bool;
 }
 
 pub trait RegisterClass {
@@ -52,6 +53,10 @@ pub trait RegisterClass {
 impl RegUnit {
     pub fn apply<RC: RegisterClass>(self, rc: &RC) -> Reg {
         rc.apply_for(self)
+    }
+
+    pub fn is_csr<RI: RegisterInfo>(self) -> bool {
+        RI::is_csr(self)
     }
 }
 

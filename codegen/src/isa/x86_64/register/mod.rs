@@ -119,6 +119,15 @@ const ARG_REGS: [RegUnit; 6] = [
     RegUnit(RegClass::GR64 as u16, GR64::R9 as u16),
 ];
 
+const CSR: [RegUnit; 6] = [
+    RegUnit(RegClass::GR64 as u16, GR64::RBX as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R12 as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R13 as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R14 as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::R15 as u16),
+    RegUnit(RegClass::GR64 as u16, GR64::RBP as u16),
+];
+
 impl RegisterInfo for RegInfo {
     fn arg_reg_list(cc: &CallConvKind) -> &'static [RegUnit] {
         match cc {
@@ -134,6 +143,10 @@ impl RegisterInfo for RegInfo {
             Reg(/*GR64*/ 2, x) => RegUnit(RegClass::GR64 as u16, x),
             _ => panic!(),
         }
+    }
+
+    fn is_csr(r: RegUnit) -> bool {
+        CSR.contains(&r)
     }
 }
 

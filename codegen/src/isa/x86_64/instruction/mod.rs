@@ -397,6 +397,18 @@ impl From<Reg> for OperandData {
     }
 }
 
+impl From<&VReg> for OperandData {
+    fn from(r: &VReg) -> Self {
+        OperandData::VReg(*r)
+    }
+}
+
+impl From<&Reg> for OperandData {
+    fn from(r: &Reg) -> Self {
+        OperandData::Reg(*r)
+    }
+}
+
 impl From<i8> for OperandData {
     fn from(i: i8) -> Self {
         OperandData::Int8(i)

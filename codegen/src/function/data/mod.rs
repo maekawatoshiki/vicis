@@ -3,10 +3,10 @@ use crate::{
         basic_block::{BasicBlock, BasicBlockId},
         instruction::{Instruction, InstructionId, TargetInst},
     },
-    register::{VRegUsers, VRegs},
+    register::{RegUnit, VRegUsers, VRegs},
 };
 use id_arena::Arena;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub struct Data<Inst: TargetInst> {
     // pub values: Arena<Value>,
@@ -14,6 +14,7 @@ pub struct Data<Inst: TargetInst> {
     pub basic_blocks: Arena<BasicBlock>,
     pub vregs: VRegs,
     pub vreg_users: VRegUsers<Inst>,
+    pub used_csr: HashSet<RegUnit>,
 }
 
 impl<Inst: TargetInst> Default for Data<Inst> {
@@ -24,6 +25,7 @@ impl<Inst: TargetInst> Default for Data<Inst> {
             basic_blocks: Arena::new(),
             vregs: VRegs::new(),
             vreg_users: VRegUsers::new(),
+            used_csr: HashSet::default(),
         }
     }
 }
@@ -40,7 +42,7 @@ impl<Inst: TargetInst> Data<Inst> {
     pub fn create_inst(&mut self, mut inst: Instruction<Inst>) -> InstructionId<Inst> {
         // TODO: FIXME: Refine code
         struct ReadWrite(bool, bool);
-        let mut m = FxHashMap::default();
+        let mut m = HashMap::default();
         for v in inst.data.input_vregs() {
             m.entry(v).or_insert(ReadWrite(false, false)).0 = true;
         }
