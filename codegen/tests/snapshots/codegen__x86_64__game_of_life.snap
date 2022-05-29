@@ -1,0 +1,535 @@
+---
+source: codegen/tests/codegen.rs
+assertion_line: 45
+expression: mach_module.display_asm()
+---
+  .text
+  .intel_syntax noprefix
+  .text
+  .globl main
+main:
+.LBL0_0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 3360
+  mov dword ptr [rbp-4], 0
+  lea rdi, [rbp-3280]
+  lea rsi, [rip + __const.main.grid]
+  mov rdx, 1600
+  call memcpy
+  mov dword ptr [rbp-3292], 0
+  jmp .LBL0_1
+.LBL0_1:
+  mov eax, dword ptr [rbp-3292]
+  cmp eax, 50
+  jl .LBL0_2
+  jmp .LBL0_31
+.LBL0_2:
+  lea rdi, [rip + .str]
+  call printf
+  mov dword ptr [rbp-3284], 0
+  jmp .LBL0_3
+.LBL0_3:
+  mov eax, dword ptr [rbp-3284]
+  cmp eax, 20
+  jl .LBL0_4
+  jmp .LBL0_13
+.LBL0_4:
+  lea rdi, [rip + .str.1]
+  call printf
+  mov dword ptr [rbp-3288], 0
+  jmp .LBL0_5
+.LBL0_5:
+  mov eax, dword ptr [rbp-3288]
+  cmp eax, 20
+  jl .LBL0_6
+  jmp .LBL0_11
+.LBL0_6:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-3280]
+  imul rax, rax, 80
+  add rdx, rax
+  mov eax, dword ptr [rdx+0+rcx*4]
+  cmp eax, 1
+  je .LBL0_7
+  jmp .LBL0_8
+.LBL0_7:
+  lea rdi, [rip + .str.2]
+  call printf
+  jmp .LBL0_9
+.LBL0_8:
+  lea rdi, [rip + .str.3]
+  call printf
+  jmp .LBL0_9
+.LBL0_9:
+  mov esi, dword ptr [rbp-3284]
+  mov edx, dword ptr [rbp-3288]
+  lea rdi, [rbp-3280]
+  mov ecx, 20
+  call count_nbr
+  movsxd rcx, dword ptr [rbp-3284]
+  movsxd rdx, dword ptr [rbp-3288]
+  lea rdi, [rbp-1616]
+  imul rcx, rcx, 80
+  add rdi, rcx
+  mov dword ptr [rdi+0+rdx*4], eax
+  jmp .LBL0_10
+.LBL0_10:
+  mov eax, dword ptr [rbp-3288]
+  add eax, 1
+  mov dword ptr [rbp-3288], eax
+  jmp .LBL0_5
+.LBL0_11:
+  jmp .LBL0_12
+.LBL0_12:
+  mov eax, dword ptr [rbp-3284]
+  add eax, 1
+  mov dword ptr [rbp-3284], eax
+  jmp .LBL0_3
+.LBL0_13:
+  mov dword ptr [rbp-3284], 0
+  jmp .LBL0_14
+.LBL0_14:
+  mov eax, dword ptr [rbp-3284]
+  cmp eax, 20
+  jl .LBL0_15
+  jmp .LBL0_29
+.LBL0_15:
+  mov dword ptr [rbp-3288], 0
+  jmp .LBL0_16
+.LBL0_16:
+  mov eax, dword ptr [rbp-3288]
+  cmp eax, 20
+  jl .LBL0_17
+  jmp .LBL0_27
+.LBL0_17:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-3280]
+  imul rax, rax, 80
+  add rdx, rax
+  mov eax, dword ptr [rdx+0+rcx*4]
+  cmp eax, 1
+  jge .LBL0_18
+  jmp .LBL0_22
+.LBL0_18:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-1616]
+  imul rax, rax, 80
+  add rdx, rax
+  mov eax, dword ptr [rdx+0+rcx*4]
+  cmp eax, 1
+  jle .LBL0_20
+  jmp .LBL0_19
+.LBL0_19:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-1616]
+  imul rax, rax, 80
+  add rdx, rax
+  mov eax, dword ptr [rdx+0+rcx*4]
+  cmp eax, 4
+  jge .LBL0_20
+  jmp .LBL0_21
+.LBL0_20:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-3280]
+  imul rax, rax, 80
+  add rdx, rax
+  mov dword ptr [rdx+0+rcx*4], 0
+  jmp .LBL0_21
+.LBL0_21:
+  jmp .LBL0_25
+.LBL0_22:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-1616]
+  imul rax, rax, 80
+  add rdx, rax
+  mov eax, dword ptr [rdx+0+rcx*4]
+  cmp eax, 3
+  je .LBL0_23
+  jmp .LBL0_24
+.LBL0_23:
+  movsxd rax, dword ptr [rbp-3284]
+  movsxd rcx, dword ptr [rbp-3288]
+  lea rdx, [rbp-3280]
+  imul rax, rax, 80
+  add rdx, rax
+  mov dword ptr [rdx+0+rcx*4], 1
+  jmp .LBL0_24
+.LBL0_24:
+  jmp .LBL0_25
+.LBL0_25:
+  jmp .LBL0_26
+.LBL0_26:
+  mov eax, dword ptr [rbp-3288]
+  add eax, 1
+  mov dword ptr [rbp-3288], eax
+  jmp .LBL0_16
+.LBL0_27:
+  jmp .LBL0_28
+.LBL0_28:
+  mov eax, dword ptr [rbp-3284]
+  add eax, 1
+  mov dword ptr [rbp-3284], eax
+  jmp .LBL0_14
+.LBL0_29:
+  mov edi, 100000
+  call usleep
+  jmp .LBL0_30
+.LBL0_30:
+  mov eax, dword ptr [rbp-3292]
+  add eax, 1
+  mov dword ptr [rbp-3292], eax
+  jmp .LBL0_1
+.LBL0_31:
+  mov eax, 0
+  add rsp, 3360
+  pop rbp
+  ret 
+  .text
+  .globl count_nbr
+count_nbr:
+.LBL3_0:
+  push rbp
+  mov rbp, rsp
+  sub rsp, 32
+  mov rax, rdi
+  mov edi, esi
+  mov qword ptr [rbp-8], rax
+  mov dword ptr [rbp-12], edi
+  mov dword ptr [rbp-16], edx
+  mov dword ptr [rbp-20], ecx
+  mov dword ptr [rbp-24], 0
+  mov eax, dword ptr [rbp-12]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_1
+  jmp .LBL3_5
+.LBL3_1:
+  mov eax, dword ptr [rbp-16]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_2
+  jmp .LBL3_5
+.LBL3_2:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  sub ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  sub ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_3
+  jmp .LBL3_4
+.LBL3_3:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_4
+.LBL3_4:
+  jmp .LBL3_5
+.LBL3_5:
+  mov eax, dword ptr [rbp-12]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_6
+  jmp .LBL3_9
+.LBL3_6:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  movsxd rdx, dword ptr [rbp-16]
+  sub ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov eax, dword ptr [rax+0+rdx*4]
+  cmp eax, 1
+  jge .LBL3_7
+  jmp .LBL3_8
+.LBL3_7:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_8
+.LBL3_8:
+  jmp .LBL3_9
+.LBL3_9:
+  mov eax, dword ptr [rbp-12]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_10
+  jmp .LBL3_14
+.LBL3_10:
+  mov eax, dword ptr [rbp-16]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_11
+  jmp .LBL3_14
+.LBL3_11:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  sub ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  add ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_12
+  jmp .LBL3_13
+.LBL3_12:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_13
+.LBL3_13:
+  jmp .LBL3_14
+.LBL3_14:
+  mov eax, dword ptr [rbp-16]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_15
+  jmp .LBL3_18
+.LBL3_15:
+  mov rax, qword ptr [rbp-8]
+  movsxd rcx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  sub ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_16
+  jmp .LBL3_17
+.LBL3_16:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_17
+.LBL3_17:
+  jmp .LBL3_18
+.LBL3_18:
+  mov eax, dword ptr [rbp-16]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_19
+  jmp .LBL3_22
+.LBL3_19:
+  mov rax, qword ptr [rbp-8]
+  movsxd rcx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  add ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_20
+  jmp .LBL3_21
+.LBL3_20:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_21
+.LBL3_21:
+  jmp .LBL3_22
+.LBL3_22:
+  mov eax, dword ptr [rbp-12]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_23
+  jmp .LBL3_27
+.LBL3_23:
+  mov eax, dword ptr [rbp-16]
+  sub eax, 1
+  cmp eax, 0
+  jge .LBL3_24
+  jmp .LBL3_27
+.LBL3_24:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  add ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  sub ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_25
+  jmp .LBL3_26
+.LBL3_25:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_26
+.LBL3_26:
+  jmp .LBL3_27
+.LBL3_27:
+  mov eax, dword ptr [rbp-12]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_28
+  jmp .LBL3_31
+.LBL3_28:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  movsxd rdx, dword ptr [rbp-16]
+  add ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov eax, dword ptr [rax+0+rdx*4]
+  cmp eax, 1
+  jge .LBL3_29
+  jmp .LBL3_30
+.LBL3_29:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_30
+.LBL3_30:
+  jmp .LBL3_31
+.LBL3_31:
+  mov eax, dword ptr [rbp-12]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_32
+  jmp .LBL3_36
+.LBL3_32:
+  mov eax, dword ptr [rbp-16]
+  mov ecx, dword ptr [rbp-20]
+  add eax, 1
+  cmp eax, ecx
+  jl .LBL3_33
+  jmp .LBL3_36
+.LBL3_33:
+  mov rax, qword ptr [rbp-8]
+  mov ecx, dword ptr [rbp-12]
+  mov edx, dword ptr [rbp-16]
+  add ecx, 1
+  movsxd rcx, ecx
+  lea rax, [rax]
+  imul rcx, rcx, 80
+  add rax, rcx
+  mov ecx, edx
+  add ecx, 1
+  movsxd rcx, ecx
+  mov eax, dword ptr [rax+0+rcx*4]
+  cmp eax, 1
+  jge .LBL3_34
+  jmp .LBL3_35
+.LBL3_34:
+  mov eax, dword ptr [rbp-24]
+  add eax, 1
+  mov dword ptr [rbp-24], eax
+  jmp .LBL3_35
+.LBL3_35:
+  jmp .LBL3_36
+.LBL3_36:
+  mov eax, dword ptr [rbp-24]
+  add rsp, 32
+  pop rbp
+  ret 
+__const.main.grid:
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .zero 80
+  .long 0
+  .long 0
+  .long 1
+  .long 1
+  .long 1
+  .long 1
+  .zero 56
+  .long 0
+  .long 1
+  .long 0
+  .long 0
+  .long 0
+  .long 1
+  .zero 56
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .long 0
+  .long 1
+  .zero 56
+  .long 0
+  .long 1
+  .long 0
+  .long 0
+  .long 1
+  .zero 60
+  .zero 80
+  .zero 80
+.str.1:
+  .string "\n"
+.str:
+  .string "\x1b[0;0H"
+.str.2:
+  .string "\x1b[42m  \x1b[m"
+.str.3:
+  .string "\x1b[47m  \x1b[m"
+
