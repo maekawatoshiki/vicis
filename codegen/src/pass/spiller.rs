@@ -30,7 +30,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
         self.insert_spill(vreg, slot, new_vregs);
         self.insert_reload(vreg, slot, new_vregs);
 
-        // create live ranges for new virtual registers
+        // Create live ranges for new virtual registers.
         for &mut new_vreg in new_vregs {
             self.liveness.compute_live_ranges(self.function, new_vreg)
         }
@@ -39,56 +39,46 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
     }
 
     fn insert_spill(&mut self, vreg: VReg, slot: SlotId, new_vregs: &mut Vec<VReg>) {
-        let mut defs = vec![];
-        for user in self.function.data.vreg_users.get(vreg) {
-            if user.write {
-                defs.push(user.inst_id)
-            }
-        }
+        let mut defs = self
+            .function
+            .data
+            .vreg_users
+            .get(vreg)
+            .into_iter()
+            .filter_map(|user| if user.write { Some(user.inst_id) } else { None })
+            .collect::<Vec<_>>();
+        // e.g. If 'MOV' and 'ADD' below are contained in `defs`,
+        //      remove 'MOV' from `defs` to avoid an unnecessary spill.
+        // 1: MOV a, b
+        // 2: ADD a, c
+        defs.sort_by(|a, b| {
+            let inst2pp = &self.liveness.inst_to_pp;
+            inst2pp[b].cmp(&inst2pp[a])
+        });
+        defs.dedup_by(|a, b| {
+            self.function
+                .layout
+                .prev_inst_of(*a)
+                .map_or(false, |a| a == *b)
+        });
 
         if defs.is_empty() {
             return;
         }
 
-        let new_vreg = self.function.data.vregs.create_from(vreg);
-        new_vregs.push(new_vreg);
-
-        // Most cases
-        if defs.len() == 1 {
-            let def_id = *defs.get(0).unwrap();
+        for &def_id in &defs {
+            let new_vreg = self.function.data.vregs.create_from(vreg);
+            new_vregs.push(new_vreg);
             let def_block;
             {
-                let inst = &mut self.function.data.instructions[def_id];
-                def_block = inst.parent;
-                inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
+                let def_inst = &mut self.function.data.instructions[def_id];
+                def_inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
+                def_block = def_inst.parent;
             }
             let inst = T::Inst::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
             let inst = self.function.data.create_inst(inst);
             self.insert_inst_after(def_id, inst, def_block);
-            return;
         }
-
-        // Two addr instruction
-        if defs.len() == 2 {
-            let mut def_id = None;
-            let mut def_block = None;
-            for &id in &defs {
-                let inst = &mut self.function.data.instructions[id];
-                if !inst.data.is_copy() {
-                    def_id = Some(id);
-                    def_block = Some(inst.parent);
-                }
-                inst.replace_vreg(&mut self.function.data.vreg_users, vreg, new_vreg);
-            }
-            let def_id = def_id.unwrap();
-            let def_block = def_block.unwrap();
-            let inst = T::Inst::store_vreg_to_slot(self.function, new_vreg, slot, def_block);
-            let inst = self.function.data.create_inst(inst);
-            self.insert_inst_after(def_id, inst, def_block);
-            return;
-        }
-
-        panic!("invalid defs len: {}", defs.len())
     }
 
     fn insert_reload(&mut self, vreg: VReg, slot: SlotId, new_vregs: &mut Vec<VReg>) {
@@ -103,10 +93,9 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
             return;
         }
 
-        let new_vreg = self.function.data.vregs.create_from(vreg);
-        new_vregs.push(new_vreg);
-
         for use_id in uses {
+            let new_vreg = self.function.data.vregs.create_from(vreg);
+            new_vregs.push(new_vreg);
             let use_block;
             {
                 let inst = &mut self.function.data.instructions[use_id];
@@ -132,7 +121,8 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
             self.liveness.inst_to_pp.insert(inst, inst_pp);
             self.function.layout.insert_inst_after(after, inst, block);
         } else {
-            self.liveness.recompute_program_points_after(after_pp);
+            self.liveness
+                .recompute_program_points_after(after_pp, false);
             self.insert_inst_after(after, inst, block);
         }
     }
@@ -144,13 +134,19 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
         block: BasicBlockId,
     ) {
         let before_pp = self.liveness.inst_to_pp[&before];
-        let prev_before = self.function.layout.prev_inst_of(before).unwrap();
-        let prev_before_pp = self.liveness.inst_to_pp[&prev_before];
+        let prev_before_pp = if let Some(prev_before) = self.function.layout.prev_inst_of(before) {
+            self.liveness.inst_to_pp[&prev_before]
+        } else {
+            self.liveness
+                .recompute_program_points_after(before_pp, true);
+            ProgramPoint(before_pp.0, 0)
+        };
         if let Some(inst_pp) = ProgramPoint::between(prev_before_pp, before_pp) {
             self.liveness.inst_to_pp.insert(inst, inst_pp);
             self.function.layout.insert_inst_before(before, inst, block);
         } else {
-            self.liveness.recompute_program_points_after(before_pp);
+            self.liveness
+                .recompute_program_points_after(before_pp, false);
             self.insert_inst_before(before, inst, block)
         }
     }

@@ -208,14 +208,15 @@ impl<T: TargetIsa> Liveness<T> {
 
     /// Recomputes the instruction indices for each program point that belongs to
     /// the same basic block of `from`.
-    pub fn recompute_program_points_after(&mut self, from: ProgramPoint) {
+    pub fn recompute_program_points_after(&mut self, from: ProgramPoint, add_one_more_step: bool) {
+        let base = from.1 + add_one_more_step as u32 * STEP;
         for pp in self
             .inst_to_pp
             .iter_mut()
             .map(|(_, pp)| pp)
             .filter(|pp| pp.0 == from.0 && pp.1 >= from.1)
         {
-            pp.1 = from.1 + (pp.1 - from.1) * STEP;
+            pp.1 = base + (pp.1 - from.1) * STEP;
         }
         for seg in self
             .reg_lrs_map
@@ -225,10 +226,10 @@ impl<T: TargetIsa> Liveness<T> {
             .flatten()
         {
             if seg.start.0 == from.0 && seg.start.1 >= from.1 {
-                seg.start.1 = from.1 + (seg.start.1 - from.1) * STEP;
+                seg.start.1 = base + (seg.start.1 - from.1) * STEP;
             }
             if seg.end.0 == from.0 && seg.end.1 >= from.1 {
-                seg.end.1 = from.1 + (seg.end.1 - from.1) * STEP;
+                seg.end.1 = base + (seg.end.1 - from.1) * STEP;
             }
         }
     }
