@@ -150,7 +150,6 @@ impl RegisterClass for RegClass {
 
     fn gpr_list(&self) -> Vec<Reg> {
         match self {
-            // TODO: Add more general-purpose registers
             RegClass::GR8 => vec![GR8::AL, GR8::CL, GR8::DL, GR8::DIL, GR8::SIL]
                 .into_iter()
                 .map(Into::into)
@@ -159,11 +158,48 @@ impl RegisterClass for RegClass {
                 .into_iter()
                 .map(|r| r.into())
                 .collect(),
-            // TODO: Add more general-purpose registers
             RegClass::GR64 => vec![GR64::RAX, GR64::RCX, GR64::RDX, GR64::RDI, GR64::RSI]
                 .into_iter()
                 .map(|r| r.into())
                 .collect(),
+        }
+    }
+
+    fn csr_list(&self) -> Vec<Reg> {
+        match self {
+            RegClass::GR8 => vec![
+                GR8::BL,
+                GR8::R12B,
+                GR8::R13B,
+                GR8::R14B,
+                GR8::R15B,
+                GR8::BPL,
+            ]
+            .into_iter()
+            .map(Into::into)
+            .collect(),
+            RegClass::GR32 => vec![
+                GR32::EBX,
+                GR32::R12D,
+                GR32::R13D,
+                GR32::R14D,
+                GR32::R15D,
+                GR32::EBP,
+            ]
+            .into_iter()
+            .map(|r| r.into())
+            .collect(),
+            RegClass::GR64 => vec![
+                GR64::RBX,
+                GR64::R12,
+                GR64::R13,
+                GR64::R14,
+                GR64::R15,
+                GR64::RBP,
+            ]
+            .into_iter()
+            .map(|r| r.into())
+            .collect(),
         }
     }
 

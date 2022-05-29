@@ -20,6 +20,10 @@ impl RegisterClass for RegClass {
         todo!()
     }
 
+    fn csr_list(&self) -> Vec<Reg> {
+        todo!()
+    }
+
     fn apply_for(&self, _ru: RegUnit) -> Reg {
         todo!()
     }

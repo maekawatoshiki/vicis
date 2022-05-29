@@ -45,6 +45,7 @@ pub trait RegisterInfo {
 pub trait RegisterClass {
     fn for_type(types: &Types, id: Type) -> Self;
     fn gpr_list(&self) -> Vec<Reg>;
+    fn csr_list(&self) -> Vec<Reg>;
     fn apply_for(&self, ru: RegUnit) -> Reg;
 }
 
