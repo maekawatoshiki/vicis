@@ -259,7 +259,7 @@ pub fn reg_to_str(r: &Reg) -> &'static str {
         "r10b", "r11b", "r12b", "r13b", "r14b", "r15b", "ip",
     ];
     let gr32 = [
-        "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8", "r9d", "r10d", "r11d",
+        "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d",
         "r12d", "r13d", "r14d", "r15d", "eip",
     ];
     let gr64 = [
