@@ -272,11 +272,7 @@ fn lower_sext(
 
             get_inst_output(ctx, from, id)?
         }
-        _ => {
-            return Err(
-                LoweringError::Todo("Sext argument must be an instruction result".into()).into(),
-            )
-        }
+        _ => get_vreg_for_val(ctx, from, arg)?,
     };
 
     let output = new_empty_inst_output(ctx, to, self_id);
