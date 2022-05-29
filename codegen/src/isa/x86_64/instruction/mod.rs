@@ -5,7 +5,10 @@ use crate::{
         slot::SlotId,
         Function,
     },
-    isa::{x86_64::register::reg_to_str, TargetIsa},
+    isa::{
+        x86_64::register::{reg_to_str, GR32, GR64, GR8},
+        TargetIsa,
+    },
     register::{Reg, VReg, VRegUsers},
 };
 use std::fmt;
@@ -427,6 +430,24 @@ impl From<i64> for OperandData {
 impl From<&i64> for OperandData {
     fn from(i: &i64) -> Self {
         OperandData::Int64(*i)
+    }
+}
+
+impl From<GR8> for OperandData {
+    fn from(r: GR8) -> Self {
+        OperandData::Reg(r.into())
+    }
+}
+
+impl From<GR32> for OperandData {
+    fn from(r: GR32) -> Self {
+        OperandData::Reg(r.into())
+    }
+}
+
+impl From<GR64> for OperandData {
+    fn from(r: GR64) -> Self {
+        OperandData::Reg(r.into())
     }
 }
 

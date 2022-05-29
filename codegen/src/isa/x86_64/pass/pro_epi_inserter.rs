@@ -1,7 +1,7 @@
 use crate::{
     function::{instruction::Instruction, Function},
     isa::x86_64::{
-        instruction::{InstructionData, Opcode, Operand, OperandData},
+        instruction::{InstructionData, Opcode, Operand},
         register::GR64,
         X86_64,
     },
@@ -17,6 +17,10 @@ pub fn run_on_module(module: &mut Module<X86_64>) -> Result<()> {
 }
 
 pub fn run_on_function(function: &mut Function<X86_64>) {
+    if function.is_declaration {
+        return;
+    }
+
     let slot_size = function.slots.ensure_computed_offsets();
     let num_saved_64bit_regs = 1; // rbp TODO
 
@@ -26,40 +30,39 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
     ) - (num_saved_64bit_regs * 8 + 8) as i32;
 
     // insert prologue
-    if let Some(entry) = function.layout.first_block {
-        if adj > 0 {
-            let sub = function.data.create_inst(Instruction::new(
-                InstructionData {
-                    opcode: Opcode::SUBr64i32,
-                    operands: vec![
-                        Operand::input_output(OperandData::Reg(GR64::RSP.into())),
-                        Operand::input(OperandData::Int32(adj)),
-                    ],
-                },
-                entry,
-            ));
-            function.layout.insert_inst_at_start(sub, entry);
-        }
-        let mov = function.data.create_inst(Instruction::new(
+    let entry = function.layout.first_block.unwrap();
+    if adj > 0 {
+        let sub = function.data.create_inst(Instruction::new(
             InstructionData {
-                opcode: Opcode::MOVrr64,
+                opcode: Opcode::SUBr64i32,
                 operands: vec![
-                    Operand::output(OperandData::Reg(GR64::RBP.into())),
-                    Operand::input(OperandData::Reg(GR64::RSP.into())),
+                    Operand::input_output(GR64::RSP.into()),
+                    Operand::input(adj.into()),
                 ],
             },
             entry,
         ));
-        function.layout.insert_inst_at_start(mov, entry);
-        let push64 = function.data.create_inst(Instruction::new(
-            InstructionData {
-                opcode: Opcode::PUSH64,
-                operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
-            },
-            entry,
-        ));
-        function.layout.insert_inst_at_start(push64, entry);
+        function.layout.insert_inst_at_start(sub, entry);
     }
+    let mov = function.data.create_inst(Instruction::new(
+        InstructionData {
+            opcode: Opcode::MOVrr64,
+            operands: vec![
+                Operand::output(GR64::RBP.into()),
+                Operand::input(GR64::RSP.into()),
+            ],
+        },
+        entry,
+    ));
+    let push64 = function.data.create_inst(Instruction::new(
+        InstructionData {
+            opcode: Opcode::PUSH64,
+            operands: vec![Operand::input(GR64::RBP.into())],
+        },
+        entry,
+    ));
+    function.layout.insert_inst_at_start(mov, entry);
+    function.layout.insert_inst_at_start(push64, entry);
 
     // insert epilogue
     let mut epilogues = vec![];
@@ -78,8 +81,8 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
                 InstructionData {
                     opcode: Opcode::ADDr64i32,
                     operands: vec![
-                        Operand::output(OperandData::Reg(GR64::RSP.into())),
-                        Operand::input(OperandData::Int32(adj)),
+                        Operand::output(GR64::RSP.into()),
+                        Operand::input(adj.into()),
                     ],
                 },
                 block,
@@ -89,7 +92,7 @@ pub fn run_on_function(function: &mut Function<X86_64>) {
         let pop64 = function.data.create_inst(Instruction::new(
             InstructionData {
                 opcode: Opcode::POP64,
-                operands: vec![Operand::input(OperandData::Reg(GR64::RBP.into()))],
+                operands: vec![Operand::input(GR64::RBP.into())],
             },
             block,
         ));
