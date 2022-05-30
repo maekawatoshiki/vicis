@@ -172,10 +172,11 @@ fn lower_load_gep(
                 MOperand::new(OperandData::None),
             ]
         }
-        [Value::Instruction(base_ptr), Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
+        [base_ptr, Const(Int(Int64(idx0))), Value::Instruction(idx1)] => {
             let mut slot = None;
             let mut base = None;
-            if let Some(p) = ctx.inst_id_to_slot_id.get(base_ptr) {
+            if let Value::Instruction(base_ptr) = base_ptr &&
+                let Some(p) = ctx.inst_id_to_slot_id.get(base_ptr) {
                 slot = Some(*p);
             } else {
                 base = Some(get_operand_for_val(
@@ -216,7 +217,11 @@ fn lower_load_gep(
                 )),
             ]
         }
-        _ => return Err(LoweringError::Todo("Unsupported GEP pattern for load".into()).into()),
+        e => {
+            return Err(
+                LoweringError::Todo(format!("Unsupported GEP pattern for load: {e:?}")).into(),
+            )
+        }
     };
 
     ctx.mark_as_merged(gep_id);
@@ -238,7 +243,30 @@ fn lower_load_gep(
             },
             ctx.block_map[&ctx.cur_block],
         )]);
+    } else if sext.is_none() && src_ty.is_i8() {
+        ctx.inst_seq.append(&mut vec![MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::MOVrm8,
+                operands: vec![MOperand::output(OperandData::VReg(output))]
+                    .into_iter()
+                    .chain(mem.into_iter())
+                    .collect(),
+            },
+            ctx.block_map[&ctx.cur_block],
+        )]);
+    } else if sext.is_none() && (src_ty.is_i64() || src_ty.is_pointer(ctx.types)) {
+        ctx.inst_seq.append(&mut vec![MachInstruction::new(
+            InstructionData {
+                opcode: Opcode::MOVrm64,
+                operands: vec![MOperand::output(OperandData::VReg(output))]
+                    .into_iter()
+                    .chain(mem.into_iter())
+                    .collect(),
+            },
+            ctx.block_map[&ctx.cur_block],
+        )]);
     } else {
+        println!("{}", ctx.types.to_string(src_ty));
         return Err(LoweringError::Todo("Load result must be i32".into()).into());
     }
 

@@ -31,8 +31,8 @@ pub fn lower_store(
             // Maybe Alloca
             if let Some(slot_id) = ctx.inst_id_to_slot_id.get(id) {
                 dst_slot = Some(*slot_id);
-            } else if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
-                return lower_store_gep(ctx, tys, args, _align, *id);
+            // } else if ctx.ir_data.instructions[*id].opcode == IrOpcode::GetElementPtr {
+            //     return lower_store_gep(ctx, tys, args, _align, *id);
             } else {
                 dst_vreg = Some(get_inst_output(ctx, tys[1], *id)?);
             }

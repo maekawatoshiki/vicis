@@ -101,6 +101,9 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Sext => {
             lower_sext(ctx, inst.id.unwrap(), tys, arg)
         }
+        Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Trunc => {
+            lower_trunc(ctx, inst.id.unwrap(), tys, arg)
+        }
         Operand::Cast(Cast { ref tys, arg }) if inst.opcode == IrOpcode::Bitcast => {
             lower_bitcast(ctx, inst.id.unwrap(), tys, arg)
         }
@@ -115,7 +118,11 @@ fn lower(ctx: &mut LoweringContext<X86_64>, inst: &IrInstruction) -> Result<()> 
         }) => lower_call(ctx, inst.id.unwrap(), tys, args),
         Operand::Ret(Ret { val: None, .. }) => lower_return(ctx, None),
         Operand::Ret(Ret { val: Some(val), ty }) => lower_return(ctx, Some((ty, val))),
-        ref e => Err(LoweringError::Todo(format!("Unsupported instruction: {:?}", e)).into()),
+        ref e => Err(LoweringError::Todo(format!(
+            "Unsupported instruction: {:?}, {:?}",
+            e, inst.opcode
+        ))
+        .into()),
     }
 }
 
@@ -222,13 +229,48 @@ fn lower_bin(
                 operands: vec![MO::input_output(output.into()), MO::new(rhs.into())],
             }
         }
+        OperandData::Int8(rhs) => {
+            insert_move(ctx);
+            InstructionData {
+                opcode: match op {
+                    IrOpcode::Add => Opcode::ADDri8,
+                    IrOpcode::Sub => Opcode::SUBri8,
+                    op => {
+                        return Err(
+                            LoweringError::Todo(format!("Unsupported opcode: {:?}", op)).into()
+                        )
+                    }
+                },
+                operands: vec![MO::input_output(output.into()), MO::new(rhs.into())],
+            }
+        }
         OperandData::VReg(rhs) => {
             insert_move(ctx);
+
+            if op == IrOpcode::Shl {
+                ctx.inst_seq.push(MachInstruction::new(
+                    InstructionData {
+                        opcode: Opcode::MOVrr32,
+                        operands: vec![MO::output(GR32::ECX.into()), MO::input(rhs.into())],
+                    },
+                    ctx.block_map[&ctx.cur_block],
+                ));
+                ctx.inst_seq.push(MachInstruction::new(
+                    InstructionData {
+                        opcode: Opcode::SHLr32cl,
+                        operands: vec![MO::input_output(output.into()), MO::input(GR8::CL.into())],
+                    },
+                    ctx.block_map[&ctx.cur_block],
+                ));
+                return Ok(());
+            }
+
             InstructionData {
                 opcode: match op {
                     IrOpcode::Add => Opcode::ADDrr32,
                     IrOpcode::Sub => Opcode::SUBrr32,
                     IrOpcode::Mul => Opcode::IMULrr32,
+                    // IrOpcode::Shl => Opcode::SHLr32cl,
                     op => {
                         return Err(
                             LoweringError::Todo(format!("Unsupported opcode: {:?}", op)).into()
@@ -243,6 +285,47 @@ fn lower_bin(
 
     ctx.inst_seq
         .push(MachInstruction::new(data, ctx.block_map[&ctx.cur_block]));
+
+    Ok(())
+}
+
+fn lower_trunc(
+    ctx: &mut LoweringContext<X86_64>,
+    self_id: InstructionId,
+    tys: &[Type; 2],
+    arg: ValueId,
+) -> Result<()> {
+    let from = tys[0];
+    let to = tys[1];
+    // TODO
+    assert!(from.is_i32());
+    assert!(to.is_i64());
+
+    let val = match ctx.ir_data.values[arg] {
+        Value::Instruction(id) => {
+            let is_mergeable_load =
+                ctx.ir_data.inst_ref(id).opcode == IrOpcode::Load && from.is_i32();
+
+            if is_mergeable_load {
+                let output = new_empty_inst_output(ctx, to, self_id);
+                ctx.set_output_for_inst(id, output); // Use the same output register for `load` as `sext`
+                return Ok(());
+            }
+
+            get_inst_output(ctx, from, id)?
+        }
+        _ => get_vreg_for_val(ctx, from, arg)?,
+    };
+
+    let output = new_empty_inst_output(ctx, to, self_id);
+
+    ctx.inst_seq.push(MachInstruction::new(
+        InstructionData {
+            opcode: Opcode::MOVSXDr64r32,
+            operands: vec![MO::output(output.into()), MO::input(val.into())],
+        },
+        ctx.block_map[&ctx.cur_block],
+    ));
 
     Ok(())
 }
@@ -298,14 +381,18 @@ fn lower_zext(
     let to = tys[1];
 
     assert!(from.is_i8());
-    assert!(to.is_i32());
+    assert!(to.is_i32() || to.is_i64());
 
     let val = get_operand_for_val(ctx, from, arg)?;
     let output = new_empty_inst_output(ctx, to, self_id);
 
     ctx.inst_seq.push(MachInstruction::new(
         InstructionData {
-            opcode: Opcode::MOVZXr32r8,
+            opcode: if to.is_i32() {
+                Opcode::MOVZXr32r8
+            } else {
+                Opcode::MOVZXr64r8
+            },
             operands: vec![MO::output(output.into()), MO::input(val.into())],
         },
         ctx.block_map[&ctx.cur_block],
@@ -540,6 +627,15 @@ fn lower_condbr(
                     ctx.block_map[&ctx.cur_block],
                 ));
             }
+            Value::Constant(ConstantValue::Int(ConstantInt::Int8(rhs))) => {
+                ctx.inst_seq.push(MachInstruction::new(
+                    InstructionData {
+                        opcode: Opcode::CMPri8,
+                        operands: vec![MO::input(lhs.into()), MO::new(rhs.into())],
+                    },
+                    ctx.block_map[&ctx.cur_block],
+                ));
+            }
             Value::Constant(ConstantValue::Null(_)) => {
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
@@ -550,7 +646,7 @@ fn lower_condbr(
                 ));
             }
             Value::Argument(_) | Value::Instruction(_) => {
-                assert!(ty.is_i32() || ty.is_i64());
+                assert!(ty.is_i32() || ty.is_i64() || ty.is_pointer(ctx.types));
                 let rhs = get_operand_for_val(ctx, *ty, args[1])?;
                 ctx.inst_seq.push(MachInstruction::new(
                     InstructionData {
@@ -840,6 +936,7 @@ fn get_operand_for_const(
     konst: &ConstantValue,
 ) -> Result<OperandData> {
     match konst {
+        ConstantValue::Int(ConstantInt::Int8(i)) => Ok(OperandData::Int8(*i)),
         ConstantValue::Int(ConstantInt::Int32(i)) => Ok(OperandData::Int32(*i)),
         ConstantValue::Int(ConstantInt::Int64(i)) => Ok(OperandData::Int64(*i)),
         ConstantValue::Expr(ConstantExpr::GetElementPtr {

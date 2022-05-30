@@ -247,9 +247,11 @@ impl fmt::Display for Opcode {
             match self {
                 Self::PUSH64 => "push",
                 Self::POP64 => "pop",
-                Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 | Self::ADDrr64 => "add",
-                Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
+                Self::ADDri8 | Self::ADDr64i32 | Self::ADDri32 | Self::ADDrr32 | Self::ADDrr64 =>
+                    "add",
+                Self::SUBri8 | Self::SUBri32 | Self::SUBrr32 | Self::SUBr64i32 => "sub",
                 Self::IMULrr32 | Self::IMULrr64i32 => "imul",
+                Self::SHLr32cl => "shl",
                 Self::MOVrm8
                 | Self::MOVmr8
                 | Self::MOVmi8
@@ -266,7 +268,7 @@ impl fmt::Display for Opcode {
                 | Self::MOVmr32 => "mov",
                 Self::LEArm64 => "lea",
                 Self::MOVSXDr64r32 | Self::MOVSXDr64m32 => "movsxd",
-                Self::MOVZXr32r8 => "movzx",
+                Self::MOVZXr32r8 | Self::MOVZXr64r8 => "movzx",
                 Self::CMPri8 | Self::CMPri32 | Self::CMPrr32 => "cmp",
                 Self::JMP => "jmp",
                 Self::JE => "je",
