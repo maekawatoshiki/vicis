@@ -41,63 +41,63 @@ main:
   mov ecx, dword ptr [rbp-8]
   mov edx, dword ptr [rbp-12]
   mov edi, dword ptr [rbp-16]
-  mov ebx, dword ptr [rbp-20]
-  mov r12d, dword ptr [rbp-24]
-  mov r13d, dword ptr [rbp-28]
-  mov r14d, dword ptr [rbp-32]
-  mov r15d, dword ptr [rbp-36]
-  mov esi, dword ptr [rbp-40]
-  mov dword ptr [rbp-84], esi
-  mov esi, dword ptr [rbp-44]
-  mov dword ptr [rbp-88], esi
-  mov esi, dword ptr [rbp-48]
-  mov dword ptr [rbp-92], esi
-  mov esi, dword ptr [rbp-52]
-  mov dword ptr [rbp-96], esi
-  mov esi, dword ptr [rbp-56]
-  mov dword ptr [rbp-100], esi
-  mov esi, dword ptr [rbp-60]
-  mov dword ptr [rbp-104], esi
-  mov esi, dword ptr [rbp-64]
-  mov dword ptr [rbp-108], esi
-  mov esi, dword ptr [rbp-68]
-  mov dword ptr [rbp-112], esi
-  mov esi, dword ptr [rbp-72]
-  mov dword ptr [rbp-116], esi
-  mov esi, dword ptr [rbp-76]
-  mov dword ptr [rbp-120], esi
-  mov esi, dword ptr [rbp-80]
-  mov dword ptr [rbp-124], esi
+  mov esi, dword ptr [rbp-20]
+  mov ebx, dword ptr [rbp-24]
+  mov r12d, dword ptr [rbp-28]
+  mov r13d, dword ptr [rbp-32]
+  mov r14d, dword ptr [rbp-36]
+  mov r15d, dword ptr [rbp-40]
+  mov dword ptr [rbp-84], r15d
+  mov r15d, dword ptr [rbp-44]
+  mov dword ptr [rbp-88], r15d
+  mov r15d, dword ptr [rbp-48]
+  mov dword ptr [rbp-92], r15d
+  mov r15d, dword ptr [rbp-52]
+  mov dword ptr [rbp-96], r15d
+  mov r15d, dword ptr [rbp-56]
+  mov dword ptr [rbp-100], r15d
+  mov r15d, dword ptr [rbp-60]
+  mov dword ptr [rbp-104], r15d
+  mov r15d, dword ptr [rbp-64]
+  mov dword ptr [rbp-108], r15d
+  mov r15d, dword ptr [rbp-68]
+  mov dword ptr [rbp-112], r15d
+  mov r15d, dword ptr [rbp-72]
+  mov dword ptr [rbp-116], r15d
+  mov r15d, dword ptr [rbp-76]
+  mov dword ptr [rbp-120], r15d
+  mov r15d, dword ptr [rbp-80]
+  mov dword ptr [rbp-124], r15d
   add eax, ecx
   add eax, edx
   add eax, edi
+  add eax, esi
   add eax, ebx
   add eax, r12d
   add eax, r13d
   add eax, r14d
-  add eax, r15d
-  mov esi, dword ptr [rbp-84]
-  add eax, esi
-  mov esi, dword ptr [rbp-88]
-  add eax, esi
-  mov esi, dword ptr [rbp-92]
-  add eax, esi
-  mov esi, dword ptr [rbp-96]
-  add eax, esi
-  mov esi, dword ptr [rbp-100]
-  add eax, esi
-  mov esi, dword ptr [rbp-104]
-  add eax, esi
-  mov esi, dword ptr [rbp-108]
-  add eax, esi
-  mov esi, dword ptr [rbp-112]
-  add eax, esi
-  mov esi, dword ptr [rbp-116]
-  add eax, esi
-  mov esi, dword ptr [rbp-120]
-  add eax, esi
-  mov esi, dword ptr [rbp-124]
-  add eax, esi
+  mov ecx, dword ptr [rbp-84]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-88]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-92]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-96]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-100]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-104]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-108]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-112]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-116]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-120]
+  add eax, ecx
+  mov ecx, dword ptr [rbp-124]
+  add eax, ecx
   add rsp, 136
   pop rbx
   pop r12

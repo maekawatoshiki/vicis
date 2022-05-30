@@ -32,7 +32,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
 
         // Create live ranges for new virtual registers.
         for &mut new_vreg in new_vregs {
-            self.liveness.compute_live_ranges(self.function, new_vreg)
+            self.liveness.compute_live_ranges(self.function, new_vreg);
         }
 
         self.liveness.remove_vreg(vreg);
@@ -139,6 +139,7 @@ impl<'a, 'b, T: TargetIsa> Spiller<'a, 'b, T> {
         } else {
             self.liveness
                 .recompute_program_points_after(before_pp, true);
+            assert!(before_pp.1 > 0);
             ProgramPoint(before_pp.0, 0)
         };
         if let Some(inst_pp) = ProgramPoint::between(prev_before_pp, before_pp) {

@@ -48,31 +48,29 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
     log::debug!("regalloc target: {:?}", function);
 
     let mut worklist: Vec<VReg> = all_vregs.into_iter().collect();
-    // sort by segment start
     worklist.sort_by(|a, b| {
-        liveness
-            .vreg_range(a)
-            .unwrap()
-            .first_seg()
-            .unwrap()
-            .start
-            .cmp(&liveness.vreg_range(b).unwrap().first_seg().unwrap().start)
+        let a = liveness.vreg_range(a).unwrap();
+        let b = liveness.vreg_range(b).unwrap();
+        (a.first_seg().unwrap().start, a.weight()).cmp(&(b.first_seg().unwrap().start, b.weight()))
     });
     let mut worklist: VecDeque<VReg> = worklist.into_iter().collect();
+    log::debug!("worklist: {worklist:?}");
 
     let mut assigned_regs: FxHashMap<VReg, Reg> = FxHashMap::default();
 
     // TODO: Refactoring.
-    let mut new_vregs = vec![];
+    let mut spill_regs = FxHashSet::default();
     while let Some(vreg) = worklist.pop_front() {
         let mut availables =
             T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg)).gpr_list();
-        let _ = availables.pop(); // TODO: Reserved for spill. Spilling may require more than one reserved registers.
         availables.append(
             &mut T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg))
                 .csr_list(),
         );
         let _ = availables.pop(); // TODO: Don't used RBP.
+        if !spill_regs.contains(&vreg) {
+            availables.pop(); // TODO
+        }
 
         if let Some(preferred) = preferred.get(&vreg) {
             availables.splice(0..0, preferred.clone());
@@ -89,22 +87,15 @@ pub fn run_on_function<T: TargetIsa>(function: &mut Function<T>) {
             }
         }
         if !allocated {
+            let mut new_vregs = vec![];
             log::debug!("spill: {:?}", vreg);
             spiller::Spiller::new(function, &mut liveness).spill(vreg, &mut new_vregs);
+            for &r in &new_vregs {
+                log::debug!("new vreg: {:?}", r);
+                spill_regs.insert(r);
+            }
+            worklist.extend(new_vregs.into_iter());
         }
-    }
-
-    // Allocate spill register.
-    let mut worklist: VecDeque<VReg> = new_vregs.into_iter().collect();
-    while let Some(vreg) = worklist.pop_front() {
-        let reg = T::RegClass::for_type(&function.types, function.data.vregs.type_for(vreg))
-            .gpr_list()
-            .pop()
-            .unwrap();
-        let reg_unit = T::RegInfo::to_reg_unit(reg);
-        assert!(!liveness.interfere(reg_unit, vreg));
-        assigned_regs.insert(vreg, reg);
-        liveness.assign(reg_unit, vreg);
     }
 
     // Rewrite vreg for reg

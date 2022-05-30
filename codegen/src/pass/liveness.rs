@@ -471,6 +471,14 @@ impl LiveRange {
         self.0.get(0)
     }
 
+    /// Returns the weight of the live range.
+    /// The weight of longer live range is higher.
+    pub fn weight(&self) -> u32 {
+        self.0.iter().fold(0, |a, s| {
+            a + (s.end.1 - s.start.1) * (s.end.0 - s.start.0 + 10)
+        })
+    }
+
     pub fn interfere(&self, other: &Self) -> bool {
         for x in &self.0 {
             for y in &other.0 {
